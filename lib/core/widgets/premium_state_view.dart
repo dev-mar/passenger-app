@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_ui_tokens.dart';
 import '../ui/texi_scale_press.dart';
 
 /// Tarjeta reusable para estados de carga/empty/error/offline con estética consistente.
@@ -24,16 +25,21 @@ class PremiumStateView extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxxx,
+        AppSpacing.sheetH,
+        AppSpacing.xxxx,
+        AppSpacing.xxl + AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadii.snackBar),
         border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.7)),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 46, color: cs.primary),
-          const SizedBox(height: 12),
+          Icon(icon, size: AppIconSizes.stateHero, color: cs.primary),
+          const SizedBox(height: AppSpacing.xl),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -42,7 +48,7 @@ class PremiumStateView extends StatelessWidget {
                   color: cs.onSurface,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.md),
           Text(
             message,
             textAlign: TextAlign.center,
@@ -51,7 +57,7 @@ class PremiumStateView extends StatelessWidget {
                 ),
           ),
           if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.xxx),
             TexiScalePress(
               child: FilledButton.icon(
                 onPressed: onAction,
@@ -70,7 +76,7 @@ class PremiumSkeletonBox extends StatefulWidget {
   const PremiumSkeletonBox({
     super.key,
     required this.height,
-    this.radius = 14,
+    this.radius = AppRadii.md,
   });
 
   final double height;
