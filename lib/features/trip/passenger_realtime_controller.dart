@@ -1,0 +1,389 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:socket_io_client/socket_io_client.dart' as io;
+
+import '../../core/config/app_config.dart';
+import '../../core/auth/auth_service.dart';
+import '../../core/network/trips_api.dart';
+import '../../core/storage/trip_session_storage.dart';
+import '../../data/models/quote_response.dart';
+
+final passengerRealtimeProvider =
+    StateNotifierProvider<PassengerRealtimeController, PassengerRealtimeState>(
+  (ref) => PassengerRealtimeController(),
+);
+
+class PassengerRealtimeState {
+  final bool connecting;
+  final bool connected;
+  final String? errorCode;
+  final String? activeTripId;
+  final String? status; // searching | accepted | arrived | started | completed | cancelled | expired
+  final QuoteResponse? quote;
+  final double? driverLat;
+  final double? driverLng;
+  final String? driverName;
+  final String? carColor;
+  final String? carPlate;
+  final String? carModel;
+  final String? driverPhotoUrl;
+  final DateTime? driverPhotoExpiresAt;
+
+  const PassengerRealtimeState({
+    required this.connecting,
+    required this.connected,
+    this.errorCode,
+    this.activeTripId,
+    this.status,
+    this.quote,
+    this.driverLat,
+    this.driverLng,
+    this.driverName,
+    this.carColor,
+    this.carPlate,
+    this.carModel,
+    this.driverPhotoUrl,
+    this.driverPhotoExpiresAt,
+  });
+
+  static const initial = PassengerRealtimeState(
+    connecting: false,
+    connected: false,
+    errorCode: null,
+    activeTripId: null,
+    status: null,
+    quote: null,
+    driverLat: null,
+    driverLng: null,
+    driverName: null,
+    carColor: null,
+    carPlate: null,
+    carModel: null,
+    driverPhotoUrl: null,
+    driverPhotoExpiresAt: null,
+  );
+
+  PassengerRealtimeState copyWith({
+    bool? connecting,
+    bool? connected,
+    String? errorCode,
+    String? activeTripId,
+    String? status,
+    QuoteResponse? quote,
+    double? driverLat,
+    double? driverLng,
+    String? driverName,
+    String? carColor,
+    String? carPlate,
+    String? carModel,
+    String? driverPhotoUrl,
+    DateTime? driverPhotoExpiresAt,
+  }) {
+    return PassengerRealtimeState(
+      connecting: connecting ?? this.connecting,
+      connected: connected ?? this.connected,
+      errorCode: errorCode,
+      activeTripId: activeTripId ?? this.activeTripId,
+      status: status ?? this.status,
+      quote: quote ?? this.quote,
+      driverLat: driverLat ?? this.driverLat,
+      driverLng: driverLng ?? this.driverLng,
+      driverName: driverName ?? this.driverName,
+      carColor: carColor ?? this.carColor,
+      carPlate: carPlate ?? this.carPlate,
+      carModel: carModel ?? this.carModel,
+      driverPhotoUrl: driverPhotoUrl ?? this.driverPhotoUrl,
+      driverPhotoExpiresAt: driverPhotoExpiresAt ?? this.driverPhotoExpiresAt,
+    );
+  }
+}
+
+/// Fallback cuando el backend envía username (teléfono) en lugar de fullName.
+const String driverNameFallbackDefault = 'Conductor TEXI';
+
+/// Devuelve el nombre a mostrar del conductor.
+/// Si [raw] es null, vacío o solo dígitos/símbolos de teléfono, devuelve [fallback].
+String displayDriverName(String? raw, [String fallback = driverNameFallbackDefault]) {
+  if (raw == null || raw.trim().isEmpty) return fallback;
+  final t = raw.trim();
+  if (RegExp(r'^[\d\s+\-()]+$').hasMatch(t)) return fallback;
+  return t;
+}
+
+String? normalizeDriverPhotoUrl(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return null;
+  final v = raw.trim();
+  final uri = Uri.tryParse(v);
+  if (uri == null) return null;
+  if (uri.hasScheme) return uri.toString();
+  if (v.startsWith('/')) return '${AppConfig.baseUrlTripsRest}$v';
+  return '${AppConfig.baseUrlTripsRest}/$v';
+}
+
+DateTime? parseDriverPhotoExpiresAt(dynamic raw) {
+  if (raw == null) return null;
+  final s = raw.toString().trim();
+  if (s.isEmpty) return null;
+  return DateTime.tryParse(s);
+}
+
+class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> {
+  PassengerRealtimeController() : super(PassengerRealtimeState.initial);
+
+  io.Socket? _socket;
+  StreamSubscription? _reconnectSub;
+
+  /// Sincroniza el `status` actual del viaje vía REST.
+  /// Se usa cuando el socket podría haber perdido eventos (p. ej. driver
+  /// finaliza offline).
+  Future<void> syncTripStatusFromApi({
+    required String tripId,
+  }) async {
+    try {
+      final token = await AuthService.getValidToken();
+      if (token == null || token.isEmpty) return;
+      final api = TripsApi(token: token);
+      final res = await api.getPassengerTripStatus(tripId: tripId);
+      final mergedPhoto = normalizeDriverPhotoUrl(res.driverPhotoUrl) ?? state.driverPhotoUrl;
+      final mergedPhotoExpiresAt = res.driverPhotoExpiresAt ?? state.driverPhotoExpiresAt;
+      state = state.copyWith(
+        activeTripId: tripId,
+        status: res.status,
+        errorCode: null,
+        driverLat: res.driverLat ?? state.driverLat,
+        driverLng: res.driverLng ?? state.driverLng,
+        driverPhotoUrl: mergedPhoto,
+        driverPhotoExpiresAt: mergedPhotoExpiresAt,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[PASSENGER_RT] syncTripStatusFromApi error: $e');
+      }
+    }
+  }
+
+  /// Hidrata campos de driver/vehículo desde cache local.
+  /// Se usa porque WS no re-emite `trip:accepted` al reconectar.
+  void hydrateDriverInfoFromLocalCache({
+    required String tripId,
+    String? driverName,
+    String? carColor,
+    String? carPlate,
+    String? carModel,
+    String? driverPhotoUrl,
+    String? driverPhotoExpiresAt,
+  }) {
+    state = state.copyWith(
+      activeTripId: tripId,
+      driverName: displayDriverName(driverName),
+      carColor: carColor,
+      carPlate: carPlate,
+      carModel: carModel,
+      driverPhotoUrl: normalizeDriverPhotoUrl(driverPhotoUrl),
+      driverPhotoExpiresAt: parseDriverPhotoExpiresAt(driverPhotoExpiresAt),
+    );
+  }
+
+  Future<void> connect({required String tripId, QuoteResponse? quote}) async {
+    if (state.connected || state.connecting) return;
+    state = state.copyWith(connecting: true, errorCode: null);
+    if (kDebugMode) {
+      debugPrint('[PASSENGER_RT] Conectando Socket.IO para tripId=$tripId');
+    }
+
+    try {
+      final token = await AuthService.getValidToken();
+      if (token == null || token.isEmpty) {
+        state = state.copyWith(
+          connecting: false,
+          connected: false,
+          errorCode: 'NO_TOKEN',
+        );
+        return;
+      }
+
+      final url = AppConfig.baseUrlSocket;
+      final opts = io.OptionBuilder()
+          .setTransports(['websocket'])
+          .enableForceNew()
+          .enableReconnection()
+          .setPath('/socket.io/')
+          // Auth: Bearer JWT; el rol lo deduce el backend desde el token (no x-role).
+          .setExtraHeaders({'Authorization': 'Bearer $token'})
+          .build();
+
+      final socket = io.io(url, opts);
+      _socket = socket;
+
+      void onSocketReady(String reason) {
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] $reason a $url');
+        }
+        state = state.copyWith(
+          connecting: false,
+          connected: true,
+          errorCode: null,
+          activeTripId: tripId,
+          status: state.status ?? 'searching',
+          quote: quote,
+        );
+        unawaited(syncTripStatusFromApi(tripId: tripId));
+      }
+
+      socket.onConnect((_) => onSocketReady('conectado'));
+
+      // Tras cortes de red / segundo plano, el cliente puede reconectar sin recrear el widget.
+      socket.on('reconnect', (_) => onSocketReady('reconectado'));
+
+      socket.onConnectError((data) {
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] connect_error: $data');
+        }
+        state = state.copyWith(
+          connecting: false,
+          connected: false,
+          errorCode: 'SOCKET',
+        );
+      });
+
+      socket.onDisconnect((_) {
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] disconnect');
+        }
+        state = state.copyWith(connected: false);
+      });
+
+      socket.on('trip:accepted', (data) {
+        try {
+          if (data is! Map) return;
+          final tripIdData = data['tripId']?.toString();
+          if (tripIdData == null || tripIdData != tripId) return;
+          // fullName es el nombre correcto (profile-extended). No usar username (teléfono).
+          final rawName = data['fullName']?.toString() ??
+              data['driverName']?.toString() ??
+              data['driver_name']?.toString();
+          final driverName = displayDriverName(rawName);
+          final carColor = data['carColor']?.toString() ?? data['car_color']?.toString();
+          final carPlate = data['carPlate']?.toString() ?? data['plate']?.toString() ?? data['car_plate']?.toString();
+          final carModel = data['carModel']?.toString() ?? data['car_model']?.toString();
+          final driverPhotoUrl = normalizeDriverPhotoUrl(
+            data['profilePhotoUrl']?.toString() ??
+                data['picture_profile']?.toString() ??
+                data['driverPhotoUrl']?.toString() ??
+                data['photoUrl']?.toString() ??
+                data['avatarUrl']?.toString() ??
+                data['profile_photo_url']?.toString() ??
+                data['driver_photo_url']?.toString(),
+          );
+          final driverPhotoExpiresAt = parseDriverPhotoExpiresAt(data['profilePhotoExpiresAt']);
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] trip:accepted tripId=$tripIdData driver=$driverName');
+          }
+          state = state.copyWith(
+            activeTripId: tripIdData,
+            status: 'accepted',
+            driverName: driverName,
+            carColor: carColor,
+            carPlate: carPlate,
+            carModel: carModel,
+            driverPhotoUrl: driverPhotoUrl,
+            driverPhotoExpiresAt: driverPhotoExpiresAt,
+          );
+          unawaited(() async {
+            await TripSessionStorage.cacheDriverInfo(
+              tripId: tripIdData,
+              driverName: driverName,
+              carColor: carColor,
+              carPlate: carPlate,
+              carModel: carModel,
+              driverPhotoUrl: driverPhotoUrl,
+              driverPhotoExpiresAt: driverPhotoExpiresAt?.toIso8601String(),
+            );
+          }());
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] Error manejando trip:accepted: $e');
+          }
+        }
+      });
+
+      socket.on('trip:status', (data) {
+        try {
+          if (data is! Map) return;
+          final tripIdData = data['tripId']?.toString();
+          final newStatus = data['status']?.toString();
+          if (tripIdData == null || newStatus == null) return;
+          if (tripIdData != tripId) return;
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] trip:status tripId=$tripIdData status=$newStatus');
+          }
+          // En esta versión de Flutter sólo están soportados beep / alert.
+          if (newStatus == 'arrived') {
+            SystemSound.play(SystemSoundType.alert);
+          }
+          state = state.copyWith(
+            activeTripId: tripIdData,
+            status: newStatus,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] Error manejando trip:status: $e');
+          }
+        }
+      });
+
+      socket.on('trip:driver_location', (data) {
+        try {
+          if (data is! Map) return;
+          final tripIdData = data['tripId']?.toString();
+          if (tripIdData == null || tripIdData != tripId) return;
+          final latRaw = data['lat'];
+          final lngRaw = data['lng'];
+          if (latRaw is! num || lngRaw is! num) return;
+          final lat = latRaw.toDouble();
+          final lng = lngRaw.toDouble();
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] trip:driver_location tripId=$tripIdData lat=$lat lng=$lng');
+          }
+          state = state.copyWith(
+            driverLat: lat,
+            driverLng: lng,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] Error manejando trip:driver_location: $e');
+          }
+        }
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[PASSENGER_RT] Error general conectando: $e');
+      }
+      state = state.copyWith(
+        connecting: false,
+        connected: false,
+        errorCode: 'UNKNOWN',
+      );
+    }
+  }
+
+  /// Desconecta el socket y resetea el estado (p. ej. cuando el pasajero cancela la búsqueda).
+  void disconnect() {
+    _reconnectSub?.cancel();
+    _socket?.disconnect();
+    _socket?.dispose();
+    _socket = null;
+    state = PassengerRealtimeState.initial;
+  }
+
+  @override
+  void dispose() {
+    _reconnectSub?.cancel();
+    _socket?.dispose();
+    super.dispose();
+  }
+}
+

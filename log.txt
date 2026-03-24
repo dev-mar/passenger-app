@@ -1,0 +1,1141 @@
+Launching analysis_options.yaml on sdk gphone16k x86 64 in debug mode...
+Running Gradle task 'assembleDebug'...                          
+analysis_options.yaml:5:8: Error: Can't find ')' to match '('.
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+       ^
+analysis_options.yaml:1:1: Error: Expected a declaration, but got '#'.
+# This file configures the analyzer, which statically analyzes Dart code to
+^
+analysis_options.yaml:1:8: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+       ^^^^
+analysis_options.yaml:1:24: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:1:28: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                           ^^^^^^^^
+analysis_options.yaml:1:38: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                     ^^^^^
+analysis_options.yaml:1:55: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                      ^^^^^^^^
+analysis_options.yaml:1:69: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                    ^^^^
+analysis_options.yaml:1:74: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                         ^^
+analysis_options.yaml:1:74: Error: Expected ';' after this.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                         ^^
+analysis_options.yaml:2:1: Error: Expected a declaration, but got '#'.
+# check for errors, warnings, and lints.
+^
+analysis_options.yaml:2:3: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# check for errors, warnings, and lints.
+  ^^^^^
+analysis_options.yaml:2:3: Error: Expected ';' after this.
+# check for errors, warnings, and lints.
+  ^^^^^
+analysis_options.yaml:2:9: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:2:9: Error: 'for' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:2:9: Error: Expected ';' after this.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:2:13: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# check for errors, warnings, and lints.
+            ^^^^^^
+analysis_options.yaml:2:31: Error: Expected ';' after this.
+# check for errors, warnings, and lints.
+                              ^^^
+analysis_options.yaml:2:35: Error: A function declaration needs an explicit list of parameters.
+Try adding a parameter list to the function declaration.
+# check for errors, warnings, and lints.
+                                  ^^^^^
+analysis_options.yaml:2:40: Error: Expected '{' before this.
+# check for errors, warnings, and lints.
+                                       ^
+analysis_options.yaml:2:40: Error: Expected a declaration, but got '.'.
+# check for errors, warnings, and lints.
+                                       ^
+analysis_options.yaml:3:1: Error: Expected a declaration, but got '#'.
+#
+^
+analysis_options.yaml:4:1: Error: Expected a declaration, but got '#'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+^
+analysis_options.yaml:4:7: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+      ^^^^^^
+analysis_options.yaml:4:25: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                        ^^
+analysis_options.yaml:4:32: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                               ^^^^^^^^
+analysis_options.yaml:4:45: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                            ^^^^^^^^
+analysis_options.yaml:4:54: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                     ^^
+analysis_options.yaml:4:54: Error: 'in' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                     ^^
+analysis_options.yaml:4:54: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                     ^^
+analysis_options.yaml:4:61: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                            ^^
+analysis_options.yaml:4:67: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                                  ^^^^
+analysis_options.yaml:4:71: Error: Expected a declaration, but got '-'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                                      ^
+analysis_options.yaml:4:72: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                                       ^^^^^^^
+analysis_options.yaml:4:72: Error: Expected ';' after this.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                                       ^^^^^^^
+analysis_options.yaml:5:1: Error: Expected a declaration, but got '#'.
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+^
+analysis_options.yaml:5:14: Error: Non-optional parameters can't have a default value.
+Try removing the default value or making the parameter optional.
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+             ^
+analysis_options.yaml:6:11: Error: Expected '{' before this.
+# invoked from the command line by running `flutter analyze`.
+          ^^^^
+analysis_options.yaml:6:16: Error: Expected ';' after this.
+# invoked from the command line by running `flutter analyze`.
+               ^^^
+analysis_options.yaml:6:28: Error: Expected ';' after this.
+# invoked from the command line by running `flutter analyze`.
+                           ^^^^
+analysis_options.yaml:6:36: Error: Expected ';' after this.
+# invoked from the command line by running `flutter analyze`.
+                                   ^^^^^^^
+analysis_options.yaml:6:44: Error: Expected a declaration, but got '`'.
+# invoked from the command line by running `flutter analyze`.
+                                           ^
+analysis_options.yaml:6:53: Error: Expected ';' after this.
+# invoked from the command line by running `flutter analyze`.
+                                                    ^^^^^^^
+analysis_options.yaml:6:60: Error: Expected a declaration, but got '`'.
+# invoked from the command line by running `flutter analyze`.
+                                                           ^
+analysis_options.yaml:6:61: Error: Expected a declaration, but got '.'.
+# invoked from the command line by running `flutter analyze`.
+                                                            ^
+analysis_options.yaml:8:1: Error: Expected a declaration, but got '#'.
+# The following line activates a set of recommended lints for Flutter apps,
+^
+analysis_options.yaml:8:7: Error: Expected ';' after this.
+# The following line activates a set of recommended lints for Flutter apps,
+      ^^^^^^^^^
+analysis_options.yaml:8:22: Error: Expected ';' after this.
+# The following line activates a set of recommended lints for Flutter apps,
+                     ^^^^^^^^^
+analysis_options.yaml:8:38: Error: A function declaration needs an explicit list of parameters.
+Try adding a parameter list to the function declaration.
+# The following line activates a set of recommended lints for Flutter apps,
+                                     ^^
+analysis_options.yaml:8:41: Error: Expected '{' before this.
+# The following line activates a set of recommended lints for Flutter apps,
+                                        ^^^^^^^^^^^
+analysis_options.yaml:8:53: Error: Expected ';' after this.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                    ^^^^^
+analysis_options.yaml:8:59: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                          ^^^
+analysis_options.yaml:8:59: Error: 'for' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                          ^^^
+analysis_options.yaml:8:59: Error: Expected ';' after this.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                          ^^^
+analysis_options.yaml:9:1: Error: Expected an identifier, but got '#'.
+Try inserting an identifier before '#'.
+# packages, and plugins designed to encourage good coding practices.
+^
+analysis_options.yaml:9:1: Error: Expected ';' after this.
+# packages, and plugins designed to encourage good coding practices.
+^
+analysis_options.yaml:9:3: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# packages, and plugins designed to encourage good coding practices.
+  ^^^^^^^^
+analysis_options.yaml:9:13: Error: Expected ';' after this.
+# packages, and plugins designed to encourage good coding practices.
+            ^^^
+analysis_options.yaml:9:25: Error: Expected ';' after this.
+# packages, and plugins designed to encourage good coding practices.
+                        ^^^^^^^^
+analysis_options.yaml:9:37: Error: Expected ';' after this.
+# packages, and plugins designed to encourage good coding practices.
+                                    ^^^^^^^^^
+analysis_options.yaml:9:52: Error: Expected ';' after this.
+# packages, and plugins designed to encourage good coding practices.
+                                                   ^^^^^^
+analysis_options.yaml:9:59: Error: A function declaration needs an explicit list of parameters.
+Try adding a parameter list to the function declaration.
+# packages, and plugins designed to encourage good coding practices.
+                                                          ^^^^^^^^^
+analysis_options.yaml:9:68: Error: Expected '{' before this.
+# packages, and plugins designed to encourage good coding practices.
+                                                                   ^
+analysis_options.yaml:9:68: Error: Expected a declaration, but got '.'.
+# packages, and plugins designed to encourage good coding practices.
+                                                                   ^
+analysis_options.yaml:10:1: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+include: package:flutter_lints/flutter.yaml
+^^^^^^^
+analysis_options.yaml:10:1: Error: Expected ';' after this.
+include: package:flutter_lints/flutter.yaml
+^^^^^^^
+analysis_options.yaml:10:8: Error: Expected a declaration, but got ':'.
+include: package:flutter_lints/flutter.yaml
+       ^
+analysis_options.yaml:10:10: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+include: package:flutter_lints/flutter.yaml
+         ^^^^^^^
+analysis_options.yaml:10:10: Error: Expected ';' after this.
+include: package:flutter_lints/flutter.yaml
+         ^^^^^^^
+analysis_options.yaml:10:17: Error: Expected a declaration, but got ':'.
+include: package:flutter_lints/flutter.yaml
+                ^
+analysis_options.yaml:10:18: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+include: package:flutter_lints/flutter.yaml
+                 ^^^^^^^^^^^^^
+analysis_options.yaml:10:18: Error: Expected ';' after this.
+include: package:flutter_lints/flutter.yaml
+                 ^^^^^^^^^^^^^
+analysis_options.yaml:10:31: Error: Expected a declaration, but got '/'.
+include: package:flutter_lints/flutter.yaml
+                              ^
+analysis_options.yaml:12:1: Error: Expected ';' after this.
+linter:
+^^^^^^
+analysis_options.yaml:12:7: Error: Expected a declaration, but got ':'.
+linter:
+      ^
+analysis_options.yaml:13:3: Error: Expected a declaration, but got '#'.
+  # The lint rules applied to this project can be customized in the
+  ^
+analysis_options.yaml:13:9: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+        ^^^^
+analysis_options.yaml:13:20: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                   ^^^^^^^
+analysis_options.yaml:13:31: Error: 'this' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # The lint rules applied to this project can be customized in the
+                              ^^^^
+analysis_options.yaml:13:31: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                              ^^^^
+analysis_options.yaml:13:44: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                                           ^^^
+analysis_options.yaml:13:51: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                                                  ^^^^^^^^^^
+analysis_options.yaml:13:62: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # The lint rules applied to this project can be customized in the
+                                                             ^^
+analysis_options.yaml:13:62: Error: 'in' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # The lint rules applied to this project can be customized in the
+                                                             ^^
+analysis_options.yaml:13:62: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                                                             ^^
+analysis_options.yaml:13:65: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # The lint rules applied to this project can be customized in the
+                                                                ^^^
+analysis_options.yaml:13:65: Error: Expected ';' after this.
+  # The lint rules applied to this project can be customized in the
+                                                                ^^^
+analysis_options.yaml:14:3: Error: Expected a declaration, but got '#'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+  ^
+analysis_options.yaml:14:13: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+            ^^^^^
+analysis_options.yaml:14:22: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                     ^^^^^^^
+analysis_options.yaml:14:36: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                   ^^^^
+analysis_options.yaml:14:41: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                        ^^^
+analysis_options.yaml:14:41: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                        ^^^
+analysis_options.yaml:14:45: Error: Expected a declaration, but got '`'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                            ^
+analysis_options.yaml:14:46: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                             ^^^^^^^
+analysis_options.yaml:14:46: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                             ^^^^^^^
+analysis_options.yaml:14:53: Error: Expected a declaration, but got ':'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                    ^
+analysis_options.yaml:14:54: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                     ^^^^^^^^^^^^^
+analysis_options.yaml:14:54: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                     ^^^^^^^^^^^^^
+analysis_options.yaml:14:67: Error: Expected a declaration, but got '/'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                  ^
+analysis_options.yaml:14:68: Error: A function declaration needs an explicit list of parameters.
+Try adding a parameter list to the function declaration.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                   ^^^^^^^
+analysis_options.yaml:14:75: Error: Expected '{' before this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                          ^
+analysis_options.yaml:14:75: Error: Expected a declaration, but got '.'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                          ^
+analysis_options.yaml:14:76: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                           ^^^^
+analysis_options.yaml:14:76: Error: Expected ';' after this.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                           ^^^^
+analysis_options.yaml:14:80: Error: Expected a declaration, but got '`'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                               ^
+analysis_options.yaml:15:3: Error: Expected a declaration, but got '#'.
+  # included above or to enable additional rules. A list of all available lints
+  ^
+analysis_options.yaml:15:14: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+             ^^^^^
+analysis_options.yaml:15:23: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+                      ^^
+analysis_options.yaml:15:33: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+                                ^^^^^^^^^^
+analysis_options.yaml:15:53: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+                                                    ^^^^
+analysis_options.yaml:15:61: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+                                                            ^^^
+analysis_options.yaml:15:75: Error: Expected ';' after this.
+  # included above or to enable additional rules. A list of all available lints
+                                                                          ^^^^^
+analysis_options.yaml:16:3: Error: Expected a declaration, but got '#'.
+  # and their documentation is published at https://dart.dev/lints.
+  ^
+analysis_options.yaml:16:9: Error: Expected ';' after this.
+  # and their documentation is published at https://dart.dev/lints.
+        ^^^^^
+analysis_options.yaml:16:15: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # and their documentation is published at https://dart.dev/lints.
+              ^^^^^^^^^^^^^
+analysis_options.yaml:16:15: Error: Expected ';' after this.
+  # and their documentation is published at https://dart.dev/lints.
+              ^^^^^^^^^^^^^
+analysis_options.yaml:16:29: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # and their documentation is published at https://dart.dev/lints.
+                            ^^
+analysis_options.yaml:16:29: Error: 'is' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # and their documentation is published at https://dart.dev/lints.
+                            ^^
+analysis_options.yaml:16:29: Error: Expected ';' after this.
+  # and their documentation is published at https://dart.dev/lints.
+                            ^^
+analysis_options.yaml:16:42: Error: Expected ';' after this.
+  # and their documentation is published at https://dart.dev/lints.
+                                         ^^
+analysis_options.yaml:16:45: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # and their documentation is published at https://dart.dev/lints.
+                                            ^^^^^
+analysis_options.yaml:16:45: Error: Expected ';' after this.
+  # and their documentation is published at https://dart.dev/lints.
+                                            ^^^^^
+analysis_options.yaml:16:50: Error: Expected a declaration, but got ':'.
+  # and their documentation is published at https://dart.dev/lints.
+                                                 ^
+analysis_options.yaml:17:3: Error: Expected a declaration, but got '#'.
+  #
+  ^
+analysis_options.yaml:18:3: Error: Expected a declaration, but got '#'.
+  # Instead of disabling a lint rule for the entire project in the
+  ^
+analysis_options.yaml:18:13: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+            ^^
+analysis_options.yaml:18:26: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                         ^
+analysis_options.yaml:18:33: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                ^^^^
+analysis_options.yaml:18:38: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # Instead of disabling a lint rule for the entire project in the
+                                     ^^^
+analysis_options.yaml:18:38: Error: 'for' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # Instead of disabling a lint rule for the entire project in the
+                                     ^^^
+analysis_options.yaml:18:38: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                     ^^^
+analysis_options.yaml:18:46: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                             ^^^^^^
+analysis_options.yaml:18:53: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # Instead of disabling a lint rule for the entire project in the
+                                                    ^^^^^^^
+analysis_options.yaml:18:53: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                                    ^^^^^^^
+analysis_options.yaml:18:61: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # Instead of disabling a lint rule for the entire project in the
+                                                            ^^
+analysis_options.yaml:18:61: Error: 'in' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # Instead of disabling a lint rule for the entire project in the
+                                                            ^^
+analysis_options.yaml:18:61: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                                            ^^
+analysis_options.yaml:18:64: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # Instead of disabling a lint rule for the entire project in the
+                                                               ^^^
+analysis_options.yaml:18:64: Error: Expected ';' after this.
+  # Instead of disabling a lint rule for the entire project in the
+                                                               ^^^
+analysis_options.yaml:19:3: Error: Expected a declaration, but got '#'.
+  # section below, it can also be suppressed for a single line of code
+  ^
+analysis_options.yaml:19:20: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                   ^^
+analysis_options.yaml:19:27: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                          ^^^^
+analysis_options.yaml:19:35: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                                  ^^^^^^^^^^
+analysis_options.yaml:19:46: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below, it can also be suppressed for a single line of code
+                                             ^^^
+analysis_options.yaml:19:46: Error: 'for' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  # section below, it can also be suppressed for a single line of code
+                                             ^^^
+analysis_options.yaml:19:46: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                                             ^^^
+analysis_options.yaml:19:52: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                                                   ^^^^^^
+analysis_options.yaml:19:64: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                                                               ^^
+analysis_options.yaml:19:67: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  # section below, it can also be suppressed for a single line of code
+                                                                  ^^^^
+analysis_options.yaml:19:67: Error: Expected ';' after this.
+  # section below, it can also be suppressed for a single line of code
+                                                                  ^^^^
+analysis_options.yaml:20:3: Error: Expected a declaration, but got '#'.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+  ^
+analysis_options.yaml:20:8: Error: Expected ';' after this.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+       ^
+analysis_options.yaml:20:19: Error: Expected ';' after this.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                  ^^^^
+analysis_options.yaml:20:29: Error: Expected ';' after this.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                            ^^
+analysis_options.yaml:20:38: Error: Expected ';' after this.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                                     ^^^
+analysis_options.yaml:20:42: Error: Expected a declaration, but got '`'.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                                         ^
+analysis_options.yaml:21:3: Error: Expected a declaration, but got '#'.
+  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
+  ^
+analysis_options.yaml:21:5: Error: Expected a declaration, but got '`'.
+  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
+    ^
+analysis_options.yaml:22:3: Error: Expected a declaration, but got '#'.
+  # producing the lint.
+  ^
+analysis_options.yaml:22:15: Error: Expected ';' after this.
+  # producing the lint.
+              ^^^
+analysis_options.yaml:22:19: Error: A function declaration needs an explicit list of parameters.
+Try adding a parameter list to the function declaration.
+  # producing the lint.
+                  ^^^^
+analysis_options.yaml:22:23: Error: Expected '{' before this.
+  # producing the lint.
+                      ^
+analysis_options.yaml:22:23: Error: Expected a declaration, but got '.'.
+  # producing the lint.
+                      ^
+analysis_options.yaml:23:3: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+  rules:
+  ^^^^^
+analysis_options.yaml:23:3: Error: Expected ';' after this.
+  rules:
+  ^^^^^
+analysis_options.yaml:23:8: Error: Expected a declaration, but got ':'.
+  rules:
+       ^
+analysis_options.yaml:24:5: Error: Expected a declaration, but got '#'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+    ^
+analysis_options.yaml:24:7: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+      ^^^^^^^^^^^
+analysis_options.yaml:24:7: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+      ^^^^^^^^^^^
+analysis_options.yaml:24:18: Error: Expected a declaration, but got ':'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                 ^
+analysis_options.yaml:24:20: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                   ^^^^^
+analysis_options.yaml:24:20: Error: 'false' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                   ^^^^^
+analysis_options.yaml:24:20: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                   ^^^^^
+analysis_options.yaml:24:27: Error: Expected a declaration, but got '#'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                          ^
+analysis_options.yaml:24:39: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                      ^^
+analysis_options.yaml:24:50: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                 ^^^
+analysis_options.yaml:24:54: Error: Expected a declaration, but got '`'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                     ^
+analysis_options.yaml:24:55: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                      ^^^^^^^^^^^
+analysis_options.yaml:24:55: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                      ^^^^^^^^^^^
+analysis_options.yaml:24:66: Error: Expected a declaration, but got '`'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                                 ^
+analysis_options.yaml:24:68: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                                   ^^^^
+analysis_options.yaml:24:68: Error: Expected ';' after this.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                                   ^^^^
+analysis_options.yaml:25:5: Error: Expected a declaration, but got '#'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    ^
+analysis_options.yaml:25:7: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+      ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:25:7: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+      ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:25:27: Error: Expected a declaration, but got ':'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                          ^
+analysis_options.yaml:25:29: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                            ^^^^
+analysis_options.yaml:25:29: Error: 'true' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                            ^^^^
+analysis_options.yaml:25:29: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                            ^^^^
+analysis_options.yaml:25:35: Error: Expected a declaration, but got '#'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                  ^
+analysis_options.yaml:25:47: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                              ^^
+analysis_options.yaml:25:57: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                        ^^^
+analysis_options.yaml:25:61: Error: Expected a declaration, but got '`'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                            ^
+analysis_options.yaml:25:62: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                             ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:25:62: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                             ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:25:82: Error: Expected a declaration, but got '`'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                                                 ^
+analysis_options.yaml:25:84: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                                                   ^^^^
+analysis_options.yaml:25:84: Error: Expected ';' after this.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                                                   ^^^^
+analysis_options.yaml:27:1: Error: Expected a declaration, but got '#'.
+# Additional information about this file can be found at
+^
+analysis_options.yaml:27:14: Error: Expected ';' after this.
+# Additional information about this file can be found at
+             ^^^^^^^^^^^
+analysis_options.yaml:27:32: Error: 'this' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+# Additional information about this file can be found at
+                               ^^^^
+analysis_options.yaml:27:32: Error: Expected ';' after this.
+# Additional information about this file can be found at
+                               ^^^^
+analysis_options.yaml:27:42: Error: Expected ';' after this.
+# Additional information about this file can be found at
+                                         ^^^
+analysis_options.yaml:27:49: Error: Expected ';' after this.
+# Additional information about this file can be found at
+                                                ^^^^^
+analysis_options.yaml:27:55: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# Additional information about this file can be found at
+                                                      ^^
+analysis_options.yaml:27:55: Error: Expected ';' after this.
+# Additional information about this file can be found at
+                                                      ^^
+analysis_options.yaml:28:1: Error: Expected a declaration, but got '#'.
+# https://dart.dev/guides/language/analysis-options
+^
+analysis_options.yaml:28:3: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+Try adding the name of the type of the variable or the keyword 'var'.
+# https://dart.dev/guides/language/analysis-options
+  ^^^^^
+analysis_options.yaml:28:3: Error: Expected ';' after this.
+# https://dart.dev/guides/language/analysis-options
+  ^^^^^
+analysis_options.yaml:28:8: Error: Expected a declaration, but got ':'.
+# https://dart.dev/guides/language/analysis-options
+       ^
+analysis_options.yaml:6:16: Error: 'the' is already declared in this scope.
+# invoked from the command line by running `flutter analyze`.
+               ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:13:65: Error: 'the' is already declared in this scope.
+  # The lint rules applied to this project can be customized in the
+                                                                ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:14:41: Error: 'the' is already declared in this scope.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                        ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:18:64: Error: 'the' is already declared in this scope.
+  # Instead of disabling a lint rule for the entire project in the
+                                                               ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:20:38: Error: 'the' is already declared in this scope.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                                     ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:22:15: Error: 'the' is already declared in this scope.
+  # producing the lint.
+              ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:24:50: Error: 'the' is already declared in this scope.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                 ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:25:57: Error: 'the' is already declared in this scope.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                        ^^^
+analysis_options.yaml:1:24: Context: Previous declaration of 'the'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                       ^^^
+analysis_options.yaml:4:32: Error: 'analyzer' is already declared in this scope.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                               ^^^^^^^^
+analysis_options.yaml:1:28: Context: Previous declaration of 'analyzer'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                           ^^^^^^^^
+analysis_options.yaml:19:67: Error: 'code' is already declared in this scope.
+  # section below, it can also be suppressed for a single line of code
+                                                                  ^^^^
+analysis_options.yaml:1:69: Context: Previous declaration of 'code'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                    ^^^^
+analysis_options.yaml:15:23: Error: 'to' is already declared in this scope.
+  # included above or to enable additional rules. A list of all available lints
+                      ^^
+analysis_options.yaml:1:74: Context: Previous declaration of 'to'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                         ^^
+analysis_options.yaml:24:39: Error: 'to' is already declared in this scope.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                      ^^
+analysis_options.yaml:1:74: Context: Previous declaration of 'to'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                         ^^
+analysis_options.yaml:25:47: Error: 'to' is already declared in this scope.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                              ^^
+analysis_options.yaml:1:74: Context: Previous declaration of 'to'.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                                         ^^
+analysis_options.yaml:8:59: Error: 'for' is already declared in this scope.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                          ^^^
+analysis_options.yaml:2:9: Context: Previous declaration of 'for'.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:18:38: Error: 'for' is already declared in this scope.
+  # Instead of disabling a lint rule for the entire project in the
+                                     ^^^
+analysis_options.yaml:2:9: Context: Previous declaration of 'for'.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:19:46: Error: 'for' is already declared in this scope.
+  # section below, it can also be suppressed for a single line of code
+                                             ^^^
+analysis_options.yaml:2:9: Context: Previous declaration of 'for'.
+# check for errors, warnings, and lints.
+        ^^^
+analysis_options.yaml:9:13: Error: 'and' is already declared in this scope.
+# packages, and plugins designed to encourage good coding practices.
+            ^^^
+analysis_options.yaml:2:31: Context: Previous declaration of 'and'.
+# check for errors, warnings, and lints.
+                              ^^^
+analysis_options.yaml:8:53: Error: 'lints' is already declared in this scope.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                    ^^^^^
+analysis_options.yaml:2:35: Context: Previous declaration of 'lints'.
+# check for errors, warnings, and lints.
+                                  ^^^^^
+analysis_options.yaml:15:75: Error: 'lints' is already declared in this scope.
+  # included above or to enable additional rules. A list of all available lints
+                                                                          ^^^^^
+analysis_options.yaml:2:35: Context: Previous declaration of 'lints'.
+# check for errors, warnings, and lints.
+                                  ^^^^^
+analysis_options.yaml:20:29: Error: 'by' is already declared in this scope.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                            ^^
+analysis_options.yaml:4:25: Context: Previous declaration of 'by'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                        ^^
+analysis_options.yaml:13:62: Error: 'in' is already declared in this scope.
+  # The lint rules applied to this project can be customized in the
+                                                             ^^
+analysis_options.yaml:4:54: Context: Previous declaration of 'in'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                     ^^
+analysis_options.yaml:18:61: Error: 'in' is already declared in this scope.
+  # Instead of disabling a lint rule for the entire project in the
+                                                            ^^
+analysis_options.yaml:4:54: Context: Previous declaration of 'in'.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                     ^^
+analysis_options.yaml:18:13: Error: The declaration conflicts with setter 'of'.
+  # Instead of disabling a lint rule for the entire project in the
+            ^^
+analysis_options.yaml:8:38: Context: Conflicting setter 'of'.
+# The following line activates a set of recommended lints for Flutter apps,
+                                     ^^
+analysis_options.yaml:19:64: Error: The declaration conflicts with setter 'of'.
+  # section below, it can also be suppressed for a single line of code
+                                                               ^^
+analysis_options.yaml:8:38: Context: Conflicting setter 'of'.
+# The following line activates a set of recommended lints for Flutter apps,
+                                     ^^
+analysis_options.yaml:19:64: Error: 'of' is already declared in this scope.
+  # section below, it can also be suppressed for a single line of code
+                                                               ^^
+analysis_options.yaml:18:13: Context: Previous declaration of 'of'.
+  # Instead of disabling a lint rule for the entire project in the
+            ^^
+analysis_options.yaml:14:46: Error: 'package' is already declared in this scope.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                             ^^^^^^^
+analysis_options.yaml:10:10: Context: Previous declaration of 'package'.
+include: package:flutter_lints/flutter.yaml
+         ^^^^^^^
+analysis_options.yaml:14:54: Error: 'flutter_lints' is already declared in this scope.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                     ^^^^^^^^^^^^^
+analysis_options.yaml:10:18: Context: Previous declaration of 'flutter_lints'.
+include: package:flutter_lints/flutter.yaml
+                 ^^^^^^^^^^^^^
+analysis_options.yaml:22:19: Error: 'lint' is already declared in this scope.
+  # producing the lint.
+                  ^^^^
+analysis_options.yaml:13:9: Context: Previous declaration of 'lint'.
+  # The lint rules applied to this project can be customized in the
+        ^^^^
+analysis_options.yaml:27:32: Error: 'this' is already declared in this scope.
+# Additional information about this file can be found at
+                               ^^^^
+analysis_options.yaml:13:31: Context: Previous declaration of 'this'.
+  # The lint rules applied to this project can be customized in the
+                              ^^^^
+analysis_options.yaml:27:42: Error: 'can' is already declared in this scope.
+# Additional information about this file can be found at
+                                         ^^^
+analysis_options.yaml:13:44: Context: Previous declaration of 'can'.
+  # The lint rules applied to this project can be customized in the
+                                           ^^^
+analysis_options.yaml:19:13: Error: 'below' is already declared in this scope.
+  # section below, it can also be suppressed for a single line of code
+            ^^^^^
+analysis_options.yaml:14:13: Context: Previous declaration of 'below'.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+            ^^^^^
+analysis_options.yaml:27:55: Error: 'at' is already declared in this scope.
+# Additional information about this file can be found at
+                                                      ^^
+analysis_options.yaml:16:42: Context: Previous declaration of 'at'.
+  # and their documentation is published at https://dart.dev/lints.
+                                         ^^
+analysis_options.yaml:28:3: Error: 'https' is already declared in this scope.
+# https://dart.dev/guides/language/analysis-options
+  ^^^^^
+analysis_options.yaml:16:45: Context: Previous declaration of 'https'.
+  # and their documentation is published at https://dart.dev/lints.
+                                            ^^^^^
+analysis_options.yaml:20:8: Error: 'a' is already declared in this scope.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+       ^
+analysis_options.yaml:18:26: Context: Previous declaration of 'a'.
+  # Instead of disabling a lint rule for the entire project in the
+                         ^
+analysis_options.yaml:24:68: Error: 'rule' is already declared in this scope.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                                   ^^^^
+analysis_options.yaml:18:33: Context: Previous declaration of 'rule'.
+  # Instead of disabling a lint rule for the entire project in the
+                                ^^^^
+analysis_options.yaml:25:84: Error: 'rule' is already declared in this scope.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                                                   ^^^^
+analysis_options.yaml:18:33: Context: Previous declaration of 'rule'.
+  # Instead of disabling a lint rule for the entire project in the
+                                ^^^^
+analysis_options.yaml:24:55: Error: 'avoid_print' is already declared in this scope.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                                      ^^^^^^^^^^^
+analysis_options.yaml:24:7: Context: Previous declaration of 'avoid_print'.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+      ^^^^^^^^^^^
+analysis_options.yaml:25:62: Error: 'prefer_single_quotes' is already declared in this scope.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                             ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:25:7: Context: Previous declaration of 'prefer_single_quotes'.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+      ^^^^^^^^^^^^^^^^^^^^
+analysis_options.yaml:1:3: Error: Type 'This' not found.
+# This file configures the analyzer, which statically analyzes Dart code to
+  ^^^^
+analysis_options.yaml:1:13: Error: Type 'configures' not found.
+# This file configures the analyzer, which statically analyzes Dart code to
+            ^^^^^^^^^^
+analysis_options.yaml:1:44: Error: Type 'statically' not found.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                           ^^^^^^^^^^
+analysis_options.yaml:1:64: Error: 'Dart' isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                                               ^^^^
+analysis_options.yaml:4:67: Context: This isn't a type.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                                                  ^^^^
+analysis_options.yaml:4:3: Error: Type 'The' not found.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+  ^^^
+analysis_options.yaml:4:14: Error: Type 'identified' not found.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+             ^^^^^^^^^^
+analysis_options.yaml:4:41: Error: Type 'are' not found.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                        ^^^
+analysis_options.yaml:6:11: Error: 'from' isn't a type.
+# invoked from the command line by running `flutter analyze`.
+          ^^^^
+analysis_options.yaml:14:36: Context: This isn't a type.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                   ^^^^
+analysis_options.yaml:6:20: Error: Type 'command' not found.
+# invoked from the command line by running `flutter analyze`.
+                   ^^^^^^^
+analysis_options.yaml:6:45: Error: 'flutter' isn't a type.
+# invoked from the command line by running `flutter analyze`.
+                                            ^^^^^^^
+analysis_options.yaml:14:68: Context: This isn't a type.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                                                                   ^^^^^^^
+analysis_options.yaml:8:3: Error: Type 'The' not found.
+# The following line activates a set of recommended lints for Flutter apps,
+  ^^^
+analysis_options.yaml:8:17: Error: 'line' isn't a type.
+# The following line activates a set of recommended lints for Flutter apps,
+                ^^^^
+analysis_options.yaml:6:28: Context: This isn't a type.
+# invoked from the command line by running `flutter analyze`.
+                           ^^^^
+analysis_options.yaml:8:41: Error: Type 'recommended' not found.
+# The following line activates a set of recommended lints for Flutter apps,
+                                        ^^^^^^^^^^^
+analysis_options.yaml:8:63: Error: Type 'Flutter' not found.
+# The following line activates a set of recommended lints for Flutter apps,
+                                                              ^^^^^^^
+analysis_options.yaml:9:17: Error: Type 'plugins' not found.
+# packages, and plugins designed to encourage good coding practices.
+                ^^^^^^^
+analysis_options.yaml:9:47: Error: Type 'good' not found.
+# packages, and plugins designed to encourage good coding practices.
+                                              ^^^^
+analysis_options.yaml:10:32: Error: 'flutter.yaml' can't be used as a type because 'flutter' doesn't refer to an import prefix.
+include: package:flutter_lints/flutter.yaml
+                               ^^^^^^^^^^^^
+analysis_options.yaml:13:5: Error: Type 'The' not found.
+  # The lint rules applied to this project can be customized in the
+    ^^^
+analysis_options.yaml:13:14: Error: 'rules' isn't a type.
+  # The lint rules applied to this project can be customized in the
+             ^^^^^
+analysis_options.yaml:23:3: Context: This isn't a type.
+  rules:
+  ^^^^^
+analysis_options.yaml:13:36: Error: 'project' isn't a type.
+  # The lint rules applied to this project can be customized in the
+                                   ^^^^^^^
+analysis_options.yaml:18:53: Context: This isn't a type.
+  # Instead of disabling a lint rule for the entire project in the
+                                                    ^^^^^^^
+analysis_options.yaml:13:48: Error: Type 'be' not found.
+  # The lint rules applied to this project can be customized in the
+                                               ^^
+analysis_options.yaml:14:5: Error: Type 'section' not found.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+    ^^^^^^^
+analysis_options.yaml:14:30: Error: 'rules' isn't a type.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                             ^^^^^
+analysis_options.yaml:23:3: Context: This isn't a type.
+  rules:
+  ^^^^^
+analysis_options.yaml:15:5: Error: Type 'included' not found.
+  # included above or to enable additional rules. A list of all available lints
+    ^^^^^^^^
+analysis_options.yaml:15:20: Error: Type 'or' not found.
+  # included above or to enable additional rules. A list of all available lints
+                   ^^
+analysis_options.yaml:15:26: Error: Type 'enable' not found.
+  # included above or to enable additional rules. A list of all available lints
+                         ^^^^^^
+analysis_options.yaml:15:44: Error: 'rules.A' can't be used as a type because 'rules' doesn't refer to an import prefix.
+  # included above or to enable additional rules. A list of all available lints
+                                           ^^^^^^^^
+analysis_options.yaml:15:65: Error: Type 'available' not found.
+  # included above or to enable additional rules. A list of all available lints
+                                                                ^^^^^^^^^
+analysis_options.yaml:16:32: Error: Type 'published' not found.
+  # and their documentation is published at https://dart.dev/lints.
+                               ^^^^^^^^^
+analysis_options.yaml:18:5: Error: Type 'Instead' not found.
+  # Instead of disabling a lint rule for the entire project in the
+    ^^^^^^^
+analysis_options.yaml:18:16: Error: Type 'disabling' not found.
+  # Instead of disabling a lint rule for the entire project in the
+               ^^^^^^^^^
+analysis_options.yaml:19:5: Error: Type 'section' not found.
+  # section below, it can also be suppressed for a single line of code
+    ^^^^^^^
+analysis_options.yaml:19:32: Error: Type 'be' not found.
+  # section below, it can also be suppressed for a single line of code
+                               ^^
+analysis_options.yaml:19:59: Error: 'line' isn't a type.
+  # section below, it can also be suppressed for a single line of code
+                                                          ^^^^
+analysis_options.yaml:6:28: Context: This isn't a type.
+# invoked from the command line by running `flutter analyze`.
+                           ^^^^
+analysis_options.yaml:20:5: Error: Type 'or' not found.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+    ^^
+analysis_options.yaml:20:10: Error: Type 'specific' not found.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+         ^^^^^^^^
+analysis_options.yaml:20:24: Error: 'file' isn't a type.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                       ^^^^
+analysis_options.yaml:1:8: Context: This isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+       ^^^^
+analysis_options.yaml:20:32: Error: Type 'using' not found.
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+                               ^^^^^
+analysis_options.yaml:22:5: Error: Type 'producing' not found.
+  # producing the lint.
+    ^^^^^^^^^
+analysis_options.yaml:24:29: Error: Type 'Uncomment' not found.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                            ^^^^^^^^^
+analysis_options.yaml:24:42: Error: 'disable' isn't a type.
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+                                         ^^^^^^^
+analysis_options.yaml:14:22: Context: This isn't a type.
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+                     ^^^^^^^
+analysis_options.yaml:25:37: Error: Type 'Uncomment' not found.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                    ^^^^^^^^^
+analysis_options.yaml:25:50: Error: Type 'enable' not found.
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+                                                 ^^^^^^
+analysis_options.yaml:27:3: Error: Type 'Additional' not found.
+# Additional information about this file can be found at
+  ^^^^^^^^^^
+analysis_options.yaml:27:26: Error: Type 'about' not found.
+# Additional information about this file can be found at
+                         ^^^^^
+analysis_options.yaml:27:37: Error: 'file' isn't a type.
+# Additional information about this file can be found at
+                                    ^^^^
+analysis_options.yaml:1:8: Context: This isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+       ^^^^
+analysis_options.yaml:27:46: Error: Type 'be' not found.
+# Additional information about this file can be found at
+                                             ^^
+analysis_options.yaml:8:32: Error: The return type of the setter must be 'void' or absent.
+Try removing the return type, or define a method rather than a setter.
+# The following line activates a set of recommended lints for Flutter apps,
+                               ^
+analysis_options.yaml:1:3: Error: 'This' isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+  ^^^^
+analysis_options.yaml:1:13: Error: 'configures' isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+            ^^^^^^^^^^
+analysis_options.yaml:1:44: Error: 'statically' isn't a type.
+# This file configures the analyzer, which statically analyzes Dart code to
+                                           ^^^^^^^^^^
+analysis_options.yaml:4:3: Error: 'The' isn't a type.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+  ^^^
+analysis_options.yaml:4:14: Error: 'identified' isn't a type.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+             ^^^^^^^^^^
+analysis_options.yaml:4:41: Error: 'are' isn't a type.
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+                                        ^^^
+analysis_options.yaml:29:1: Error: Expected '{' before this.
+analysis_options.yaml:6:11: Error: Expected a function body, but got 'from'.
+# invoked from the command line by running `flutter analyze`.
+          ^^^^
+analysis_options.yaml:6:11: Error: Expected a function body, but got '{'.
+# invoked from the command line by running `flutter analyze`.
+          ^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command 'C:\src\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 9s
+Running Gradle task 'assembleDebug'...                              9.7s
+Error: Gradle task assembleDebug failed with exit code 1
