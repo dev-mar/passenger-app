@@ -104,7 +104,9 @@ El **pasajero** no emite eventos de viaje por WebSocket. Crea/cancela viajes por
 | Evento | Payload (resumen) | Uso en Flutter |
 |--------|-------------------|----------------|
 | **`trip:accepted`** | `{ tripId, driverId, status, fullName?, driverName?, username?, carColor?, carPlate?, carModel?, estimatedPrice?, createdAt?, updatedAt? }` | Un conductor aceptó el viaje. Mostrar tarjeta con **nombre de perfil** del conductor (`fullName`) y datos del vehículo (color, modelo, placa), más el estado “Conductor en camino”. La app hace fallback a `driverName` / `driver_name` y, como último recurso, `username`. |
+
 | **`trip:status`** | `{ tripId, status, driverId?, updatedAt, reason? }` | Cambio de estado: `accepted`, `arrived` (llegó a recogida), `started` (viaje iniciado), `completed` (viaje terminado), `cancelled`, `expired`. La app actualiza la card de estado; cuando llega `arrived` reproduce un tono de alerta del sistema; cuando llega `completed` abre el sheet de calificación y, al terminar, resetea el mapa para permitir nuevas solicitudes. |
+
 | **`trip:driver_location`** | `{ tripId, lat, lng, bearing, speed, updatedAt }` | Posición en tiempo real del conductor (solo cuando el viaje está en `accepted`, `arrived` o `started`). Actualiza el marcador del conductor en el mapa del pasajero. |
 
 **Mapa de campos para la card del pasajero (`trip:accepted`):**
