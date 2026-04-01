@@ -1,11 +1,11 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/network/passenger_client_meta.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -52,6 +52,95 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     super.dispose();
   }
 
+  /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
+  Future<void> _completePassengerFromDriver() async {
+    final phoneDigits =
+        widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final cc = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    final fullPhone = '$cc$phoneDigits';
+
+    try {
+      final response = await _dio.post(
+        AppConfig.authUsersPath,
+        data: <String, dynamic>{
+          ...passengerAuthClientMeta(),
+          'phone_number': fullPhone,
+          'alias_name': '',
+          'profile_picture': null,
+          'reuse_driver_profile': true,
+        },
+      );
+
+      final body = response.data;
+      if (body is! Map || body['success'] != true) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = body is Map
+              ? (body['message']?.toString() ??
+                  'No se pudo activar la cuenta pasajero.')
+              : 'No se pudo activar la cuenta pasajero.';
+        });
+        return;
+      }
+
+      final data = body['data'];
+      if (data is! Map) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Respuesta incompleta del servidor.';
+        });
+        return;
+      }
+
+      final token = data['token']?.toString();
+      if (token == null || token.isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'No se recibió token.';
+        });
+        return;
+      }
+
+      final refreshToken = data['refresh_token']?.toString();
+      final expiresIn = data['expires_in'];
+      int? expiresInSec;
+      if (expiresIn is int) {
+        expiresInSec = expiresIn;
+      } else if (expiresIn is num) {
+        expiresInSec = expiresIn.toInt();
+      }
+
+      await AuthService.saveSession(
+        token: token,
+        refreshToken: refreshToken,
+        expiresInSeconds: expiresInSec,
+      );
+      await AuthService.persistLoginPhoneE164(fullPhone);
+      final display = data['display_name']?.toString().trim();
+      if (display != null && display.isNotEmpty) {
+        await AuthService.savePassengerDisplayName(display);
+      }
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      context.goNamed('trip_request');
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        final d = e.response?.data;
+        _errorMessage = d is Map
+            ? (d['message']?.toString() ?? 'Error de red.')
+            : 'Error de red.';
+      });
+    }
+  }
+
   Future<void> _verify() async {
     _codeFocusNode.unfocus();
     TexiUiFeedback.softImpact();
@@ -74,15 +163,12 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     try {
       final response = await _dio.post(
-        '/auth/verify-code',
-        data: {
-          'brand': 'Texi App',
+        AppConfig.authVerifyCodePath,
+        data: <String, dynamic>{
+          ...passengerAuthClientMeta(),
           'country_code': widget.countryCode,
-          'ip': '0.0.0.0',
-          'model': _deviceModel(),
-          'os': Platform.operatingSystem,
           'phone_number': phoneOnlyDigits,
-          'verification_code': int.parse(codeText),
+          'verification_code': codeText,
         },
       );
 
@@ -98,10 +184,27 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       }
 
       if (!mounted) return;
+
+      final rawData = body['data'];
+      final reuseDriver = rawData is Map &&
+          (rawData['reuse_driver_profile'] == true ||
+              rawData['reuse_driver_profile'] == 'true');
+
+      if (reuseDriver) {
+        await _completePassengerFromDriver();
+        return;
+      }
+
       setState(() => _isLoading = false);
 
+      final phoneDigitsNav = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+      final ccNav = widget.countryCode.startsWith('+')
+          ? widget.countryCode
+          : '+${widget.countryCode}';
+      await AuthService.persistLoginPhoneE164('$ccNav$phoneDigitsNav');
+
+      if (!mounted) return;
       // Código válido: continuar con UX de perfil (nombre obligatorio + foto opcional).
-      // La obtención de token puede quedar pendiente si el backend todavía devuelve status=pending.
       context.goNamed(
         'profile_setup',
         queryParameters: {
@@ -128,14 +231,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         _isLoading = false;
         _errorMessage = 'Error inesperado al validar el código.';
       });
-    }
-  }
-
-  String _deviceModel() {
-    try {
-      return Platform.localHostname;
-    } catch (_) {
-      return 'Unknown';
     }
   }
 

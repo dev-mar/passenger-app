@@ -77,8 +77,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         break;
       case LoginNextStep.error:
         setState(() {
-          _errorMessage = ref.read(loginControllerProvider).errorMessage ??
-              AppLocalizations.of(context)!.loginErrorInvalidCredentials;
+          final loginState = ref.read(loginControllerProvider);
+          final l10n = AppLocalizations.of(context)!;
+          final code = loginState.errorCode;
+          _errorMessage = switch (code) {
+            'PASS_AUTH_PHONE_REGISTERED_AS_DRIVER' =>
+              l10n.loginErrorPhoneRegisteredAsDriver,
+            'PASS_AUTH_PHONE_OTHER_ACCOUNT_TYPE' =>
+              l10n.loginErrorPhoneOtherAccountType,
+            'PASS_AUTH_DUPLICATE_USER' => l10n.loginErrorPhoneDuplicatePassenger,
+            _ =>
+              loginState.errorMessage ??
+                  l10n.loginErrorInvalidCredentials,
+          };
         });
         break;
     }

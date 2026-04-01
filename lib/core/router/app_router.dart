@@ -10,6 +10,7 @@ import '../../features/trip/trip_request_screen.dart';
 import '../../features/trip/trip_quote_screen.dart';
 import '../../features/trip/trip_confirm_screen.dart';
 import '../../features/trip/trip_searching_screen.dart';
+import '../../features/labs/passenger_labs_screen.dart';
 
 /// Rutas con nombres alineados a PASAJERO-APP-SETUP.md.
 /// Cambiar paths o pantallas solo aquí.
@@ -26,6 +27,7 @@ class AppRouter {
   static const String tripQuote = 'trip_quote';
   static const String tripConfirm = 'trip_confirm';
   static const String tripSearching = 'trip_searching';
+  static const String labs = 'passenger_labs';
 
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -103,6 +105,11 @@ class AppRouter {
         path: '/trip/searching',
         name: tripSearching,
         builder: (context, state) => const TripSearchingScreen(),
+      ),
+      GoRoute(
+        path: '/labs',
+        name: labs,
+        builder: (context, state) => const PassengerLabsScreen(),
       ),
     ],
   );

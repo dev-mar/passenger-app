@@ -6,17 +6,14 @@ import '../../data/models/nearby_driver.dart';
 import '../../data/models/quote_response.dart';
 import '../../data/models/passenger_trip_sync_response.dart';
 
-/// Cliente para el backend de viajes (quote, trips, nearby-drivers).
-/// Usar el token del pasajero en cada llamada.
-/// Ante 401 (token expirado/inválido) cierra sesión y dispara [AuthService.onSessionExpired].
+/// Cliente para el backend de viajes (quote, trips, nearby-drivers) en `app_texi_WebSocket`.
+/// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired].
 class TripsApi {
-  TripsApi({required String token})
-      : _dio = _createDio(token, baseUrl: AppConfig.baseUrlTripsRest),
-        _dioFallback = _createDio(token, baseUrl: AppConfig.baseUrlTripsRestFallback);
+  TripsApi({required String token}) : _dio = _createDio(token);
 
-  static Dio _createDio(String token, {required String baseUrl}) {
+  static Dio _createDio(String token) {
     final dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: AppConfig.baseUrlTripsRest,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: {
@@ -52,31 +49,6 @@ class TripsApi {
   }
 
   final Dio _dio;
-  final Dio _dioFallback;
-
-  bool _shouldFallback(DioException e) {
-    final status = e.response?.statusCode;
-    if (status == 502 || status == 503 || status == 504) return true;
-    // Algunos entornos tienen rutas REST solo en el API principal (auth) y
-    // responden 404 en el host de websockets. En ese caso reintentamos.
-    if (status == 404) {
-      final data = e.response?.data;
-      if (data is Map) {
-        final err = data['error'];
-        if (err is Map) {
-          final code = err['code']?.toString();
-          final msg = err['message']?.toString().toLowerCase();
-          if (code == 'NOT_FOUND' || (msg != null && msg.contains('ruta no encontrada'))) {
-            return true;
-          }
-        }
-      }
-      if (data is String && data.toLowerCase().contains('ruta no encontrada')) return true;
-    }
-    final data = e.response?.data;
-    if (data is String && data.contains('502 Bad Gateway')) return true;
-    return false;
-  }
 
   /// GET /passengers/nearby-drivers
   Future<NearbyDriversResponse> getNearbyDrivers({
@@ -85,45 +57,23 @@ class TripsApi {
     double radiusKm = 5,
     int limit = 20,
   }) async {
-    Response<dynamic> response;
-    try {
-      response = await _dio.get(
-        '/passengers/nearby-drivers',
-        queryParameters: {
-          'lat': lat,
-          'lng': lng,
-          'radiusKm': radiusKm,
-          'limit': limit,
-        },
-      );
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      response = await _dioFallback.get(
-        '/passengers/nearby-drivers',
-        queryParameters: {
-          'lat': lat,
-          'lng': lng,
-          'radiusKm': radiusKm,
-          'limit': limit,
-        },
-      );
-    }
+    final response = await _dio.get(
+      '/passengers/nearby-drivers',
+      queryParameters: {
+        'lat': lat,
+        'lng': lng,
+        'radiusKm': radiusKm,
+        'limit': limit,
+      },
+    );
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return NearbyDriversResponse.fromJson(data);
   }
 
-  /// GET /passengers/trips/:tripId
-  ///
-  /// Sincroniza el estado actual del viaje para el pasajero.
+  /// GET /passengers/trips/:tripId — sincroniza estado actual del viaje.
   Future<PassengerTripSyncResponse?> syncPassengerTrip(String tripId) async {
-    Response<dynamic> response;
-    try {
-      response = await _dio.get('/passengers/trips/$tripId');
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      response = await _dioFallback.get('/passengers/trips/$tripId');
-    }
+    final response = await _dio.get('/passengers/trips/$tripId');
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     if (data.isEmpty) return null;
@@ -137,25 +87,13 @@ class TripsApi {
     required double destinationLat,
     required double destinationLng,
   }) async {
-    Response<dynamic> response;
-    try {
-      response = await _dio.post(
-        '/passengers/trips/quote',
-        data: {
-          'origin': {'lat': originLat, 'lng': originLng},
-          'destination': {'lat': destinationLat, 'lng': destinationLng},
-        },
-      );
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      response = await _dioFallback.post(
-        '/passengers/trips/quote',
-        data: {
-          'origin': {'lat': originLat, 'lng': originLng},
-          'destination': {'lat': destinationLat, 'lng': destinationLng},
-        },
-      );
-    }
+    final response = await _dio.post(
+      '/passengers/trips/quote',
+      data: {
+        'origin': {'lat': originLat, 'lng': originLng},
+        'destination': {'lat': destinationLat, 'lng': destinationLng},
+      },
+    );
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return QuoteResponse.fromJson(data);
@@ -173,7 +111,6 @@ class TripsApi {
     required int serviceTypeId,
     required double estimatedPrice,
   }) async {
-    Response<dynamic> response;
     final payload = {
       'origin': {'lat': originLat, 'lng': originLng},
       'destination': {'lat': destinationLat, 'lng': destinationLng},
@@ -185,47 +122,25 @@ class TripsApi {
       'serviceTypeId': serviceTypeId,
       'estimatedPrice': estimatedPrice,
     };
-    try {
-      response = await _dio.post('/passengers/trips', data: payload);
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      response = await _dioFallback.post('/passengers/trips', data: payload);
-    }
+    final response = await _dio.post('/passengers/trips', data: payload);
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return CreateTripResponse.fromJson(data);
   }
 
-  /// GET /passengers/trips/:tripId
-  ///
-  /// Se usa para rehidratar el estado del viaje cuando el socket pudo haber
-  /// perdido eventos (p. ej. el conductor finaliza offline).
+  /// GET /passengers/trips/:tripId — rehidratar estado aunque falten eventos WS.
   Future<TripStatusResponse> getPassengerTripStatus({
     required String tripId,
   }) async {
-    Response<dynamic> response;
-    try {
-      response = await _dio.get('/passengers/trips/$tripId');
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      response = await _dioFallback.get('/passengers/trips/$tripId');
-    }
+    final response = await _dio.get('/passengers/trips/$tripId');
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return TripStatusResponse.fromJson(data);
   }
 
   /// POST /passengers/trips/:tripId/cancel
-  ///
-  /// Cancela el viaje en servidor (ofertas pendientes + estado), para que los
-  /// conductores dejen de ver la solicitud activa.
   Future<void> cancelPassengerTrip({required String tripId}) async {
-    try {
-      await _dio.post('/passengers/trips/$tripId/cancel');
-    } on DioException catch (e) {
-      if (!_shouldFallback(e)) rethrow;
-      await _dioFallback.post('/passengers/trips/$tripId/cancel');
-    }
+    await _dio.post('/passengers/trips/$tripId/cancel');
   }
 }
 
@@ -261,24 +176,23 @@ class CreateTripResponse {
 }
 
 /// Respuesta mínima de `GET /passengers/trips/:tripId`.
-///
-/// Contiene el `status` para desbloquear el flujo del pasajero aunque falten
-/// eventos por WebSocket.
 class TripStatusResponse {
   const TripStatusResponse({
     required this.tripId,
     required this.status,
     this.driverLat,
     this.driverLng,
+    this.driverBearing,
     this.driverPhotoUrl,
     this.driverPhotoExpiresAt,
   });
 
   final String tripId;
   final String status;
-  /// Última posición conocida del conductor (GET enriquecido; fallback si el socket va atrasado).
+  /// Última posición conocida del conductor (GET enriquecido si el socket va atrasado).
   final double? driverLat;
   final double? driverLng;
+  final double? driverBearing;
   /// Foto de perfil del conductor (GET enriquecido; misma fuente que `trip:accepted`).
   final String? driverPhotoUrl;
   final DateTime? driverPhotoExpiresAt;
@@ -286,15 +200,19 @@ class TripStatusResponse {
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
     double? dLng;
+    double? dBearing;
     final dl = json['driverLocation'];
     if (dl is Map) {
       final m = Map<String, dynamic>.from(dl);
       final latRaw = m['lat'];
       final lngRaw = m['lng'];
+      final bearRaw = m['bearing'];
       if (latRaw is num) dLat = latRaw.toDouble();
       if (latRaw is String) dLat = double.tryParse(latRaw);
       if (lngRaw is num) dLng = lngRaw.toDouble();
       if (lngRaw is String) dLng = double.tryParse(lngRaw);
+      if (bearRaw is num) dBearing = bearRaw.toDouble();
+      if (bearRaw is String) dBearing = double.tryParse(bearRaw);
     }
     final rawPhoto = json['profilePhotoUrl']?.toString() ??
         json['picture_profile']?.toString() ??
@@ -309,6 +227,7 @@ class TripStatusResponse {
       status: json['status']?.toString() ?? '',
       driverLat: dLat,
       driverLng: dLng,
+      driverBearing: dBearing,
       driverPhotoUrl: photo,
       driverPhotoExpiresAt: expiresAt,
     );
@@ -329,18 +248,30 @@ class CreateTripOffer {
   factory CreateTripOffer.fromJson(Map<String, dynamic> json) {
     final rawId = json['driverId'];
     int driverId = 0;
-    if (rawId is int) driverId = rawId;
-    else if (rawId is String) driverId = int.tryParse(rawId) ?? 0;
-    else if (rawId is num) driverId = rawId.toInt();
+    if (rawId is int) {
+      driverId = rawId;
+    } else if (rawId is String) {
+      driverId = int.tryParse(rawId) ?? 0;
+    } else if (rawId is num) {
+      driverId = rawId.toInt();
+    }
     final rawEta = json['etaMinutes'];
     int? etaMinutes;
-    if (rawEta is int) etaMinutes = rawEta;
-    else if (rawEta is String) etaMinutes = int.tryParse(rawEta);
-    else if (rawEta is num) etaMinutes = rawEta.toInt();
+    if (rawEta is int) {
+      etaMinutes = rawEta;
+    } else if (rawEta is String) {
+      etaMinutes = int.tryParse(rawEta);
+    } else if (rawEta is num) {
+      etaMinutes = rawEta.toInt();
+    }
     final rawOffer = json['offeredPrice'];
     double? offeredPrice;
-    if (rawOffer is num) offeredPrice = rawOffer.toDouble();
-    if (rawOffer is String) offeredPrice = double.tryParse(rawOffer);
+    if (rawOffer is num) {
+      offeredPrice = rawOffer.toDouble();
+    }
+    if (rawOffer is String) {
+      offeredPrice = double.tryParse(rawOffer);
+    }
     return CreateTripOffer(
       driverId: driverId,
       offeredPrice: offeredPrice,

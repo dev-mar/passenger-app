@@ -10,6 +10,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../core/constants/app_assets.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/service_type_display.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/network/trips_api.dart';
@@ -17,6 +18,7 @@ import '../../core/network/geocoding_service.dart';
 import '../../core/network/directions_service.dart';
 import '../../data/models/quote_response.dart';
 import '../../core/config/locale_provider.dart';
+import '../../core/router/app_router.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -27,6 +29,7 @@ import 'trip_recovery_feedback.dart';
 import 'widgets/quote_bottom_sheet_widgets.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
+import 'trip_driver_marker.dart';
 
 /// Pantalla unificada: Origen, destino y precios en la misma ventana.
 /// Si originLat/originLng son null, se obtiene la ubicación actual al abrir.
@@ -91,6 +94,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   Duration _tripStatusSyncInterval = const Duration(seconds: 60);
   bool _tripStatusSyncInFlight = false;
   DateTime _lastTripStatusSyncAt = DateTime.fromMillisecondsSinceEpoch(0);
+  BitmapDescriptor? _driverOnTripIcon;
 
   void _requireOriginConfirmation() {
     setState(() {
@@ -427,6 +431,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_loadDriverTripIcon());
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final tripState = ref.read(tripRequestProvider);
@@ -1039,6 +1046,17 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     }
   }
 
+  Future<void> _loadDriverTripIcon() async {
+    if (!mounted) return;
+    try {
+      final icon = await buildPassengerDriverOnTripMapIcon();
+      if (!mounted) return;
+      setState(() => _driverOnTripIcon = icon);
+    } catch (_) {
+      // Fallback: pin verde por defecto.
+    }
+  }
+
   void _onMapCreated(GoogleMapController c) {
     _controller = c;
   }
@@ -1131,51 +1149,120 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     _collapseStops();
   }
 
-  /// Menú de perfil con opción para cerrar sesión.
+  /// Menú de cuenta: acceso a perfil y cierre de sesión.
   Future<void> _showProfileMenu(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         return SafeArea(
           top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 14),
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                leading: const Icon(Icons.logout_rounded, color: AppColors.error),
-                title: Text(
-                  AppLocalizations.of(context)!.tripLogout,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w600,
-                      ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Text(
+                    l10n.profileScreenTitle,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
                 ),
-                onTap: () async {
-                  Navigator.of(ctx).pop();
-                  await AuthService.logout();
-                  if (!mounted) return;
-                  context.goNamed('login');
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 2, 18, 8),
+                  child: Text(
+                    l10n.profileTaglinePassenger,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.person_rounded, color: AppColors.primary),
+                  ),
+                  title: Text(
+                    l10n.profileScreenTitle,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
+                  subtitle: Text(
+                    l10n.profileRefresh,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    context.pushNamed(AppRouter.passengerProfile);
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 18),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.logout_rounded, color: AppColors.error),
+                  ),
+                  title: Text(
+                    l10n.tripLogout,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    await AuthService.logout();
+                    if (!mounted) return;
+                    context.goNamed(AppRouter.login);
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         );
       },
@@ -1666,6 +1753,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     final rtState = ref.watch(passengerRealtimeProvider);
     final driverLat = rtState.driverLat;
     final driverLng = rtState.driverLng;
+    final driverBearing = rtState.driverBearing;
 
     // Sincroniza flags de calificación cuando cambia el trip (p. ej. creado en esta sesión sin pasar por splash).
     ref.listen<TripRequestState>(tripRequestProvider, (previous, next) {
@@ -1841,7 +1929,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   Marker(
                     markerId: const MarkerId('driver'),
                     position: LatLng(driverLat, driverLng),
-                    icon: driverIcon,
+                    icon: _driverOnTripIcon ?? driverIcon,
+                    rotation: driverBearing ?? 0,
+                    flat: true,
+                    anchor: _driverOnTripIcon != null
+                        ? const Offset(0.5, 0.5)
+                        : const Offset(0.5, 1.0),
                   ),
               },
               polylines: _destination != null
@@ -2612,7 +2705,8 @@ class _QuoteBottomSheetState extends ConsumerState<_QuoteBottomSheet> {
                       final option = quote.options[index];
                       final isSelected = _selected?.serviceTypeId == option.serviceTypeId;
                       return TripQuoteOptionTile(
-                        serviceName: option.serviceTypeName,
+                        serviceName:
+                            displayServiceTypeName(option.serviceTypeName, l10n),
                         priceText: '${option.estimatedPrice.toStringAsFixed(1)} ${l10n.quotePerTrip}',
                         isSelected: isSelected,
                         onTap: () {

@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import '../../core/config/app_config.dart';
+import '../../core/app_lifecycle/passenger_app_visibility.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/notifications/passenger_notification_service.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
@@ -25,6 +27,8 @@ class PassengerRealtimeState {
   final QuoteResponse? quote;
   final double? driverLat;
   final double? driverLng;
+  /// Grados (0 = norte), desde `trip:driver_location` / REST `driverLocation.bearing`.
+  final double? driverBearing;
   final String? driverName;
   final String? carColor;
   final String? carPlate;
@@ -41,6 +45,7 @@ class PassengerRealtimeState {
     this.quote,
     this.driverLat,
     this.driverLng,
+    this.driverBearing,
     this.driverName,
     this.carColor,
     this.carPlate,
@@ -58,6 +63,7 @@ class PassengerRealtimeState {
     quote: null,
     driverLat: null,
     driverLng: null,
+    driverBearing: null,
     driverName: null,
     carColor: null,
     carPlate: null,
@@ -75,6 +81,7 @@ class PassengerRealtimeState {
     QuoteResponse? quote,
     double? driverLat,
     double? driverLng,
+    double? driverBearing,
     String? driverName,
     String? carColor,
     String? carPlate,
@@ -91,6 +98,7 @@ class PassengerRealtimeState {
       quote: quote ?? this.quote,
       driverLat: driverLat ?? this.driverLat,
       driverLng: driverLng ?? this.driverLng,
+      driverBearing: driverBearing ?? this.driverBearing,
       driverName: driverName ?? this.driverName,
       carColor: carColor ?? this.carColor,
       carPlate: carPlate ?? this.carPlate,
@@ -155,6 +163,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         errorCode: null,
         driverLat: res.driverLat ?? state.driverLat,
         driverLng: res.driverLng ?? state.driverLng,
+        driverBearing: res.driverBearing ?? state.driverBearing,
         driverPhotoUrl: mergedPhoto,
         driverPhotoExpiresAt: mergedPhotoExpiresAt,
       );
@@ -320,9 +329,18 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           if (kDebugMode) {
             debugPrint('[PASSENGER_RT] trip:status tripId=$tripIdData status=$newStatus');
           }
-          // En esta versión de Flutter sólo están soportados beep / alert.
           if (newStatus == 'arrived') {
-            SystemSound.play(SystemSoundType.alert);
+            final fg = PassengerAppVisibility.isInForeground.value;
+            if (fg) {
+              SystemSound.play(SystemSoundType.alert);
+            }
+            unawaited(
+              PassengerNotificationService.instance.showDriverArrivedIfBackground(
+                isAppInForeground: fg,
+                tripId: tripIdData,
+                driverName: state.driverName,
+              ),
+            );
           }
           state = state.copyWith(
             activeTripId: tripIdData,
@@ -345,12 +363,22 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           if (latRaw is! num || lngRaw is! num) return;
           final lat = latRaw.toDouble();
           final lng = lngRaw.toDouble();
+          double? bearingParsed;
+          final br = data['bearing'];
+          if (br is num) {
+            bearingParsed = br.toDouble();
+          } else if (br is String) {
+            bearingParsed = double.tryParse(br);
+          }
           if (kDebugMode) {
-            debugPrint('[PASSENGER_RT] trip:driver_location tripId=$tripIdData lat=$lat lng=$lng');
+            debugPrint(
+              '[PASSENGER_RT] trip:driver_location tripId=$tripIdData lat=$lat lng=$lng bearing=$bearingParsed',
+            );
           }
           state = state.copyWith(
             driverLat: lat,
             driverLng: lng,
+            driverBearing: bearingParsed ?? state.driverBearing,
           );
         } catch (e) {
           if (kDebugMode) {

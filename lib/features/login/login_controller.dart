@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/network/passenger_client_meta.dart';
 
 final loginControllerProvider =
     StateNotifierProvider<LoginController, LoginState>((ref) {
@@ -25,7 +24,9 @@ enum LoginNextStep {
 
 class LoginState {
   final String? errorMessage;
-  LoginState({this.errorMessage});
+  /// Código de negocio del backend (`PASS_AUTH_*`, etc.) cuando aplica.
+  final String? errorCode;
+  LoginState({this.errorMessage, this.errorCode});
 }
 
 class LoginController extends StateNotifier<LoginState> {
@@ -56,12 +57,9 @@ class LoginController extends StateNotifier<LoginState> {
     try {
       final response = await _dio.post(
         AppConfig.loginPath,
-        data: {
-          'brand': 'Texi App',
+        data: <String, dynamic>{
+          ...passengerAuthClientMeta(),
           'country_code': countryCode,
-          'ip': '0.0.0.0',
-          'model': _deviceModel(),
-          'os': Platform.operatingSystem,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
         },
       );
@@ -73,8 +71,9 @@ class LoginController extends StateNotifier<LoginState> {
 
       final success = body['success'] == true;
       if (!success) {
+        final code = body['code']?.toString();
         final msg = body['message']?.toString() ?? 'Error al iniciar sesión';
-        return _fail(msg);
+        return _fail(msg, code: code);
       }
 
       final data = body['data'];
@@ -110,11 +109,14 @@ class LoginController extends StateNotifier<LoginState> {
         refreshToken: refreshToken,
         expiresInSeconds: expiresInSec,
       );
+      await AuthService.persistLoginPhoneE164(fullPhone);
       return LoginNextStep.tripRequest;
     } on DioException catch (e) {
       String message = 'Error de conexión';
+      String? code;
       final data = e.response?.data;
       if (data is Map) {
+        code = data['code']?.toString();
         final msg = data['message']?.toString();
         if (msg != null && msg.isNotEmpty) {
           message = msg;
@@ -122,22 +124,14 @@ class LoginController extends StateNotifier<LoginState> {
       } else if (e.message != null && e.message!.isNotEmpty) {
         message = e.message!;
       }
-      return _fail(message);
+      return _fail(message, code: code);
     } catch (_) {
       return _fail('Error inesperado');
     }
   }
 
-  LoginNextStep _fail(String message) {
-    state = LoginState(errorMessage: message);
+  LoginNextStep _fail(String message, {String? code}) {
+    state = LoginState(errorMessage: message, errorCode: code);
     return LoginNextStep.error;
-  }
-
-  String _deviceModel() {
-    try {
-      return Platform.localHostname;
-    } catch (_) {
-      return 'Unknown';
-    }
   }
 }

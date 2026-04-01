@@ -9,6 +9,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/config/locale_provider.dart';
 import '../../core/router/app_router.dart';
+import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -116,11 +117,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final toolsAsync = ref.watch(passengerInternalToolsVisibleProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.appName),
         actions: [
+          if (toolsAsync.hasValue && toolsAsync.value == true)
+            IconButton(
+              icon: const Icon(Icons.science_outlined),
+              tooltip: 'Labs (beta)',
+              onPressed: () {
+                TexiUiFeedback.lightTap();
+                context.pushNamed(AppRouter.labs);
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.language_rounded),
             tooltip: AppLocalizations.of(context)!.homeTooltipLanguage,
@@ -234,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           position: LatLng(d.lat, d.lng),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(
-            title: AppLocalizations.of(context)!.homeMapDriverTitle('${d.driverId}'),
+            title: AppLocalizations.of(context)!.homeMapDriverTitle(d.driverId),
             snippet: AppLocalizations.of(context)!.homeDriverDistanceKm(d.distanceKm.toStringAsFixed(1)),
           ),
         ),
@@ -257,6 +268,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  TexiUiFeedback.lightTap();
+                  context.pushNamed(AppRouter.passengerProfile);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.homeProfileQuickAccess,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                            ),
+                            Text(
+                              l10n.homeProfileQuickAccessSubtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
             Text(
               _drivers.isEmpty
                   ? l10n.homeNearbyDriversNone

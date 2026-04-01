@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935442837361",
+    "project_id": "texi-prod",
+    "storage_bucket": "texi-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935442837361:android:94a27f405c552edddf50d0",
+        "android_client_info": {
+          "package_name": "com.taxitexi.texi_passenger_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjgqer8v1_GaXV6zzwl5UQhTMV9GUBSTs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

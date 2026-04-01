@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/network/passenger_client_meta.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -111,14 +112,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     try {
       final response = await _dio.post(
-        '/auth/users',
-        data: {
+        AppConfig.authUsersPath,
+        data: <String, dynamic>{
+          ...passengerAuthClientMeta(),
           'phone_number': fullPhone,
           'alias_name': name,
-          'brand': 'Samsung',
-          'ip': null,
-          'model': 'Galaxy S21',
-          'os': 'Android',
           // Foto opcional: si no hay imagen, enviamos null explícito.
           'profile_picture': _profileImageBase64,
         },
@@ -151,7 +149,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         return;
       }
 
-      await AuthService.saveSession(token: token);
+      final refreshToken = data['refresh_token']?.toString();
+      final expiresIn = data['expires_in'];
+      int? expiresInSec;
+      if (expiresIn is int) {
+        expiresInSec = expiresIn;
+      } else if (expiresIn is num) {
+        expiresInSec = expiresIn.toInt();
+      }
+
+      await AuthService.saveSession(
+        token: token,
+        refreshToken: refreshToken,
+        expiresInSeconds: expiresInSec,
+      );
+      await AuthService.persistLoginPhoneE164(fullPhone);
       await AuthService.savePassengerDisplayName(name);
 
       if (!mounted) return;

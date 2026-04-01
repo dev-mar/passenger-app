@@ -9,6 +9,10 @@ const String _keyAuthToken = 'auth_token';
 const String _keyRefreshToken = 'refresh_token';
 const String _keyExpiresAt = 'auth_token_expires_at';
 const String _keyPassengerDisplayName = 'passenger_display_name';
+const String _keyPassengerPrefNotifications = 'passenger_pref_notifications';
+const String _keyPassengerPrefDarkMode = 'passenger_pref_dark_mode';
+/// Dígitos E.164 (sin `+`) para allowlist QA / labs (misma heurística que conductor).
+const String _keyPassengerLoginPhoneE164 = 'passenger_login_phone_e164';
 
 /// Margen en segundos para considerar el token "por vencer" y refrescarlo antes.
 const int _expiryMarginSeconds = 300; // 5 minutos
@@ -25,6 +29,7 @@ class AuthService {
   /// Callback que la app debe asignar al arrancar (main). Se invoca cuando el backend
   /// responde 401 (token expirado/inválido) para cerrar sesión y redirigir a login.
   static void Function()? onSessionExpired;
+  static Future<void> Function()? onSessionEstablished;
 
   static final _dio = Dio(BaseOptions(
     baseUrl: AppConfig.baseUrlAuth,
@@ -74,6 +79,11 @@ class AuthService {
     } else {
       await _storage.delete(key: _keyExpiresAt);
     }
+    if (onSessionEstablished != null) {
+      try {
+        await onSessionEstablished!.call();
+      } catch (_) {}
+    }
   }
 
   /// Cierra sesión: borra token y refresh.
@@ -82,6 +92,18 @@ class AuthService {
     await _storage.delete(key: _keyRefreshToken);
     await _storage.delete(key: _keyExpiresAt);
     await _storage.delete(key: _keyPassengerDisplayName);
+    await _storage.delete(key: _keyPassengerLoginPhoneE164);
+  }
+
+  /// Guarda el teléfono de login (solo dígitos, p. ej. `591710011234`) para gating beta/QA.
+  static Future<void> persistLoginPhoneE164(String rawPhone) async {
+    final d = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (d.length < 8) return;
+    await _storage.write(key: _keyPassengerLoginPhoneE164, value: d);
+  }
+
+  static Future<String?> readLoginPhoneE164Digits() async {
+    return _storage.read(key: _keyPassengerLoginPhoneE164);
   }
 
   /// Guarda el nombre visible del pasajero localmente (simulación de perfil).
@@ -91,6 +113,31 @@ class AuthService {
 
   static Future<String?> getPassengerDisplayName() async {
     return _storage.read(key: _keyPassengerDisplayName);
+  }
+
+  static Future<void> savePassengerPreferences({
+    required bool notificationsEnabled,
+    required bool darkModeEnabled,
+  }) async {
+    await _storage.write(
+      key: _keyPassengerPrefNotifications,
+      value: notificationsEnabled ? 'true' : 'false',
+    );
+    await _storage.write(
+      key: _keyPassengerPrefDarkMode,
+      value: darkModeEnabled ? 'true' : 'false',
+    );
+  }
+
+  static Future<({bool notificationsEnabled, bool darkModeEnabled})> getPassengerPreferences() async {
+    final n = await _storage.read(key: _keyPassengerPrefNotifications);
+    final d = await _storage.read(key: _keyPassengerPrefDarkMode);
+    final notificationsEnabled = n == null ? true : n == 'true';
+    final darkModeEnabled = d == null ? false : d == 'true';
+    return (
+      notificationsEnabled: notificationsEnabled,
+      darkModeEnabled: darkModeEnabled,
+    );
   }
 
   /// Indica si hay al menos un token guardado (puede estar vencido).

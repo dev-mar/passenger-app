@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/service_type_display.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/trip_session_storage.dart';
@@ -200,7 +201,11 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
           const SizedBox(height: 12),
           _card(context, l10n.confirmTo, '${state.destination!.lat.toStringAsFixed(4)}, ${state.destination!.lng.toStringAsFixed(4)}'),
           const SizedBox(height: 12),
-          _card(context, l10n.quoteTitle, '${option.serviceTypeName} — ${option.estimatedPrice.toStringAsFixed(1)}'),
+          _card(
+            context,
+            l10n.quoteTitle,
+            '${displayServiceTypeName(option.serviceTypeName, l10n)} — ${option.estimatedPrice.toStringAsFixed(1)}',
+          ),
           if (_error != null) ...[
             const SizedBox(height: 16),
             Padding(

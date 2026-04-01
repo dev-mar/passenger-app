@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/service_type_display.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
@@ -77,7 +78,10 @@ class TripQuoteScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    option.serviceTypeName,
+                                    displayServiceTypeName(
+                                      option.serviceTypeName,
+                                      l10n,
+                                    ),
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                           color: isSelected ? AppColors.primary : AppColors.textPrimary,
                                         ),
