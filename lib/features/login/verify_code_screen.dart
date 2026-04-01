@@ -11,6 +11,8 @@ import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../core/network/texi_backend_error.dart';
+import '../../core/l10n/trip_error_localization.dart';
 
 /// Pantalla para ingresar el código de 4 dígitos enviado por SMS y activar al pasajero.
 class VerifyCodeScreen extends ConsumerStatefulWidget {
@@ -131,12 +133,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       context.goNamed('trip_request');
     } on DioException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final d = e.response?.data;
+      final code = TexiBackendError.codeFromResponse(d);
+      final raw = TexiBackendError.messageFromResponse(d) ??
+          (d is Map ? d['message']?.toString() : null);
       setState(() {
         _isLoading = false;
-        final d = e.response?.data;
-        _errorMessage = d is Map
-            ? (d['message']?.toString() ?? 'Error de red.')
-            : 'Error de red.';
+        _errorMessage = (code != null && code.startsWith('RBAC_'))
+            ? localizedTripApiError(l10n, code, fallbackMessage: raw)
+            : (raw ?? 'Error de red.');
       });
     }
   }
@@ -213,15 +219,25 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         },
       );
     } on DioException catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       final data = e.response?.data;
-      String message = 'Error al validar el código.';
-      if (data is Map) {
-        final backendMsg = data['message']?.toString();
-        final detail = (data['error'] as Map?)?['details']?.toString();
-        message = detail ?? backendMsg ?? message;
-      } else if (e.message != null && e.message!.isNotEmpty) {
-        message = e.message!;
+      final code = TexiBackendError.codeFromResponse(data);
+      final backendMsg = TexiBackendError.messageFromResponse(data);
+      String? detail;
+      if (data is Map<String, dynamic>) {
+        final err = data['error'];
+        if (err is Map) {
+          detail = err['details']?.toString();
+        }
       }
+      final fallback = detail ??
+          backendMsg ??
+          (data is Map ? data['message']?.toString() : null) ??
+          (e.message != null && e.message!.isNotEmpty ? e.message! : null);
+      final message = (code != null && code.startsWith('RBAC_'))
+          ? localizedTripApiError(l10n, code, fallbackMessage: fallback)
+          : (fallback ?? 'Error al validar el código.');
       setState(() {
         _isLoading = false;
         _errorMessage = message;
@@ -333,6 +349,51 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                                   : Text(l10n.verifyCodeConfirm),
                             ),
                           ),
+                        ),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 320),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeOutCubic,
+                          child: _isLoading
+                              ? Padding(
+                                  key: const ValueKey('verify-loading'),
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface.withValues(alpha: 0.72),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            l10n.commonLoading,
+                                            style: const TextStyle(
+                                              color: AppColors.textPrimary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(
+                                  key: ValueKey('verify-loading-empty'),
+                                ),
                         ),
                         const SizedBox(height: 16),
                         Text(

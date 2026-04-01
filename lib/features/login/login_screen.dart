@@ -7,6 +7,7 @@ import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../core/l10n/trip_error_localization.dart';
 import 'login_controller.dart';
 
 /// Pantalla Login: teléfono (código Bolivia) y botón para obtener JWT.
@@ -80,16 +81,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           final loginState = ref.read(loginControllerProvider);
           final l10n = AppLocalizations.of(context)!;
           final code = loginState.errorCode;
-          _errorMessage = switch (code) {
-            'PASS_AUTH_PHONE_REGISTERED_AS_DRIVER' =>
-              l10n.loginErrorPhoneRegisteredAsDriver,
-            'PASS_AUTH_PHONE_OTHER_ACCOUNT_TYPE' =>
-              l10n.loginErrorPhoneOtherAccountType,
-            'PASS_AUTH_DUPLICATE_USER' => l10n.loginErrorPhoneDuplicatePassenger,
-            _ =>
-              loginState.errorMessage ??
-                  l10n.loginErrorInvalidCredentials,
-          };
+          _errorMessage = (code != null && code.startsWith('RBAC_'))
+              ? localizedTripApiError(l10n, code,
+                  fallbackMessage: loginState.errorMessage)
+              : switch (code) {
+                  'PASS_AUTH_PHONE_REGISTERED_AS_DRIVER' =>
+                    l10n.loginErrorPhoneRegisteredAsDriver,
+                  'PASS_AUTH_PHONE_OTHER_ACCOUNT_TYPE' =>
+                    l10n.loginErrorPhoneOtherAccountType,
+                  'PASS_AUTH_DUPLICATE_USER' =>
+                    l10n.loginErrorPhoneDuplicatePassenger,
+                  _ =>
+                    loginState.errorMessage ??
+                        l10n.loginErrorInvalidCredentials,
+                };
         });
         break;
     }
@@ -133,7 +138,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         AppAssets.logoAmaBlanco,
                         height: 56,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const SizedBox(height: 56),
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox(height: 56),
                       ),
                       const SizedBox(height: 24),
                       Text(
@@ -212,6 +218,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                           ),
                         ),
+                      ),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 320),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeOutCubic,
+                        child: _isLoading
+                            ? Padding(
+                                key: const ValueKey('passenger-login-loading'),
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface.withValues(alpha: 0.72),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          AppLocalizations.of(context)!.commonLoading,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(
+                                key: ValueKey('passenger-login-loading-empty'),
+                              ),
                       ),
                     ],
                   ),

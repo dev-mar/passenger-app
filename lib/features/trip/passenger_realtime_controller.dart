@@ -143,6 +143,24 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
 
   io.Socket? _socket;
   StreamSubscription? _reconnectSub;
+  DateTime? _lastTripSyncApiAt;
+  static const _tripSyncMinGap = Duration(seconds: 2);
+  Timer? _driverLocationDebounceTimer;
+  double? _pendingDriverLat;
+  double? _pendingDriverLng;
+  double? _pendingDriverBearing;
+  bool _tearDown = false;
+
+  String _socketConnectErrorToCode (dynamic data) {
+    final s = data?.toString() ?? '';
+    if (s.contains('RBAC_FORBIDDEN')) return 'RBAC_FORBIDDEN';
+    if (s.contains('RBAC_NO_IDENTITY')) return 'RBAC_NO_IDENTITY';
+    if (s.contains('RBAC_NO_AUTH')) return 'RBAC_NO_AUTH';
+    if (s.contains('UNAUTHORIZED') || s.contains('NO_TOKEN') || s.contains('AUTH')) {
+      return 'NO_TOKEN';
+    }
+    return 'SOCKET';
+  }
 
   /// Sincroniza el `status` actual del viaje vía REST.
   /// Se usa cuando el socket podría haber perdido eventos (p. ej. driver
@@ -150,6 +168,11 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   Future<void> syncTripStatusFromApi({
     required String tripId,
   }) async {
+    final now = DateTime.now();
+    if (_lastTripSyncApiAt != null &&
+        now.difference(_lastTripSyncApiAt!) < _tripSyncMinGap) {
+      return;
+    }
     try {
       final token = await AuthService.getValidToken();
       if (token == null || token.isEmpty) return;
@@ -167,6 +190,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         driverPhotoUrl: mergedPhoto,
         driverPhotoExpiresAt: mergedPhotoExpiresAt,
       );
+      _lastTripSyncApiAt = DateTime.now();
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[PASSENGER_RT] syncTripStatusFromApi error: $e');
@@ -198,6 +222,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
 
   Future<void> connect({required String tripId, QuoteResponse? quote}) async {
     if (state.connected || state.connecting) return;
+    _tearDown = false;
     state = state.copyWith(connecting: true, errorCode: null);
     if (kDebugMode) {
       debugPrint('[PASSENGER_RT] Conectando Socket.IO para tripId=$tripId');
@@ -216,11 +241,10 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
 
       final url = AppConfig.baseUrlSocket;
       final opts = io.OptionBuilder()
-          .setTransports(['websocket'])
-          .enableForceNew()
+          .setTransports(['websocket', 'polling'])
           .enableReconnection()
           .setPath('/socket.io/')
-          // Auth: Bearer JWT; el rol lo deduce el backend desde el token (no x-role).
+          .setAuth({'token': token})
           .setExtraHeaders({'Authorization': 'Bearer $token'})
           .build();
 
@@ -254,7 +278,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         state = state.copyWith(
           connecting: false,
           connected: false,
-          errorCode: 'SOCKET',
+          errorCode: _socketConnectErrorToCode(data),
         );
       });
 
@@ -375,11 +399,23 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
               '[PASSENGER_RT] trip:driver_location tripId=$tripIdData lat=$lat lng=$lng bearing=$bearingParsed',
             );
           }
-          state = state.copyWith(
-            driverLat: lat,
-            driverLng: lng,
-            driverBearing: bearingParsed ?? state.driverBearing,
-          );
+          _pendingDriverLat = lat;
+          _pendingDriverLng = lng;
+          _pendingDriverBearing = bearingParsed;
+          _driverLocationDebounceTimer?.cancel();
+          _driverLocationDebounceTimer =
+              Timer(const Duration(milliseconds: 480), () {
+            _driverLocationDebounceTimer = null;
+            if (_tearDown) return;
+            final plat = _pendingDriverLat;
+            final plng = _pendingDriverLng;
+            if (plat == null || plng == null) return;
+            state = state.copyWith(
+              driverLat: plat,
+              driverLng: plng,
+              driverBearing: _pendingDriverBearing ?? state.driverBearing,
+            );
+          });
         } catch (e) {
           if (kDebugMode) {
             debugPrint('[PASSENGER_RT] Error manejando trip:driver_location: $e');
@@ -400,15 +436,25 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
 
   /// Desconecta el socket y resetea el estado (p. ej. cuando el pasajero cancela la búsqueda).
   void disconnect() {
+    _tearDown = true;
+    _driverLocationDebounceTimer?.cancel();
+    _driverLocationDebounceTimer = null;
+    _pendingDriverLat = null;
+    _pendingDriverLng = null;
+    _pendingDriverBearing = null;
+    _lastTripSyncApiAt = null;
     _reconnectSub?.cancel();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+    _tearDown = false;
     state = PassengerRealtimeState.initial;
   }
 
   @override
   void dispose() {
+    _tearDown = true;
+    _driverLocationDebounceTimer?.cancel();
     _reconnectSub?.cancel();
     _socket?.dispose();
     super.dispose();

@@ -14,6 +14,9 @@ import '../../core/utils/service_type_display.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/network/trips_api.dart';
+import '../../core/network/texi_backend_error.dart';
+import '../../core/location/passenger_geolocation_permission_cache.dart';
+import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/geocoding_service.dart';
 import '../../core/network/directions_service.dart';
 import '../../data/models/quote_response.dart';
@@ -200,11 +203,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   Future<void> _refreshPassengerGpsDot({required bool preserveTripGeometry}) async {
     if (!mounted) return;
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    final permission =
+        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       if (!mounted) return;
       setState(() {
         if (!preserveTripGeometry || !_deviceGpsFixOk) {
@@ -592,28 +594,26 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
   Future<void> _resolveOrigin() async {
     if (!mounted) return;
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      final requested = await Geolocator.requestPermission();
-      if (requested == LocationPermission.denied ||
-          requested == LocationPermission.deniedForever) {
-        if (mounted) {
-          setState(() {
-            _loadingOrigin = false;
-            _deviceGpsFixOk = false;
-            _originError = AppLocalizations.of(context)!.homeLocationError;
-            _origin = const LatLng(-16.5, -68.1);
-            _mapCenter = _origin;
-            if (_destination == null) {
-              _originConfirmed = false;
-              _pickingOrigin = true;
-              _pickingDestination = false;
-              _activeStop = ActiveStop.none;
-            }
-          });
-        }
-        return;
+    final permission =
+        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        setState(() {
+          _loadingOrigin = false;
+          _deviceGpsFixOk = false;
+          _originError = AppLocalizations.of(context)!.homeLocationError;
+          _origin = const LatLng(-16.5, -68.1);
+          _mapCenter = _origin;
+          if (_destination == null) {
+            _originConfirmed = false;
+            _pickingOrigin = true;
+            _pickingDestination = false;
+            _activeStop = ActiveStop.none;
+          }
+        });
       }
+      return;
     }
     try {
       final position = await Geolocator.getCurrentPosition(
@@ -1036,11 +1036,19 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     if (!mounted) return;
     try {
       // Precarga de assets de pines para evitar jank en primer uso.
-      const config = ImageConfiguration(
-        size: Size(36, 48),
+      final config = createLocalImageConfiguration(context);
+      await BitmapDescriptor.asset(
+        config,
+        AppAssets.pinOrigen,
+        width: 36,
+        height: 48,
       );
-      await BitmapDescriptor.fromAssetImage(config, AppAssets.pinOrigen);
-      await BitmapDescriptor.fromAssetImage(config, AppAssets.pinDestino);
+      await BitmapDescriptor.asset(
+        config,
+        AppAssets.pinDestino,
+        width: 36,
+        height: 48,
+      );
     } catch (_) {
       // Ignoramos fallos de precarga; los markers siguen funcionando con fallback.
     }
@@ -1256,7 +1264,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   onTap: () async {
                     Navigator.of(ctx).pop();
                     await AuthService.logout();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     context.goNamed(AppRouter.login);
                   },
                 ),
@@ -1550,18 +1558,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       }
       debugPrint('[Quote] stack: $st');
 
-      String message = AppLocalizations.of(context)!.commonError;
+      final l10nQ = AppLocalizations.of(context)!;
+      String message = l10nQ.commonError;
       if (e is DioException) {
         final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final code = data['code']?.toString();
-          final msg = data['message']?.toString();
-          if (code == 'CITY_NOT_SUPPORTED') {
-            message = AppLocalizations.of(context)!.tripNoCoverageInZone;
-          } else if (msg != null && msg.isNotEmpty) {
-            message = msg;
-          }
-        } else if (e.response?.statusCode != null) {
+        final code = TexiBackendError.codeFromResponse(data);
+        final rawMsg = TexiBackendError.messageFromResponse(data);
+        message = localizedTripApiError(l10nQ, code, fallbackMessage: rawMsg);
+        if (message == l10nQ.commonError && e.response?.statusCode != null) {
           message = '${e.response?.statusCode}: ${e.message ?? message}';
         }
       }
@@ -2157,7 +2161,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
               right: 0,
               bottom: 0,
               child: TripConnectionErrorOverlay(
-                message: l10n.tripConnectionError,
+                message: localizedPassengerRealtimeError(
+                  l10n,
+                  rtState.errorCode,
+                ),
                 onRetry: () {
                   final quote = tripState.quote;
                   ref.read(passengerRealtimeProvider.notifier).connect(
@@ -2620,30 +2627,22 @@ class _QuoteBottomSheetState extends ConsumerState<_QuoteBottomSheet> {
       widget.onSuccess();
     } catch (e) {
       if (!mounted) return;
+      final l10nErr = AppLocalizations.of(context)!;
       if (e is DioException) {
         final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final code = data['code']?.toString();
-          final msg = data['message']?.toString();
-          if (code == 'NO_DRIVERS_AVAILABLE') {
-            setState(() {
-              _requesting = false;
-              _errorMessage = AppLocalizations.of(context)!.tripNoDriversAvailable;
-            });
-            return;
-          }
-          if (msg != null && msg.isNotEmpty) {
-            setState(() {
-              _requesting = false;
-              _errorMessage = msg;
-            });
-            return;
-          }
-        }
+        final code = TexiBackendError.codeFromResponse(data);
+        final rawMsg = TexiBackendError.messageFromResponse(data);
+        final message =
+            localizedTripApiError(l10nErr, code, fallbackMessage: rawMsg);
+        setState(() {
+          _requesting = false;
+          _errorMessage = message;
+        });
+        return;
       }
       setState(() {
         _requesting = false;
-        _errorMessage = AppLocalizations.of(context)!.commonError;
+        _errorMessage = l10nErr.commonError;
       });
     }
   }

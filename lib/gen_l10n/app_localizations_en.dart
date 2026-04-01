@@ -195,6 +195,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not connect to receive trip updates. Check your connection.';
 
   @override
+  String get tripRbacForbidden =>
+      'Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.';
+
+  @override
+  String get tripRbacSession =>
+      'We couldn’t validate your session. Sign out and sign in again.';
+
+  @override
+  String get tripRbacTechnical =>
+      'We couldn’t verify permissions. Please try again in a few seconds.';
+
+  @override
+  String get tripRealtimeNoToken =>
+      'Your session is invalid or expired. Sign in again to follow the trip.';
+
+  @override
   String get tripRateDriver => 'Rate your driver';
 
   @override

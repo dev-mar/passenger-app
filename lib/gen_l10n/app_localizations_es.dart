@@ -196,6 +196,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo conectar para recibir actualizaciones del viaje. Revisa tu conexión.';
 
   @override
+  String get tripRbacForbidden =>
+      'Tu cuenta no tiene permiso para esta acción en viajes. Si sigue pasando, cerrá sesión y volvé a entrar o contactá soporte.';
+
+  @override
+  String get tripRbacSession =>
+      'No pudimos validar tu sesión. Cerrá sesión y volvé a iniciar sesión.';
+
+  @override
+  String get tripRbacTechnical =>
+      'Hubo un problema al verificar permisos. Intentá de nuevo en unos segundos.';
+
+  @override
+  String get tripRealtimeNoToken =>
+      'Sesión inválida o vencida. Volvé a iniciar sesión para seguir el viaje.';
+
+  @override
   String get tripRateDriver => 'Califica a tu conductor';
 
   @override

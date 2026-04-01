@@ -56,7 +56,9 @@ class TripQuoteScreen extends ConsumerWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Material(
-                    color: isSelected ? AppColors.primary.withOpacity(0.2) : AppColors.surface,
+                    color: isSelected
+                        ? AppColors.primary.withValues(alpha: 0.2)
+                        : AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
                       onTap: () {

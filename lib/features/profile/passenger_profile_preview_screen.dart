@@ -12,6 +12,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../core/l10n/trip_error_localization.dart';
 
 enum _ProfileErr { noSession, empty, badFormat }
 
@@ -741,6 +742,15 @@ class _PassengerProfilePreviewScreenState
       return l10n.profileErrorBody;
     }
     if (e is _ProfileApiException) {
+      final ac = e.apiCode;
+      if (ac != null && ac.startsWith('RBAC_')) {
+        return localizedTripApiError(
+          l10n,
+          ac,
+          fallbackMessage:
+              e.message.isNotEmpty && e.message != 'profile' ? e.message : null,
+        );
+      }
       switch (e.apiCode) {
         case 'PASS_AUTH_FORBIDDEN':
         case 'FORBIDDEN':

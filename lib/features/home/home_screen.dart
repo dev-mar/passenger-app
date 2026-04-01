@@ -11,6 +11,9 @@ import '../../core/config/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/network/trips_api.dart';
+import '../../core/network/texi_backend_error.dart';
+import '../../core/location/passenger_geolocation_permission_cache.dart';
+import '../../core/l10n/trip_error_localization.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../data/models/nearby_driver.dart';
@@ -46,17 +49,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _initLocationAndDrivers() async {
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      final requested = await Geolocator.requestPermission();
-      if (requested == LocationPermission.denied ||
-          requested == LocationPermission.deniedForever) {
-        setState(() {
-          _loadingLocation = false;
-          _error = AppLocalizations.of(context)!.homeLocationError;
-        });
-        return;
-      }
+    final permission =
+        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      setState(() {
+        _loadingLocation = false;
+        _error = AppLocalizations.of(context)!.homeLocationError;
+      });
+      return;
     }
 
     try {
@@ -109,9 +110,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _drivers = []);
-      }
+      if (!mounted) return;
+      final code = TexiBackendError.codeFromDio(e);
+      final msg = (code != null && code.startsWith('RBAC_'))
+          ? localizedTripApiError(AppLocalizations.of(context)!, code)
+          : null;
+      setState(() {
+        _drivers = [];
+        if (msg != null) _error = msg;
+      });
     }
   }
 

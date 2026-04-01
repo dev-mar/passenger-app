@@ -105,7 +105,8 @@ class _DriverAvatarPremiumState extends State<DriverAvatarPremium>
                   );
                 },
                 // Si falla la imagen, mantenemos discretamente las iniciales ya renderizadas.
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox.shrink(),
               ),
           ],
         ),

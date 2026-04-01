@@ -440,6 +440,30 @@ abstract class AppLocalizations {
   /// **'Could not connect to receive trip updates. Check your connection.'**
   String get tripConnectionError;
 
+  /// No description provided for @tripRbacForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.'**
+  String get tripRbacForbidden;
+
+  /// No description provided for @tripRbacSession.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t validate your session. Sign out and sign in again.'**
+  String get tripRbacSession;
+
+  /// No description provided for @tripRbacTechnical.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t verify permissions. Please try again in a few seconds.'**
+  String get tripRbacTechnical;
+
+  /// No description provided for @tripRealtimeNoToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session is invalid or expired. Sign in again to follow the trip.'**
+  String get tripRealtimeNoToken;
+
   /// No description provided for @tripRateDriver.
   ///
   /// In en, this message translates to:

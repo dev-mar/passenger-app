@@ -9,6 +9,9 @@ import '../../core/ui/texi_scale_press.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/network/trips_api.dart';
+import '../../core/network/texi_backend_error.dart';
+import '../../core/location/passenger_geolocation_permission_cache.dart';
+import '../../core/l10n/trip_error_localization.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -38,11 +41,10 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
 
     if (origin == null || destination == null || quote == null || option == null) return;
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    final permission =
+        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       if (mounted) {
         setState(() {
           _error = AppLocalizations.of(context)!.tripRequireGpsForRequest;
@@ -139,15 +141,14 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
       if (e is DioException) {
         debugPrint('[CreateTrip] statusCode=${e.response?.statusCode} data=${e.response?.data}');
       }
-      String message = AppLocalizations.of(context)!.commonError;
+      final l10n = AppLocalizations.of(context)!;
+      String message = l10n.commonError;
       if (e is DioException) {
         final data = e.response?.data;
-        if (data is Map<String, dynamic>) {
-          final msg = data['message']?.toString();
-          if (msg != null && msg.isNotEmpty) {
-            message = msg;
-          }
-        } else if (e.response?.statusCode != null) {
+        final code = TexiBackendError.codeFromResponse(data);
+        final rawMsg = TexiBackendError.messageFromResponse(data);
+        message = localizedTripApiError(l10n, code, fallbackMessage: rawMsg);
+        if (message == l10n.commonError && e.response?.statusCode != null) {
           message = '${e.response?.statusCode}: ${e.message ?? message}';
         }
       }

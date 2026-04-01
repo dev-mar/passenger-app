@@ -15,6 +15,8 @@ import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../core/network/texi_backend_error.dart';
+import '../../core/l10n/trip_error_localization.dart';
 
 /// Tercera pantalla del onboarding:
 /// - Nombre obligatorio
@@ -172,16 +174,22 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
+      final l10n = AppLocalizations.of(context)!;
       final status = e.response?.statusCode;
-      final backendMsg = (e.response?.data is Map)
-          ? (e.response?.data['message']?.toString() ??
-              (e.response?.data['error'] as Map?)?['details']?.toString())
+      final data = e.response?.data;
+      final code = TexiBackendError.codeFromResponse(data);
+      final backendMsg = (data is Map)
+          ? (data['message']?.toString() ??
+              (data['error'] as Map?)?['details']?.toString())
           : null;
+      final msg = (code != null && code.startsWith('RBAC_'))
+          ? localizedTripApiError(l10n, code, fallbackMessage: backendMsg)
+          : (backendMsg ??
+              (status != null
+                  ? 'Error $status al registrar el perfil.'
+                  : 'No se pudo completar el registro.'));
       setState(() {
-        _errorMessage = backendMsg ??
-            (status != null
-                ? 'Error $status al registrar el perfil.'
-                : 'No se pudo completar el registro.');
+        _errorMessage = msg;
       });
       context.goNamed('login');
     } catch (_) {
