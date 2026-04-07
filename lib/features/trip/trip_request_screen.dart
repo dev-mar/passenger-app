@@ -498,7 +498,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
         await ref
             .read(passengerRealtimeProvider.notifier)
-            .syncTripStatusFromApi(tripId: storedTripId);
+            .syncTripStatusFromApi(tripId: storedTripId, force: true);
 
         final cached = await TripSessionStorage.getCachedDriverInfo(storedTripId);
         if (cached != null && mounted) {
@@ -543,7 +543,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         unawaited(() async {
           await ref
               .read(passengerRealtimeProvider.notifier)
-              .syncTripStatusFromApi(tripId: tripId);
+              .syncTripStatusFromApi(tripId: tripId, force: true);
           if (!mounted) return;
           ref.read(passengerRealtimeProvider.notifier).connect(
                 tripId: tripId,
@@ -739,7 +739,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
     unawaited(() async {
       // Recargamos el status por REST para compensar la falta de replay por WS.
-      await ref.read(passengerRealtimeProvider.notifier).syncTripStatusFromApi(tripId: tripId);
+      await ref
+          .read(passengerRealtimeProvider.notifier)
+          .syncTripStatusFromApi(tripId: tripId, force: true);
 
       final cached = await TripSessionStorage.getCachedDriverInfo(tripId);
       if (cached != null && mounted) {

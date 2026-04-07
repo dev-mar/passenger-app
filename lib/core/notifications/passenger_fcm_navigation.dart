@@ -8,6 +8,7 @@ import '../auth/auth_service.dart';
 import '../router/app_router.dart';
 import '../storage/trip_session_storage.dart';
 import '../../features/trip/trip_request_state.dart';
+import '../../features/trip/passenger_realtime_controller.dart';
 
 Future<void> _persistAndNavigateToTrip(String tripId) async {
   await TripSessionStorage.saveActiveTripId(tripId);
@@ -31,9 +32,18 @@ void _applyTripRequestNavigation(String tripId) {
   final ctx = AppRouter.navigatorKey.currentContext;
   if (ctx != null) {
     try {
-      ProviderScope.containerOf(ctx, listen: false)
-          .read(tripRequestProvider.notifier)
-          .setTripId(tripId);
+      final container = ProviderScope.containerOf(ctx, listen: false);
+      container.read(tripRequestProvider.notifier).setTripId(tripId);
+      // FCM no abre el socket: alinear estado con REST tras un tick de navegación.
+      Future<void>.delayed(const Duration(milliseconds: 500), () {
+        final ctx2 = AppRouter.navigatorKey.currentContext;
+        if (ctx2 == null || !ctx2.mounted) return;
+        try {
+          ProviderScope.containerOf(ctx2, listen: false)
+              .read(passengerRealtimeProvider.notifier)
+              .syncTripStatusFromApi(tripId: tripId, force: true);
+        } catch (_) {}
+      });
     } catch (_) {
       // TripRequestScreen hidrata desde [TripSessionStorage] si hace falta.
     }

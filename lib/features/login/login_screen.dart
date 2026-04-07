@@ -34,11 +34,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    TexiUiFeedback.softImpact();
+    if (_isLoading) return;
     setState(() {
       _errorMessage = null;
       _isLoading = true;
     });
+    TexiUiFeedback.softImpact();
 
     final phone = _phoneController.text.trim();
     final countryCode = _countryCodeController.text.trim();
@@ -125,12 +126,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
+            child: AbsorbPointer(
+              absorbing: _isLoading,
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -209,7 +212,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ? const SizedBox(
                                     height: 24,
                                     width: 24,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.onPrimary,
+                                    ),
                                   )
                                 : Semantics(
                                     button: true,
@@ -219,57 +225,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 320),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeOutCubic,
-                        child: _isLoading
-                            ? Padding(
-                                key: const ValueKey('passenger-login-loading'),
-                                padding: const EdgeInsets.only(top: 12),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surface.withValues(alpha: 0.72),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.primary.withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          AppLocalizations.of(context)!.commonLoading,
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              )
-                            : const SizedBox.shrink(
-                                key: ValueKey('passenger-login-loading-empty'),
-                              ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withValues(alpha: 0.5),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        AppLocalizations.of(context)!.commonLoading,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

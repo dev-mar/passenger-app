@@ -1,6 +1,27 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+
+/// Imagen embebida `data:image/...;base64,...` (foto de perfil desde backend sin S3).
+Uint8List? _decodeDataImageUrl(String url) {
+  final u = url.trim();
+  if (!u.startsWith('data:image')) return null;
+  final comma = u.indexOf(',');
+  if (comma <= 0 || comma >= u.length - 1) return null;
+  final header = u.substring(0, comma).toLowerCase();
+  final payload = u.substring(comma + 1);
+  try {
+    if (header.contains(';base64')) {
+      return base64Decode(payload.replaceAll(RegExp(r'\s'), ''));
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
 
 /// Avatar circular con anillo degradado, foto de red o iniciales; animación de entrada suave.
 class DriverAvatarPremium extends StatefulWidget {
@@ -88,26 +109,43 @@ class _DriverAvatarPremiumState extends State<DriverAvatarPremium>
           fit: StackFit.expand,
           children: [
             _InitialsDisc(initials: initials, size: s),
-            if (hasUrl)
-              Image.network(
-                url.trim(),
-                width: s,
-                height: s,
-                fit: BoxFit.cover,
-                gaplessPlayback: true,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  final visible = wasSynchronouslyLoaded || frame != null;
-                  return AnimatedOpacity(
-                    opacity: visible ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    child: child,
+            if (hasUrl) ...[
+              Builder(
+                builder: (context) {
+                  final trimmed = url.trim();
+                  final mem = _decodeDataImageUrl(trimmed);
+                  if (mem != null) {
+                    return Image.memory(
+                      mem,
+                      width: s,
+                      height: s,
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    );
+                  }
+                  return Image.network(
+                    trimmed,
+                    width: s,
+                    height: s,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                      final visible = wasSynchronouslyLoaded || frame != null;
+                      return AnimatedOpacity(
+                        opacity: visible ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        child: child,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
                   );
                 },
-                // Si falla la imagen, mantenemos discretamente las iniciales ya renderizadas.
-                errorBuilder: (context, error, stackTrace) =>
-                    const SizedBox.shrink(),
               ),
+            ],
           ],
         ),
       );

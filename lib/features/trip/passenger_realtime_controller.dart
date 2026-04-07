@@ -124,6 +124,9 @@ String displayDriverName(String? raw, [String fallback = driverNameFallbackDefau
 String? normalizeDriverPhotoUrl(String? raw) {
   if (raw == null || raw.trim().isEmpty) return null;
   final v = raw.trim();
+  // Base64 embebido desde backend (Image.network no lo soporta; DriverAvatarPremium usa Image.memory).
+  if (v.startsWith('data:image')) return v;
+  if (v.startsWith('http://') || v.startsWith('https://')) return v;
   final uri = Uri.tryParse(v);
   if (uri == null) return null;
   if (uri.hasScheme) return uri.toString();
@@ -146,10 +149,14 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   DateTime? _lastTripSyncApiAt;
   static const _tripSyncMinGap = Duration(seconds: 2);
   Timer? _driverLocationDebounceTimer;
+  Timer? _connectTimeoutTimer;
+  DateTime? _connectStartedAt;
   double? _pendingDriverLat;
   double? _pendingDriverLng;
   double? _pendingDriverBearing;
   bool _tearDown = false;
+  static const _connectStuckAfter = Duration(seconds: 12);
+  static const _connectHardTimeout = Duration(seconds: 25);
 
   String _socketConnectErrorToCode (dynamic data) {
     final s = data?.toString() ?? '';
@@ -167,9 +174,11 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   /// finaliza offline).
   Future<void> syncTripStatusFromApi({
     required String tripId,
+    bool force = false,
   }) async {
     final now = DateTime.now();
-    if (_lastTripSyncApiAt != null &&
+    if (!force &&
+        _lastTripSyncApiAt != null &&
         now.difference(_lastTripSyncApiAt!) < _tripSyncMinGap) {
       return;
     }
@@ -221,8 +230,22 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   }
 
   Future<void> connect({required String tripId, QuoteResponse? quote}) async {
-    if (state.connected || state.connecting) return;
+    if (state.connected) return;
+    if (state.connecting) {
+      final start = _connectStartedAt;
+      if (start != null &&
+          DateTime.now().difference(start) < _connectStuckAfter) {
+        return;
+      }
+      _connectTimeoutTimer?.cancel();
+      _connectTimeoutTimer = null;
+      _socket?.dispose();
+      _socket = null;
+      _connectStartedAt = null;
+      state = state.copyWith(connecting: false);
+    }
     _tearDown = false;
+    _connectStartedAt = DateTime.now();
     state = state.copyWith(connecting: true, errorCode: null);
     if (kDebugMode) {
       debugPrint('[PASSENGER_RT] Conectando Socket.IO para tripId=$tripId');
@@ -251,10 +274,31 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
       final socket = io.io(url, opts);
       _socket = socket;
 
+      _connectTimeoutTimer?.cancel();
+      _connectTimeoutTimer = Timer(_connectHardTimeout, () {
+        if (_tearDown) return;
+        if (!state.connecting) return;
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] timeout conectando; liberando estado');
+        }
+        _socket?.dispose();
+        _socket = null;
+        _connectTimeoutTimer = null;
+        _connectStartedAt = null;
+        state = state.copyWith(
+          connecting: false,
+          connected: false,
+          errorCode: 'SOCKET_TIMEOUT',
+        );
+      });
+
       void onSocketReady(String reason) {
         if (kDebugMode) {
           debugPrint('[PASSENGER_RT] $reason a $url');
         }
+        _connectTimeoutTimer?.cancel();
+        _connectTimeoutTimer = null;
+        _connectStartedAt = null;
         state = state.copyWith(
           connecting: false,
           connected: true,
@@ -263,7 +307,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           status: state.status ?? 'searching',
           quote: quote,
         );
-        unawaited(syncTripStatusFromApi(tripId: tripId));
+        unawaited(syncTripStatusFromApi(tripId: tripId, force: true));
       }
 
       socket.onConnect((_) => onSocketReady('conectado'));
@@ -275,6 +319,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         if (kDebugMode) {
           debugPrint('[PASSENGER_RT] connect_error: $data');
         }
+        _connectTimeoutTimer?.cancel();
+        _connectTimeoutTimer = null;
+        _connectStartedAt = null;
         state = state.copyWith(
           connecting: false,
           connected: false,
@@ -426,6 +473,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
       if (kDebugMode) {
         debugPrint('[PASSENGER_RT] Error general conectando: $e');
       }
+      _connectTimeoutTimer?.cancel();
+      _connectTimeoutTimer = null;
+      _connectStartedAt = null;
       state = state.copyWith(
         connecting: false,
         connected: false,
@@ -437,6 +487,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   /// Desconecta el socket y resetea el estado (p. ej. cuando el pasajero cancela la búsqueda).
   void disconnect() {
     _tearDown = true;
+    _connectTimeoutTimer?.cancel();
+    _connectTimeoutTimer = null;
+    _connectStartedAt = null;
     _driverLocationDebounceTimer?.cancel();
     _driverLocationDebounceTimer = null;
     _pendingDriverLat = null;
@@ -454,6 +507,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   @override
   void dispose() {
     _tearDown = true;
+    _connectTimeoutTimer?.cancel();
     _driverLocationDebounceTimer?.cancel();
     _reconnectSub?.cancel();
     _socket?.dispose();
