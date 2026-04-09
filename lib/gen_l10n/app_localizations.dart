@@ -764,6 +764,78 @@ abstract class AppLocalizations {
   /// **'If you did not receive the SMS, check the number and try again in a few minutes.'**
   String get verifyCodeRetryHint;
 
+  /// No description provided for @verifyCodeErrorActivateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not activate the passenger account.'**
+  String get verifyCodeErrorActivateAccount;
+
+  /// No description provided for @verifyCodeErrorIncompleteResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete server response.'**
+  String get verifyCodeErrorIncompleteResponse;
+
+  /// No description provided for @verifyCodeErrorTokenMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Token not received.'**
+  String get verifyCodeErrorTokenMissing;
+
+  /// No description provided for @verifyCodeErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect. Check your internet and try again.'**
+  String get verifyCodeErrorNetwork;
+
+  /// No description provided for @verifyCodeErrorConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection to the server. Check your network.'**
+  String get verifyCodeErrorConnection;
+
+  /// No description provided for @verifyCodeErrorInvalidCodeInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 4-digit code you received.'**
+  String get verifyCodeErrorInvalidCodeInput;
+
+  /// No description provided for @verifyCodeErrorValidateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not validate the code.'**
+  String get verifyCodeErrorValidateCode;
+
+  /// No description provided for @verifyCodeErrorUnexpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Unexpected error while validating the code.'**
+  String get verifyCodeErrorUnexpected;
+
+  /// No description provided for @profileSetupErrorCompleteRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not complete registration.'**
+  String get profileSetupErrorCompleteRegistration;
+
+  /// No description provided for @profileSetupErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect. Check your internet and try again.'**
+  String get profileSetupErrorNetwork;
+
+  /// No description provided for @profileSetupErrorConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection to the server. Check your network.'**
+  String get profileSetupErrorConnection;
+
+  /// No description provided for @profileSetupErrorRegisterStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error {status} while registering profile.'**
+  String profileSetupErrorRegisterStatus(String status);
+
   /// No description provided for @profilePhotoTooLarge.
   ///
   /// In en, this message translates to:

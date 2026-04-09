@@ -66,19 +66,19 @@ class LoginController extends StateNotifier<LoginState> {
 
       final body = response.data;
       if (body is! Map) {
-        return _fail('Respuesta inválida');
+        return _fail(code: 'CLIENT_INVALID_RESPONSE');
       }
 
       final success = body['success'] == true;
       if (!success) {
         final code = body['code']?.toString();
-        final msg = body['message']?.toString() ?? 'Error al iniciar sesión';
-        return _fail(msg, code: code);
+        final msg = body['message']?.toString();
+        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
       }
 
       final data = body['data'];
       if (data is! Map) {
-        return _fail('Respuesta sin datos');
+        return _fail(code: 'CLIENT_EMPTY_DATA');
       }
 
       // Caso 1: respuesta con token → usuario activo (flujo clásico de login).
@@ -91,7 +91,7 @@ class LoginController extends StateNotifier<LoginState> {
           return LoginNextStep.verifyCode;
         }
         // Si no hay token ni estado pendiente, consideramos que falta configuración en backend.
-        return _fail('No se recibió token');
+        return _fail(code: 'CLIENT_TOKEN_MISSING');
       }
 
       // Los campos de refresh/expiración son opcionales en este backend.
@@ -112,25 +112,27 @@ class LoginController extends StateNotifier<LoginState> {
       await AuthService.persistLoginPhoneE164(fullPhone);
       return LoginNextStep.tripRequest;
     } on DioException catch (e) {
-      String message = 'Error de conexión';
       String? code;
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return _fail(code: 'NETWORK_TIMEOUT');
+      }
       final data = e.response?.data;
       if (data is Map) {
         code = data['code']?.toString();
         final msg = data['message']?.toString();
-        if (msg != null && msg.isNotEmpty) {
-          message = msg;
-        }
-      } else if (e.message != null && e.message!.isNotEmpty) {
-        message = e.message!;
+        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
+      } else if (e.type == DioExceptionType.connectionError) {
+        return _fail(code: 'NETWORK_CONNECTION');
       }
-      return _fail(message, code: code);
+      return _fail(code: code ?? 'NETWORK_REQUEST_FAILED', message: e.message);
     } catch (_) {
-      return _fail('Error inesperado');
+      return _fail(code: 'CLIENT_UNEXPECTED');
     }
   }
 
-  LoginNextStep _fail(String message, {String? code}) {
+  LoginNextStep _fail({required String code, String? message}) {
     state = LoginState(errorMessage: message, errorCode: code);
     return LoginNextStep.error;
   }

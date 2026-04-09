@@ -56,6 +56,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
   /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
   Future<void> _completePassengerFromDriver() async {
+    final l10n = AppLocalizations.of(context)!;
     final phoneDigits =
         widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
     final cc = widget.countryCode.startsWith('+')
@@ -82,8 +83,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
           _isLoading = false;
           _errorMessage = body is Map
               ? (body['message']?.toString() ??
-                  'No se pudo activar la cuenta pasajero.')
-              : 'No se pudo activar la cuenta pasajero.';
+                  l10n.verifyCodeErrorActivateAccount)
+              : l10n.verifyCodeErrorActivateAccount;
         });
         return;
       }
@@ -93,7 +94,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Respuesta incompleta del servidor.';
+          _errorMessage = l10n.verifyCodeErrorIncompleteResponse;
         });
         return;
       }
@@ -103,7 +104,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
-          _errorMessage = 'No se recibió token.';
+          _errorMessage = l10n.verifyCodeErrorTokenMissing;
         });
         return;
       }
@@ -142,7 +143,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         _isLoading = false;
         _errorMessage = (code != null && code.startsWith('RBAC_'))
             ? localizedTripApiError(l10n, code, fallbackMessage: raw)
-            : (raw ?? 'Error de red.');
+            : (raw ?? l10n.verifyCodeErrorNetwork);
       });
     }
   }
@@ -156,10 +157,11 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     });
 
     final codeText = _codeController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (codeText.length != 4 || int.tryParse(codeText) == null) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Ingresa el código de 4 dígitos que recibiste.';
+        _errorMessage = l10n.verifyCodeErrorInvalidCodeInput;
       });
       return;
     }
@@ -181,7 +183,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       final body = response.data;
       if (body is! Map || body['success'] != true) {
         final message = (body is Map ? body['message']?.toString() : null) ??
-            'No se pudo validar el código.';
+            l10n.verifyCodeErrorValidateCode;
         setState(() {
           _isLoading = false;
           _errorMessage = message;
@@ -220,9 +222,24 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       );
     } on DioException catch (e) {
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context)!;
       final data = e.response?.data;
       final code = TexiBackendError.codeFromResponse(data);
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = l10n.verifyCodeErrorNetwork;
+        });
+        return;
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = l10n.verifyCodeErrorConnection;
+        });
+        return;
+      }
       final backendMsg = TexiBackendError.messageFromResponse(data);
       String? detail;
       if (data is Map<String, dynamic>) {
@@ -237,7 +254,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
           (e.message != null && e.message!.isNotEmpty ? e.message! : null);
       final message = (code != null && code.startsWith('RBAC_'))
           ? localizedTripApiError(l10n, code, fallbackMessage: fallback)
-          : (fallback ?? 'Error al validar el código.');
+          : (fallback ?? l10n.verifyCodeErrorValidateCode);
       setState(() {
         _isLoading = false;
         _errorMessage = message;
@@ -245,7 +262,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     } catch (_) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error inesperado al validar el código.';
+        _errorMessage = l10n.verifyCodeErrorUnexpected;
       });
     }
   }
@@ -327,7 +344,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                           const SizedBox(height: 16),
                           PremiumStateView(
                             icon: Icons.sms_failed_rounded,
-                            title: l10n.commonError,
+                            title: l10n.loginReviewDataTitle,
                             message: _errorMessage!,
                             actionLabel: l10n.homeRetry,
                             onAction: _verify,

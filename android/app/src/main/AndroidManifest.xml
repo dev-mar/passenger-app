@@ -7,10 +7,10 @@
         android:label="Texi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- Google Maps API Key: reemplaza YOUR_GOOGLE_MAPS_API_KEY por tu key real -->
+        <!-- Google Maps API Key inyectada por Gradle (GOOGLE_MAPS_API_KEY) -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCiPWUT7LoCjEFruA6ebXaBBRwgptjQ4lQ" />
+            android:value="${GOOGLE_MAPS_API_KEY}" />
         <!-- Canal por defecto para notificaciones FCM (debe existir en PassengerNotificationService). -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

@@ -34,6 +34,13 @@ import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
 import 'trip_driver_marker.dart';
 
+/// Ajustes GPS para recogida: alta precisión y sin filtro de distancia para
+/// acercar el pin amarillo al punto azul del sistema cuando el GPS ya tiene fix.
+LocationSettings _passengerPickupLocationSettings() => const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    );
+
 /// Pantalla unificada: Origen, destino y precios en la misma ventana.
 /// Si originLat/originLng son null, se obtiene la ubicación actual al abrir.
 class TripRequestScreen extends ConsumerStatefulWidget {
@@ -72,6 +79,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   LatLng? _destination;
   String? _destinationDisplayLabel; // null = coordenadas o placeholder
   LatLng? _mapCenter;
+  /// Invalida refinados GPS diferidos si [_resolveOrigin] se vuelve a ejecutar.
+  int _originResolveGeneration = 0;
   bool _loading = false;
   String? _error;
   final TextEditingController _originSearchController = TextEditingController();
@@ -218,7 +227,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
     try {
       await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       setState(() {
@@ -259,7 +268,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     }
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 6));
       if (!mounted) return;
       final passenger = LatLng(position.latitude, position.longitude);
@@ -337,7 +346,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       await apply(LatLng(position.latitude, position.longitude));
@@ -592,19 +601,69 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     _loadingOrigin = true;
   }
 
+  /// Tras el primer fix, un segundo intento corrige desfase típico vs el punto azul del mapa.
+  Future<void> _refinePassengerOriginOnce(int generation) async {
+    await Future<void>.delayed(const Duration(seconds: 4));
+    if (!mounted || generation != _originResolveGeneration) return;
+    if (_originConfirmed || !_pickingOrigin || _destination != null) return;
+    final prev = _origin;
+    if (prev == null) return;
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: _passengerPickupLocationSettings(),
+      ).timeout(const Duration(seconds: 12));
+      if (!mounted || generation != _originResolveGeneration) return;
+      if (_originConfirmed || !_pickingOrigin) return;
+      final latLng = LatLng(pos.latitude, pos.longitude);
+      final movedM = Geolocator.distanceBetween(
+        prev.latitude,
+        prev.longitude,
+        latLng.latitude,
+        latLng.longitude,
+      );
+      if (movedM < 12) return;
+      setState(() {
+        _origin = latLng;
+        _mapCenter = latLng;
+        _deviceGpsFixOk = true;
+        _originError = null;
+      });
+      ref.read(tripRequestProvider.notifier).setOrigin(latLng.latitude, latLng.longitude);
+      final c = _controller;
+      if (c != null) {
+        await c.animateCamera(CameraUpdate.newLatLngZoom(latLng, 16));
+      }
+    } catch (_) {
+      // Silencioso: el usuario ya tiene un origen usable.
+    }
+  }
+
   Future<void> _resolveOrigin() async {
     if (!mounted) return;
+    _originResolveGeneration++;
+    final refineGen = _originResolveGeneration;
     final permission =
         await PassengerGeolocationPermissionCache.ensureLocationPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
+      LatLng? lastKnownLatLng;
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          lastKnownLatLng = LatLng(last.latitude, last.longitude);
+        }
+      } catch (_) {
+        // seguimos sin lastKnown
+      }
       if (mounted) {
         setState(() {
           _loadingOrigin = false;
-          _deviceGpsFixOk = false;
-          _originError = AppLocalizations.of(context)!.homeLocationError;
-          _origin = const LatLng(-16.5, -68.1);
-          _mapCenter = _origin;
+          _deviceGpsFixOk = lastKnownLatLng != null;
+          _originError = lastKnownLatLng == null
+              ? AppLocalizations.of(context)!.homeLocationError
+              : null;
+          _origin = lastKnownLatLng;
+          _mapCenter = lastKnownLatLng;
           if (_destination == null) {
             _originConfirmed = false;
             _pickingOrigin = true;
@@ -613,12 +672,19 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
           }
         });
       }
+      if (lastKnownLatLng != null) {
+        ref
+            .read(tripRequestProvider.notifier)
+            .setOrigin(lastKnownLatLng.latitude, lastKnownLatLng.longitude);
+        await _loadPinIcons();
+        unawaited(_refinePassengerOriginOnce(refineGen));
+      }
       return;
     }
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
-      ).timeout(const Duration(seconds: 8));
+        locationSettings: _passengerPickupLocationSettings(),
+      ).timeout(const Duration(seconds: 15));
       if (!mounted) return;
       setState(() {
         _origin = LatLng(position.latitude, position.longitude);
@@ -635,14 +701,26 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       });
       ref.read(tripRequestProvider.notifier).setOrigin(_origin!.latitude, _origin!.longitude);
       await _loadPinIcons();
+      unawaited(_refinePassengerOriginOnce(refineGen));
     } catch (e) {
       if (!mounted) return;
+      LatLng? lastKnownLatLng;
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          lastKnownLatLng = LatLng(last.latitude, last.longitude);
+        }
+      } catch (_) {
+        // seguimos sin lastKnown
+      }
       setState(() {
         _loadingOrigin = false;
-        _deviceGpsFixOk = false;
-        _originError = AppLocalizations.of(context)!.homeLocationErrorGps;
-        _origin = const LatLng(-16.5, -68.1);
-        _mapCenter = _origin;
+        _deviceGpsFixOk = lastKnownLatLng != null;
+        _originError = lastKnownLatLng == null
+            ? AppLocalizations.of(context)!.homeLocationErrorGps
+            : null;
+        _origin = lastKnownLatLng;
+        _mapCenter = lastKnownLatLng;
         if (_destination == null) {
           _originConfirmed = false;
           _pickingOrigin = true;
@@ -650,7 +728,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
           _activeStop = ActiveStop.none;
         }
       });
-      ref.read(tripRequestProvider.notifier).setOrigin(_origin!.latitude, _origin!.longitude);
+      if (lastKnownLatLng != null) {
+        ref
+            .read(tripRequestProvider.notifier)
+            .setOrigin(lastKnownLatLng.latitude, lastKnownLatLng.longitude);
+        unawaited(_refinePassengerOriginOnce(refineGen));
+      }
       await _loadPinIcons();
     }
   }
@@ -987,7 +1070,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     setState(() => _loadingOrigin = true);
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       setState(() {
@@ -1461,7 +1544,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   Future<void> _setDestinationFromCurrentLocation() async {
     try {
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
       if (!mounted) return;
       setState(() {
@@ -1919,12 +2002,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   : null,
               onCameraMove: _onCameraMove,
               markers: {
-                Marker(
-                  markerId: const MarkerId('origin'),
-                  position: originMarkerPos,
-                  icon: originIcon,
-                  // Ancla por defecto (0.5, 1.0): la punta inferior del pin marca el punto real.
-                ),
+                // Con aguja centrada no mostramos el pin amarillo duplicado (evita desalineación visual).
+                if (!(confirmingOrigin && isMapConfirmMode))
+                  Marker(
+                    markerId: const MarkerId('origin'),
+                    position: originMarkerPos,
+                    icon: originIcon,
+                    // Ancla por defecto (0.5, 1.0): la punta inferior del pin marca el punto real.
+                  ),
                 if (destMarkerPos != null)
                   Marker(
                     markerId: const MarkerId('destination'),

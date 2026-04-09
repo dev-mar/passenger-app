@@ -6,6 +6,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val mapsApiKeyFromGradle = providers.gradleProperty("GOOGLE_MAPS_API_KEY").orNull
+val mapsApiKeyFromEnv = System.getenv("GOOGLE_MAPS_API_KEY")
+val mapsApiKey = mapsApiKeyFromGradle ?: mapsApiKeyFromEnv ?: ""
+if (mapsApiKey.isBlank()) {
+    throw GradleException(
+        "Missing GOOGLE_MAPS_API_KEY. Set -PGOOGLE_MAPS_API_KEY=... or environment variable GOOGLE_MAPS_API_KEY."
+    )
+}
+
 android {
     namespace = "com.taxitexi.texi_passenger_app"
     compileSdk = flutter.compileSdkVersion
@@ -30,6 +39,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

@@ -373,6 +373,52 @@ class AppLocalizationsEn extends AppLocalizations {
       'If you did not receive the SMS, check the number and try again in a few minutes.';
 
   @override
+  String get verifyCodeErrorActivateAccount =>
+      'Could not activate the passenger account.';
+
+  @override
+  String get verifyCodeErrorIncompleteResponse => 'Incomplete server response.';
+
+  @override
+  String get verifyCodeErrorTokenMissing => 'Token not received.';
+
+  @override
+  String get verifyCodeErrorNetwork =>
+      'Could not connect. Check your internet and try again.';
+
+  @override
+  String get verifyCodeErrorConnection =>
+      'No connection to the server. Check your network.';
+
+  @override
+  String get verifyCodeErrorInvalidCodeInput =>
+      'Enter the 4-digit code you received.';
+
+  @override
+  String get verifyCodeErrorValidateCode => 'Could not validate the code.';
+
+  @override
+  String get verifyCodeErrorUnexpected =>
+      'Unexpected error while validating the code.';
+
+  @override
+  String get profileSetupErrorCompleteRegistration =>
+      'Could not complete registration.';
+
+  @override
+  String get profileSetupErrorNetwork =>
+      'Could not connect. Check your internet and try again.';
+
+  @override
+  String get profileSetupErrorConnection =>
+      'No connection to the server. Check your network.';
+
+  @override
+  String profileSetupErrorRegisterStatus(String status) {
+    return 'Error $status while registering profile.';
+  }
+
+  @override
   String get profilePhotoTooLarge =>
       'The photo is too large. Choose another one or take a lower-resolution photo.';
 

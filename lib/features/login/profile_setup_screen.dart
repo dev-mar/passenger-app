@@ -106,6 +106,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     });
 
     final name = _nameController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
     final cc = widget.countryCode.startsWith('+')
         ? widget.countryCode
@@ -130,7 +131,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         if (!mounted) return;
         final msg =
             body is Map ? body['message']?.toString() : null;
-        setState(() => _errorMessage = msg ?? 'No se pudo completar el registro.');
+        setState(() => _errorMessage = msg ?? l10n.profileSetupErrorCompleteRegistration);
         context.goNamed('login');
         return;
       }
@@ -174,7 +175,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      final l10n = AppLocalizations.of(context)!;
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        setState(() {
+          _errorMessage =
+              l10n.profileSetupErrorNetwork;
+        });
+        return;
+      }
+      if (e.type == DioExceptionType.connectionError) {
+        setState(() {
+          _errorMessage = l10n.profileSetupErrorConnection;
+        });
+        return;
+      }
       final status = e.response?.statusCode;
       final data = e.response?.data;
       final code = TexiBackendError.codeFromResponse(data);
@@ -186,8 +201,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ? localizedTripApiError(l10n, code, fallbackMessage: backendMsg)
           : (backendMsg ??
               (status != null
-                  ? 'Error $status al registrar el perfil.'
-                  : 'No se pudo completar el registro.'));
+                  ? l10n.profileSetupErrorRegisterStatus(status.toString())
+                  : l10n.profileSetupErrorCompleteRegistration));
       setState(() {
         _errorMessage = msg;
       });
@@ -303,7 +318,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 if (_errorMessage != null) ...[
                   PremiumStateView(
                     icon: Icons.warning_amber_rounded,
-                    title: l10n.profileReviewInfoTitle,
+                    title: l10n.loginReviewDataTitle,
                     message: _errorMessage!,
                     actionLabel: l10n.profileAcknowledge,
                     onAction: () => setState(() => _errorMessage = null),

@@ -35,6 +35,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (_isLoading) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _errorMessage = null;
       _isLoading = true;
@@ -45,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final countryCode = _countryCodeController.text.trim();
     if (phone.isEmpty) {
       setState(() {
-        _errorMessage = 'Ingresa tu número de teléfono';
+        _errorMessage = l10n.loginPhoneRequired;
         _isLoading = false;
       });
       return;
@@ -80,12 +81,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case LoginNextStep.error:
         setState(() {
           final loginState = ref.read(loginControllerProvider);
-          final l10n = AppLocalizations.of(context)!;
           final code = loginState.errorCode;
+          const authReviewDataCodes = <String>{
+            'PASS_AUTH_VALIDATION',
+            'PASS_AUTH_RATE_LIMIT',
+            'PASS_AUTH_OTP_RATE_LIMIT',
+            'PASS_AUTH_OTP_INVALID',
+            'PASS_AUTH_NOT_VERIFIED',
+            'PASS_AUTH_INVALID',
+            'PASS_AUTH_FORBIDDEN',
+            'PASS_AUTH_DB'
+          };
           _errorMessage = (code != null && code.startsWith('RBAC_'))
               ? localizedTripApiError(l10n, code,
                   fallbackMessage: loginState.errorMessage)
+              : (code != null && authReviewDataCodes.contains(code))
+                  ? l10n.loginErrorInvalidCredentials
               : switch (code) {
+                  'NETWORK_TIMEOUT' => l10n.verifyCodeErrorNetwork,
+                  'NETWORK_CONNECTION' => l10n.verifyCodeErrorConnection,
+                  'NETWORK_REQUEST_FAILED' => l10n.verifyCodeErrorNetwork,
+                  'CLIENT_INVALID_RESPONSE' => l10n.verifyCodeErrorIncompleteResponse,
+                  'CLIENT_EMPTY_DATA' => l10n.verifyCodeErrorIncompleteResponse,
+                  'CLIENT_TOKEN_MISSING' => l10n.verifyCodeErrorTokenMissing,
+                  'CLIENT_UNEXPECTED' => l10n.verifyCodeErrorUnexpected,
                   'PASS_AUTH_PHONE_REGISTERED_AS_DRIVER' =>
                     l10n.loginErrorPhoneRegisteredAsDriver,
                   'PASS_AUTH_PHONE_OTHER_ACCOUNT_TYPE' =>

@@ -156,6 +156,23 @@
   "verifyCodeMaskHint": "••••",
   "verifyCodeConfirm": "Confirmar codigo",
   "verifyCodeRetryHint": "Si no recibiste el SMS, revisa el numero y vuelve a intentar en unos minutos.",
+  "verifyCodeErrorActivateAccount": "No se pudo activar la cuenta de pasajero.",
+  "verifyCodeErrorIncompleteResponse": "Respuesta incompleta del servidor.",
+  "verifyCodeErrorTokenMissing": "No se recibió token.",
+  "verifyCodeErrorNetwork": "No se pudo conectar. Revisa tu internet e intenta de nuevo.",
+  "verifyCodeErrorConnection": "Sin conexión con el servidor. Verifica tu red.",
+  "verifyCodeErrorInvalidCodeInput": "Ingresa el código de 4 dígitos que recibiste.",
+  "verifyCodeErrorValidateCode": "No se pudo validar el código.",
+  "verifyCodeErrorUnexpected": "Error inesperado al validar el código.",
+  "profileSetupErrorCompleteRegistration": "No se pudo completar el registro.",
+  "profileSetupErrorNetwork": "No se pudo conectar. Revisa tu internet e intenta de nuevo.",
+  "profileSetupErrorConnection": "Sin conexión con el servidor. Verifica tu red.",
+  "profileSetupErrorRegisterStatus": "Error {status} al registrar el perfil.",
+  "@profileSetupErrorRegisterStatus": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  },
   "profilePhotoTooLarge": "La foto es muy pesada. Elige otra o toma una con menor resolucion.",
   "profilePhotoPickFailed": "No se pudo seleccionar la foto. Intenta de nuevo.",
   "profilePhotoTake": "Tomar foto",

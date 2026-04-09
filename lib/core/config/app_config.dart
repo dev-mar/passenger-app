@@ -51,9 +51,18 @@ class AppConfig {
   /// URL completa de login.
   static String get loginUrl => '$baseUrlAuth$loginPath';
 
-  /// Key de Google Maps. Reemplazar por tu key o usar variable de entorno.
-  /// Ver CONFIG.md en la raíz del proyecto para dónde colocarla en Android/iOS.
-  static const String googleMapsApiKey = 'AIzaSyCiPWUT7LoCjEFruA6ebXaBBRwgptjQ4lQ';
+  /// Key de Google Maps consumida por servicios HTTP (Directions/Geocoding).
+  /// Configurar con:
+  /// `--dart-define=GOOGLE_MAPS_API_KEY=...`
+  static String get googleMapsApiKey {
+    const key = String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
+    if (key.isEmpty) {
+      throw StateError(
+        'Falta GOOGLE_MAPS_API_KEY. Define --dart-define=GOOGLE_MAPS_API_KEY=...'
+      );
+    }
+    return key;
+  }
 
   /// Fuerza visibilidad de rutas labs (p. ej. CI); no sustituye auth.
   static const bool passengerInternalToolsDartDefine = bool.fromEnvironment(
