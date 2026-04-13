@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +38,8 @@ class _PassengerVm {
     this.profilePhotoUrl,
     required this.isVerified,
     this.accountStatus,
+    required this.biometricsEnabled,
+    this.lastAccessAt,
   });
 
   final String displayName;
@@ -45,6 +49,8 @@ class _PassengerVm {
   final String? profilePhotoUrl;
   final bool isVerified;
   final String? accountStatus;
+  final bool biometricsEnabled;
+  final DateTime? lastAccessAt;
 
   factory _PassengerVm.fromJson(Map<String, dynamic> j) {
     return _PassengerVm(
@@ -63,6 +69,12 @@ class _PassengerVm {
       }(),
       isVerified: j['is_verified'] == true,
       accountStatus: j['account_status']?.toString().trim(),
+      biometricsEnabled: j['biometrics_enabled'] == true,
+      lastAccessAt: () {
+        final raw = j['last_access_at']?.toString().trim();
+        if (raw == null || raw.isEmpty) return null;
+        return DateTime.tryParse(raw)?.toLocal();
+      }(),
     );
   }
 }
@@ -162,6 +174,8 @@ class _PassengerProfilePreviewScreenState
   Future<void> _openEditProfile(_PassengerVm profile) async {
     final nameCtrl = TextEditingController(text: profile.displayName);
     final emailCtrl = TextEditingController(text: profile.email ?? '');
+    Uint8List? selectedPhotoBytes;
+    String? selectedPhotoB64;
     var saving = false;
 
     await showModalBottomSheet<void>(
@@ -188,6 +202,64 @@ class _PassengerProfilePreviewScreenState
                   Text(
                     'Editar información',
                     style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: AppColors.surface,
+                          backgroundImage: selectedPhotoBytes != null
+                              ? MemoryImage(selectedPhotoBytes!)
+                              : (profile.profilePhotoUrl != null &&
+                                      profile.profilePhotoUrl!.isNotEmpty)
+                                  ? NetworkImage(profile.profilePhotoUrl!)
+                                  : null,
+                          child: selectedPhotoBytes == null &&
+                                  (profile.profilePhotoUrl == null ||
+                                      profile.profilePhotoUrl!.isEmpty)
+                              ? const Icon(
+                                  Icons.person_rounded,
+                                  size: 36,
+                                  color: AppColors.textSecondary,
+                                )
+                              : null,
+                        ),
+                        Material(
+                          color: AppColors.surface,
+                          shape: const CircleBorder(),
+                          child: IconButton(
+                            onPressed: saving
+                                ? null
+                                : () async {
+                                    final pick = await ImagePicker().pickImage(
+                                      source: ImageSource.gallery,
+                                      imageQuality: 45,
+                                      maxWidth: 720,
+                                    );
+                                    if (pick == null) return;
+                                    final bytes = await pick.readAsBytes();
+                                    if (!ctx.mounted) return;
+                                    if (bytes.lengthInBytes > 600 * 1024) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('La imagen es muy grande. Elige una más liviana.'),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    setSheetState(() {
+                                      selectedPhotoBytes = bytes;
+                                      selectedPhotoB64 = base64Encode(bytes);
+                                    });
+                                  },
+                            icon: const Icon(Icons.camera_alt_rounded, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
@@ -243,6 +315,7 @@ class _PassengerProfilePreviewScreenState
                                 data: <String, dynamic>{
                                   'display_name': name,
                                   if (email.isNotEmpty) 'email': email,
+                                  'profile_picture': selectedPhotoB64,
                                 },
                               );
                               final root = res.data;
@@ -962,9 +1035,13 @@ class _ProfileBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _StatsStrip(l10n: l10n),
+                  _ProfileHighlights(profile: profile, l10n: l10n),
                   const SizedBox(height: AppSpacing.section),
-                  _QuickActionsRow(l10n: l10n, onEditInfo: onEditInfo, onSupport: onSupport),
+                  _QuickActionsPanel(
+                    l10n: l10n,
+                    onEditInfo: onEditInfo,
+                    onSupport: onSupport,
+                  ),
                   const SizedBox(height: AppSpacing.section),
                   _ModernSectionTitle(label: l10n.profileSectionBasics),
                   const SizedBox(height: AppSpacing.xl),
@@ -1004,7 +1081,10 @@ class _ProfileBody extends StatelessWidget {
                   const SizedBox(height: AppSpacing.section),
                   _ModernSectionTitle(label: l10n.profileSectionSecurity),
                   const SizedBox(height: AppSpacing.xl),
-                  _SecurityCard(l10n: l10n),
+                  _SecurityCard(
+                    l10n: l10n,
+                    profile: profile,
+                  ),
                 ],
               ),
             ),
@@ -1030,68 +1110,70 @@ class _ProfileHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = profile.displayName.isEmpty ? profile.phone : profile.displayName;
     final subtitle = profile.displayName.isEmpty ? l10n.profileTaglinePassenger : profile.phone;
+    final hasEmail = profile.email != null && profile.email!.trim().isNotEmpty;
+    final photoReady = profile.profilePhotoUrl != null && profile.profilePhotoUrl!.isNotEmpty;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
         SizedBox(
           width: double.infinity,
-          height: 200,
+          height: 176,
           child: Container(
-          padding: const EdgeInsets.only(bottom: 48),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary.withValues(alpha: 0.42),
-                AppColors.primary.withValues(alpha: 0.12),
-                AppColors.background,
-              ],
-              stops: const [0.0, 0.45, 1.0],
-            ),
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(28),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      TexiUiFeedback.lightTap();
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.goNamed(AppRouter.home);
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    color: AppColors.onPrimary,
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: l10n.profileRefreshTooltip,
-                    onPressed: () async {
-                      TexiUiFeedback.lightTap();
-                      await onRefresh();
-                    },
-                    icon: const Icon(Icons.refresh_rounded),
-                    color: AppColors.onPrimary,
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.22),
-                    ),
-                  ),
+            padding: const EdgeInsets.only(bottom: 36),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.black.withValues(alpha: 0.28),
+                  AppColors.surface.withValues(alpha: 0.82),
+                  AppColors.background.withValues(alpha: 0.92),
                 ],
+                stops: const [0.0, 0.62, 1.0],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(24),
               ),
             ),
-          ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        TexiUiFeedback.lightTap();
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.goNamed(AppRouter.home);
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      color: AppColors.onPrimary,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withValues(alpha: 0.22),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: l10n.profileRefreshTooltip,
+                      onPressed: () async {
+                        TexiUiFeedback.lightTap();
+                        await onRefresh();
+                      },
+                      icon: const Icon(Icons.refresh_rounded),
+                      color: AppColors.onPrimary,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withValues(alpha: 0.22),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         Positioned(
@@ -1102,7 +1184,7 @@ class _ProfileHero extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _HeroAvatar(profile: profile, l10n: l10n),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxx),
                 child: Column(
@@ -1112,32 +1194,56 @@ class _ProfileHero extends StatelessWidget {
                       textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
-                            letterSpacing: -0.5,
+                            letterSpacing: -0.2,
                           ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: AppColors.textSecondary,
+                            fontSize: 13,
+                            height: 1.2,
                           ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: AppSpacing.lg),
                     Wrap(
-                      spacing: AppSpacing.xl,
-                      runSpacing: AppSpacing.md,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       alignment: WrapAlignment.center,
                       children: [
-                        if (profile.isVerified)
+                        _ChipPill(
+                          icon: profile.isVerified
+                              ? Icons.verified_rounded
+                              : Icons.info_outline_rounded,
+                          label: profile.isVerified
+                              ? l10n.profileVerifiedBadge
+                              : l10n.profileSectionSecurity,
+                          foreground: profile.isVerified
+                              ? AppColors.success
+                              : AppColors.textSecondary,
+                        ),
+                        if (hasEmail)
                           _ChipPill(
-                            icon: Icons.verified_rounded,
-                            label: l10n.profileVerifiedBadge,
-                            foreground: AppColors.success,
+                            icon: Icons.alternate_email_rounded,
+                            label: profile.email ?? '',
+                            foreground: AppColors.textSecondary,
                           ),
+                        _ChipPill(
+                          icon: photoReady
+                              ? Icons.image_rounded
+                              : Icons.image_not_supported_outlined,
+                          label: photoReady
+                              ? l10n.profilePhotoFromServer
+                              : l10n.profileNoServerPhoto,
+                          foreground: photoReady
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                        ),
                         if (profile.accountStatus != null &&
                             profile.accountStatus!.isNotEmpty)
                           _ChipPill(
@@ -1148,7 +1254,7 @@ class _ProfileHero extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.sheetV),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
@@ -1168,7 +1274,7 @@ class _HeroAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const size = 112.0;
+    const size = 76.0;
     final url = profile.profilePhotoUrl;
     final showNet = url != null && url.isNotEmpty;
 
@@ -1208,15 +1314,15 @@ class _HeroAvatar extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: LinearGradient(
             colors: [
-              AppColors.primary,
-              AppColors.primary.withValues(alpha: 0.45),
+              Colors.black.withValues(alpha: 0.55),
+              AppColors.border.withValues(alpha: 0.6),
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -1282,25 +1388,25 @@ class _ChipPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xl,
-        vertical: AppSpacing.md,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.94),
+        color: AppColors.surface.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.65)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.42)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: foreground),
-          const SizedBox(width: AppSpacing.md),
+          Icon(icon, size: 16, color: foreground),
+          const SizedBox(width: AppSpacing.xs),
           Flexible(
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1424,108 +1530,130 @@ class _PhotoBlock extends StatelessWidget {
     final url = profile.profilePhotoUrl;
     final showNet = url != null && url.isNotEmpty;
 
-    if (!showNet) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.sheetV),
-        decoration: BoxDecoration(
-          color: AppColors.surface.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(AppRadii.lg + 4),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.55)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.hide_image_outlined,
-              color: AppColors.textSecondary.withValues(alpha: 0.9),
-              size: 40,
-            ),
-            const SizedBox(width: AppSpacing.xxx),
-            Expanded(
-              child: Text(
-                l10n.profileNoServerPhoto,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.35,
-                    ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadii.lg + 6),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          filterQuality: FilterQuality.low,
-          cacheWidth: 960,
-          loadingBuilder: (context, child, prog) {
-            if (prog == null) return child;
-            return ColoredBox(
-              color: AppColors.surface,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primary.withValues(alpha: 0.9),
-                ),
-              ),
-            );
-          },
-          errorBuilder: (_, _, _) => ColoredBox(
-            color: AppColors.surface,
-            child: Icon(
-              Icons.broken_image_outlined,
-              color: AppColors.textSecondary,
-              size: 48,
-            ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.section,
+        vertical: AppSpacing.section,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 52,
+            backgroundColor: AppColors.background,
+            backgroundImage: showNet ? NetworkImage(url) : null,
+            child: !showNet
+                ? Icon(
+                    Icons.person_rounded,
+                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    size: 52,
+                  )
+                : null,
           ),
-        ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            showNet ? l10n.profilePhotoFromServer : l10n.profileNoServerPhoto,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.35,
+                ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.l10n});
+class _ProfileHighlights extends StatelessWidget {
+  const _ProfileHighlights({
+    required this.profile,
+    required this.l10n,
+  });
 
+  final _PassengerVm profile;
   final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
+    final hasName = profile.displayName.trim().isNotEmpty;
+    final hasPhone = profile.phone.trim().isNotEmpty;
+    final hasEmail = profile.email != null && profile.email!.trim().isNotEmpty;
+    final hasPhoto = profile.profilePhotoUrl != null && profile.profilePhotoUrl!.trim().isNotEmpty;
+    final completed = [hasName, hasPhone, hasEmail, hasPhoto].where((e) => e).length;
+    final completion = ((completed / 4) * 100).round();
+
     return _GlassCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xs,
+          vertical: AppSpacing.xl,
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _StatItem(
-                icon: Icons.route_rounded,
-                label: l10n.profileStatTrips,
-                value: l10n.profileStatTripsValue,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.profileSectionBasics,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                  ),
+                ),
+                Text(
+                  '$completion%',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.pill),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: completion / 100,
+                color: AppColors.primary,
+                backgroundColor: AppColors.border.withValues(alpha: 0.45),
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _StatItem(
-                icon: Icons.star_rounded,
-                label: l10n.profileStatRating,
-                value: l10n.profileStatRatingValue,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _StatItem(
-                icon: Icons.savings_outlined,
-                label: l10n.profileStatSavings,
-                value: l10n.profileStatSavingsValue,
-              ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatItem(
+                    icon: Icons.verified_user_outlined,
+                    label: l10n.profileAccountLabel,
+                    value: profile.isVerified ? 'OK' : '—',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatItem(
+                    icon: Icons.contact_page_outlined,
+                    label: l10n.profileFieldFullName,
+                    value: hasName ? 'OK' : '—',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatItem(
+                    icon: Icons.image_outlined,
+                    label: l10n.profilePhotoFromServer,
+                    value: hasPhoto ? 'OK' : '—',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1586,8 +1714,8 @@ class _StatItem extends StatelessWidget {
   }
 }
 
-class _QuickActionsRow extends StatelessWidget {
-  const _QuickActionsRow({
+class _QuickActionsPanel extends StatelessWidget {
+  const _QuickActionsPanel({
     required this.l10n,
     required this.onEditInfo,
     required this.onSupport,
@@ -1599,24 +1727,42 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ActionCard(
-            icon: Icons.edit_outlined,
-            label: l10n.profileActionEditInfo,
-            onTap: onEditInfo,
-          ),
+    return _GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Acciones rápidas',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: _ActionCard(
+                    icon: Icons.edit_outlined,
+                    label: l10n.profileActionEditInfo,
+                    onTap: onEditInfo,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _ActionCard(
+                    icon: Icons.support_agent_rounded,
+                    label: l10n.profileActionSupport,
+                    onTap: onSupport,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _ActionCard(
-            icon: Icons.support_agent_rounded,
-            label: l10n.profileActionSupport,
-            onTap: onSupport,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -1645,10 +1791,19 @@ class _ActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(AppRadii.lg),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: AppColors.primary),
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+              child: Icon(icon, size: 18, color: AppColors.primary),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
@@ -1750,9 +1905,23 @@ class _PreferencesCardState extends State<_PreferencesCard> {
 }
 
 class _SecurityCard extends StatelessWidget {
-  const _SecurityCard({required this.l10n});
+  const _SecurityCard({
+    required this.l10n,
+    required this.profile,
+  });
 
   final AppLocalizations l10n;
+  final _PassengerVm profile;
+
+  String _formatLastAccess() {
+    final dt = profile.lastAccessAt;
+    if (dt == null) return l10n.profileSecurityNotAvailable;
+    final mm = dt.month.toString().padLeft(2, '0');
+    final dd = dt.day.toString().padLeft(2, '0');
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mi = dt.minute.toString().padLeft(2, '0');
+    return '${dt.year}-$mm-$dd $hh:$mi';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1762,13 +1931,15 @@ class _SecurityCard extends StatelessWidget {
           _DataRow(
             icon: Icons.fingerprint_rounded,
             label: l10n.profileFieldBiometrics,
-            value: l10n.profileMockBiometricsValue,
+            value: profile.biometricsEnabled
+                ? l10n.commonEnabled
+                : l10n.commonDisabled,
           ),
           const Divider(height: 1),
           _DataRow(
             icon: Icons.schedule_rounded,
             label: l10n.profileFieldLastAccess,
-            value: l10n.profileMockLastAccessValue,
+            value: _formatLastAccess(),
           ),
         ],
       ),

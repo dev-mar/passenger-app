@@ -149,6 +149,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   DateTime? _lastTripSyncApiAt;
   static const _tripSyncMinGap = Duration(seconds: 2);
   Timer? _driverLocationDebounceTimer;
+  Timer? _driverMarkerLerpTimer;
   Timer? _connectTimeoutTimer;
   DateTime? _connectStartedAt;
   double? _pendingDriverLat;
@@ -157,6 +158,70 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
   bool _tearDown = false;
   static const _connectStuckAfter = Duration(seconds: 12);
   static const _connectHardTimeout = Duration(seconds: 25);
+  // Reduce repaints in map when movement is imperceptible.
+  static const _minDriverDeltaDegrees = 0.00002; // ~2m lat diff
+  static const _minBearingDelta = 4.0; // degrees
+  static const _driverLerpTotalSteps = 6;
+  static const _driverLerpStepDuration = Duration(milliseconds: 55);
+
+  double _bearingDelta(double? a, double? b) {
+    if (a == null || b == null) return double.infinity;
+    final raw = (a - b).abs() % 360.0;
+    return raw > 180.0 ? 360.0 - raw : raw;
+  }
+
+  double _normalizeBearing(double v) {
+    final n = v % 360.0;
+    return n < 0 ? n + 360.0 : n;
+  }
+
+  double _lerpBearing(double from, double to, double t) {
+    final a = _normalizeBearing(from);
+    final b = _normalizeBearing(to);
+    var delta = b - a;
+    if (delta > 180.0) delta -= 360.0;
+    if (delta < -180.0) delta += 360.0;
+    return _normalizeBearing(a + (delta * t));
+  }
+
+  void _animateDriverMarkerTo({
+    required double targetLat,
+    required double targetLng,
+    required double? targetBearing,
+  }) {
+    _driverMarkerLerpTimer?.cancel();
+    final startLat = state.driverLat ?? targetLat;
+    final startLng = state.driverLng ?? targetLng;
+    final startBearing = state.driverBearing;
+    var step = 0;
+    _driverMarkerLerpTimer =
+        Timer.periodic(_driverLerpStepDuration, (timer) {
+      if (_tearDown) {
+        timer.cancel();
+        _driverMarkerLerpTimer = null;
+        return;
+      }
+      step++;
+      final t = (step / _driverLerpTotalSteps).clamp(0.0, 1.0);
+      final nextLat = startLat + ((targetLat - startLat) * t);
+      final nextLng = startLng + ((targetLng - startLng) * t);
+      double? nextBearing;
+      if (targetBearing != null && startBearing != null) {
+        nextBearing = _lerpBearing(startBearing, targetBearing, t);
+      } else {
+        nextBearing = targetBearing ?? startBearing;
+      }
+      state = state.copyWith(
+        driverLat: nextLat,
+        driverLng: nextLng,
+        driverBearing: nextBearing,
+      );
+      if (step >= _driverLerpTotalSteps) {
+        timer.cancel();
+        _driverMarkerLerpTimer = null;
+      }
+    });
+  }
 
   String _socketConnectErrorToCode (dynamic data) {
     final s = data?.toString() ?? '';
@@ -189,6 +254,10 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
       final res = await api.getPassengerTripStatus(tripId: tripId);
       final mergedPhoto = normalizeDriverPhotoUrl(res.driverPhotoUrl) ?? state.driverPhotoUrl;
       final mergedPhotoExpiresAt = res.driverPhotoExpiresAt ?? state.driverPhotoExpiresAt;
+      final mergedNameRaw = (res.driverName != null && res.driverName!.trim().isNotEmpty)
+          ? res.driverName!.trim()
+          : state.driverName;
+      final mergedDriverName = displayDriverName(mergedNameRaw);
       state = state.copyWith(
         activeTripId: tripId,
         status: res.status,
@@ -198,6 +267,10 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         driverBearing: res.driverBearing ?? state.driverBearing,
         driverPhotoUrl: mergedPhoto,
         driverPhotoExpiresAt: mergedPhotoExpiresAt,
+        driverName: mergedDriverName,
+        carColor: res.carColor ?? state.carColor,
+        carPlate: res.carPlate ?? state.carPlate,
+        carModel: res.carModel ?? state.carModel,
       );
       _lastTripSyncApiAt = DateTime.now();
     } catch (e) {
@@ -343,6 +416,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           if (tripIdData == null || tripIdData != tripId) return;
           // fullName es el nombre correcto (profile-extended). No usar username (teléfono).
           final rawName = data['fullName']?.toString() ??
+              data['displayName']?.toString() ??
+              data['display_name']?.toString() ??
+              data['name']?.toString() ??
               data['driverName']?.toString() ??
               data['driver_name']?.toString();
           final driverName = displayDriverName(rawName);
@@ -400,6 +476,16 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           if (kDebugMode) {
             debugPrint('[PASSENGER_RT] trip:status tripId=$tripIdData status=$newStatus');
           }
+          final nameFromEvent = data['fullName']?.toString() ??
+              data['displayName']?.toString() ??
+              data['display_name']?.toString() ??
+              data['name']?.toString() ??
+              data['driverName']?.toString() ??
+              data['driver_name']?.toString();
+          final mergedRaw = (nameFromEvent != null && nameFromEvent.trim().isNotEmpty)
+              ? nameFromEvent.trim()
+              : state.driverName;
+          final newDriverName = displayDriverName(mergedRaw);
           if (newStatus == 'arrived') {
             final fg = PassengerAppVisibility.isInForeground.value;
             if (fg) {
@@ -409,13 +495,14 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
               PassengerNotificationService.instance.showDriverArrivedIfBackground(
                 isAppInForeground: fg,
                 tripId: tripIdData,
-                driverName: state.driverName,
+                driverName: newDriverName == driverNameFallbackDefault ? null : newDriverName,
               ),
             );
           }
           state = state.copyWith(
             activeTripId: tripIdData,
             status: newStatus,
+            driverName: newDriverName,
           );
         } catch (e) {
           if (kDebugMode) {
@@ -457,10 +544,19 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
             final plat = _pendingDriverLat;
             final plng = _pendingDriverLng;
             if (plat == null || plng == null) return;
-            state = state.copyWith(
-              driverLat: plat,
-              driverLng: plng,
-              driverBearing: _pendingDriverBearing ?? state.driverBearing,
+            final currentLat = state.driverLat;
+            final currentLng = state.driverLng;
+            final latDiff = currentLat == null ? double.infinity : (plat - currentLat).abs();
+            final lngDiff = currentLng == null ? double.infinity : (plng - currentLng).abs();
+            final bearingDiff = _bearingDelta(_pendingDriverBearing, state.driverBearing);
+            final hasMeaningfulMove = latDiff >= _minDriverDeltaDegrees ||
+                lngDiff >= _minDriverDeltaDegrees ||
+                bearingDiff >= _minBearingDelta;
+            if (!hasMeaningfulMove) return;
+            _animateDriverMarkerTo(
+              targetLat: plat,
+              targetLng: plng,
+              targetBearing: _pendingDriverBearing ?? state.driverBearing,
             );
           });
         } catch (e) {
@@ -492,6 +588,8 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
     _connectStartedAt = null;
     _driverLocationDebounceTimer?.cancel();
     _driverLocationDebounceTimer = null;
+    _driverMarkerLerpTimer?.cancel();
+    _driverMarkerLerpTimer = null;
     _pendingDriverLat = null;
     _pendingDriverLng = null;
     _pendingDriverBearing = null;
@@ -509,6 +607,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
     _tearDown = true;
     _connectTimeoutTimer?.cancel();
     _driverLocationDebounceTimer?.cancel();
+    _driverMarkerLerpTimer?.cancel();
     _reconnectSub?.cancel();
     _socket?.dispose();
     super.dispose();

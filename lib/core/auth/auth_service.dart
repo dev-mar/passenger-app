@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
+import '../storage/trip_session_storage.dart';
 
 /// Claves de almacenamiento seguro.
 const String _keyAuthToken = 'auth_token';
@@ -93,6 +94,8 @@ class AuthService {
     await _storage.delete(key: _keyExpiresAt);
     await _storage.delete(key: _keyPassengerDisplayName);
     await _storage.delete(key: _keyPassengerLoginPhoneE164);
+    // Viaje activo vive en secure storage aparte; si no se limpia, al volver a entrar se rehidrata el card colgado.
+    await TripSessionStorage.clearActiveTripId();
   }
 
   /// Guarda el teléfono de login (solo dígitos, p. ej. `591710011234`) para gating beta/QA.

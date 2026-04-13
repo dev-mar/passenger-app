@@ -108,7 +108,8 @@ class PassengerNotificationService {
     required String tripId,
     String? driverName,
   }) async {
-    if (!_initialized || isAppInForeground) return;
+    await initialize();
+    if (isAppInForeground) return;
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,

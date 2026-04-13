@@ -225,6 +225,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripSkipRating => 'Omitir';
 
   @override
+  String get tripFinishedBackToHome => 'Volver al inicio';
+
+  @override
   String get tripStatusEstimatedTime => 'Tiempo aprox.';
 
   @override
@@ -662,6 +665,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileFieldLastAccess => 'Ultimo acceso';
+
+  @override
+  String get profileSecurityNotAvailable => 'No disponible';
 
   @override
   String get profileMockBiometricsValue => 'Activa';

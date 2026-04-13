@@ -19,12 +19,14 @@ import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/geocoding_service.dart';
 import '../../core/network/directions_service.dart';
+import '../../core/network/places_autocomplete_service.dart';
 import '../../data/models/quote_response.dart';
 import '../../core/config/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
+import '../../core/ui/app_safe_scrolling.dart';
 import 'trip_request_state.dart';
 import 'passenger_active_trip_guard.dart';
 import 'passenger_realtime_controller.dart' show passengerRealtimeProvider, displayDriverName;
@@ -61,8 +63,13 @@ enum ActiveStop { none, origin, destination }
 
 class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with WidgetsBindingObserver {
   GoogleMapController? _controller;
-  final GlobalKey _mapRenderKey = GlobalKey();
   final GlobalKey _needleRenderKey = GlobalKey();
+  final BitmapDescriptor _originFallbackIcon =
+      BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
+  final BitmapDescriptor _destFallbackIcon =
+      BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
+  final BitmapDescriptor _driverFallbackIcon =
+      BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
   LatLng? _origin; // Origen resuelto (widget o ubicación actual)
   String? _originDisplayLabel; // null = "Tu ubicación actual", si no texto elegido por el usuario
   bool _loadingOrigin = false;
@@ -87,8 +94,22 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   final TextEditingController _destinationSearchController = TextEditingController();
   final GeocodingService _geocoding = GeocodingService();
   final DirectionsService _directions = DirectionsService();
+  final PlacesAutocompleteService _places = PlacesAutocompleteService();
   bool _searchingOriginAddress = false;
   bool _searchingDestinationAddress = false;
+  bool _loadingOriginSuggestions = false;
+  bool _loadingDestinationSuggestions = false;
+  List<PlaceSuggestion> _originSuggestions = const <PlaceSuggestion>[];
+  List<PlaceSuggestion> _destinationSuggestions = const <PlaceSuggestion>[];
+  Timer? _originSearchDebounce;
+  Timer? _destinationSearchDebounce;
+  String _originPlacesSessionToken = '';
+  String _destinationPlacesSessionToken = '';
+  List<TripRecentPlaceItem> _recentOriginPlaces = const <TripRecentPlaceItem>[];
+  List<TripRecentPlaceItem> _recentDestinationPlaces =
+      const <TripRecentPlaceItem>[];
+  List<TripSavedPlaceItem> _savedOriginPlaces = const <TripSavedPlaceItem>[];
+  List<TripSavedPlaceItem> _savedDestinationPlaces = const <TripSavedPlaceItem>[];
   List<LatLng>? _routePoints;
   bool _loadingRoute = false;
   /// Se incrementa al cancelar ruta / fin de viaje y al iniciar cada [_fetchRoute]; evita aplicar polilínea y pines viejos.
@@ -97,6 +118,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
   String? _ratingSheetShownForTripId;
   String? _ratingDoneTripId;
   bool _ratingDone = false;
+  /// Evita encolar varios auto-resets cuando el viaje ya está completado y el rating constaba hecho.
+  String? _completedStaleAutoResetTripId;
+  /// Último [passengerTripMapUiResetTickProvider] ya aplicado al estado local del mapa.
+  int _lastConsumedPassengerTripMapUiTick = 0;
   ActiveStop _activeStop = ActiveStop.none;
 
   // Resiliencia: si falta el último evento por WebSocket (p. ej. driver finaliza offline),
@@ -373,39 +398,74 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     }
   }
 
+  /// Limpia sesión de viaje en memoria y almacenamiento; mismo resultado que cerrar el sheet de calificación.
+  Future<void> _resetHomeAfterTripEnded(String tripId) async {
+    _routeRequestToken++;
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
+    clearTripRecoverySnackTracking(ref);
+    ref.read(tripRequestProvider.notifier).reset();
+    // Como el backend no persiste rating (pending/submitted/skipped),
+    // lo guardamos en el almacenamiento local para poder recordar
+    // el recordatorio al reabrir la app.
+    await TripSessionStorage.setRatingDone(tripId, true);
+    await TripSessionStorage.clearActiveTripId();
+    _ratingDoneTripId = tripId;
+    _ratingDone = true;
+    _ratingSheetShownForTripId = tripId;
+    _completedStaleAutoResetTripId = null;
+    if (mounted) {
+      setState(() {
+        _destination = null;
+        _destinationDisplayLabel = null;
+        _routePoints = null;
+        _loadingRoute = false;
+        _originConfirmed = false;
+        _pickingOrigin = false;
+        _pickingDestination = false;
+        _error = null;
+        if (_origin != null) {
+          // Para el siguiente viaje, empezamos forzando confirmación del origen.
+          _pickingOrigin = true;
+          _activeStop = ActiveStop.none;
+        }
+      });
+    }
+    await _recenterMapToDeviceGpsAfterTripEnd();
+    unawaited(_loadRecentPlaces());
+    unawaited(_loadSavedPlaces());
+  }
+
+  /// Tras [clearPassengerTripSessionFromContainer] (p. ej. tap en notificación con viaje ya terminal):
+  /// los providers ya están limpios; esto alinea pines, polilínea y flags que viven solo en este State.
+  void _resetLocalMapAfterExternalTripSessionClear() {
+    _routeRequestToken++;
+    _completedStaleAutoResetTripId = null;
+    if (!mounted) return;
+    setState(() {
+      _ratingDoneTripId = null;
+      _ratingDone = false;
+      _ratingSheetShownForTripId = null;
+      _destination = null;
+      _destinationDisplayLabel = null;
+      _routePoints = null;
+      _loadingRoute = false;
+      _originConfirmed = false;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _error = null;
+      _loading = false;
+      _activeStop = ActiveStop.none;
+      if (_origin != null) {
+        _pickingOrigin = true;
+      }
+    });
+    unawaited(_recenterMapToDeviceGpsAfterTripEnd());
+    unawaited(_loadRecentPlaces());
+    unawaited(_loadSavedPlaces());
+  }
+
   Future<void> _showRatingSheet(BuildContext context, String tripId, String? driverName) async {
     final l10n = AppLocalizations.of(context)!;
-    Future<void> doReset() async {
-      _routeRequestToken++;
-      ref.read(passengerRealtimeProvider.notifier).disconnect();
-      clearTripRecoverySnackTracking(ref);
-      ref.read(tripRequestProvider.notifier).reset();
-      // Como el backend no persiste rating (pending/submitted/skipped),
-      // lo guardamos en el almacenamiento local para poder recordar
-      // el recordatorio al reabrir la app.
-      await TripSessionStorage.setRatingDone(tripId, true);
-      await TripSessionStorage.clearActiveTripId();
-      _ratingDoneTripId = tripId;
-      _ratingDone = true;
-      if (context.mounted) {
-        setState(() {
-          _destination = null;
-          _destinationDisplayLabel = null;
-          _routePoints = null;
-          _loadingRoute = false;
-          _originConfirmed = false;
-          _pickingOrigin = false;
-          _pickingDestination = false;
-          _error = null;
-          if (_origin != null) {
-            // Para el siguiente viaje, empezamos forzando confirmación del origen.
-            _pickingOrigin = true;
-            _activeStop = ActiveStop.none;
-          }
-        });
-      }
-      await _recenterMapToDeviceGpsAfterTripEnd();
-    }
 
     await showModalBottomSheet<void>(
       context: context,
@@ -422,11 +482,11 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         skipLabel: l10n.tripSkipRating,
         onSubmitted: () {
           Navigator.of(ctx).pop();
-          doReset();
+          unawaited(_resetHomeAfterTripEnded(tripId));
         },
         onSkipped: () {
           Navigator.of(ctx).pop();
-          doReset();
+          unawaited(_resetHomeAfterTripEnded(tripId));
         },
       ),
     );
@@ -434,13 +494,17 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     // Si el usuario cerró el sheet sin pulsar botones, igual reseteamos para permitir pedir otro viaje.
     final rt = ref.read(passengerRealtimeProvider);
     if (rt.status == 'completed' && ref.read(tripRequestProvider).tripId == tripId) {
-      await doReset();
+      await _resetHomeAfterTripEnded(tripId);
     }
   }
 
   @override
   void initState() {
     super.initState();
+    _originPlacesSessionToken = _newPlacesSessionToken();
+    _destinationPlacesSessionToken = _newPlacesSessionToken();
+    unawaited(_loadRecentPlaces());
+    unawaited(_loadSavedPlaces());
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_loadDriverTripIcon());
@@ -740,6 +804,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
   @override
   void dispose() {
+    _originSearchDebounce?.cancel();
+    _destinationSearchDebounce?.cancel();
     _tripStatusSyncTimer?.cancel();
     _tripStatusSyncTimer = null;
     _tripStatusSyncTimerTripId = null;
@@ -913,22 +979,88 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     );
   }
 
-  LatLng _mockLatLngForLabel(String label, LatLng base) {
-    var h = 0;
-    for (final c in label.codeUnits) {
-      h = (h * 31 + c) % 100000;
-    }
-    final dLat = ((h % 21) - 10) * 0.0013;
-    final dLng = (((h ~/ 21) % 21) - 10) * 0.0013;
-    return LatLng(base.latitude + dLat, base.longitude + dLng);
+  /// Backend exige label 2–60 y address 3–180 caracteres.
+  String _ensureSavedPlaceLabel(String primary, String backupMin2) {
+    var a = primary.trim();
+    if (a.length > 60) a = a.substring(0, 60);
+    if (a.length >= 2) return a;
+    var b = backupMin2.trim();
+    if (b.length > 60) b = b.substring(0, 60);
+    if (b.length >= 2) return b;
+    return 'Lugar';
   }
 
-  void _pickOriginMockFromLabel(String label) {
-    final base = _mapCenter ?? _origin ?? const LatLng(-16.5, -68.1);
-    final p = _mockLatLngForLabel(label, base);
+  String _ensureSavedPlaceAddress(String primary, double lat, double lng) {
+    final a = primary.trim();
+    if (a.length > 180) return a.substring(0, 180);
+    if (a.length >= 3) return a;
+    return '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}';
+  }
+
+  Future<void> _loadRecentPlaces() async {
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    try {
+      final api = TripsApi(token: token);
+      final rows = await api.getPassengerRecentPlaces(limit: 24);
+      if (!mounted) return;
+      TripRecentPlaceItem fromRow(PassengerRecentPlace e) => TripRecentPlaceItem(
+            label: e.label,
+            subtitle: e.subtitle,
+            lat: e.lat,
+            lng: e.lng,
+          );
+      bool usable(PassengerRecentPlace e) =>
+          e.label.trim().isNotEmpty && e.lat.abs() <= 90 && e.lng.abs() <= 180;
+      final origins = rows
+          .where((e) => usable(e) && e.placeType.toLowerCase() == 'origin')
+          .map(fromRow)
+          .take(5)
+          .toList(growable: false);
+      final dests = rows
+          .where((e) => usable(e) && e.placeType.toLowerCase() == 'destination')
+          .map(fromRow)
+          .take(5)
+          .toList(growable: false);
+      setState(() {
+        _recentOriginPlaces = origins;
+        _recentDestinationPlaces = dests;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadSavedPlaces() async {
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    try {
+      final api = TripsApi(token: token);
+      final rows = await api.getPassengerSavedPlaces(limit: 12);
+      if (!mounted) return;
+      final mapped = rows
+          .where((e) => e.label.trim().isNotEmpty)
+          .map(
+            (e) => TripSavedPlaceItem(
+              id: e.id,
+              label: e.label,
+              address: e.address,
+              lat: e.lat,
+              lng: e.lng,
+              isFavorite: e.isFavorite,
+            ),
+          )
+          .toList(growable: false);
+      setState(() {
+        _savedOriginPlaces = mapped.take(6).toList(growable: false);
+        _savedDestinationPlaces = mapped.take(6).toList(growable: false);
+      });
+    } catch (_) {}
+  }
+
+  void _pickOriginRecentPlace(TripRecentPlaceItem place) {
+    final p = LatLng(place.lat, place.lng);
     setState(() {
       _origin = p;
-      _originDisplayLabel = label;
+      _originDisplayLabel = place.label;
       _routePoints = null;
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
@@ -938,18 +1070,17 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       _pickingOrigin = false;
       _pickingDestination = false;
       _collapseStops();
+      unawaited(_fetchRoute());
     } else {
-      // Aún no hay destino: el usuario debe confirmar el origen.
       _requireOriginConfirmation();
     }
   }
 
-  void _pickDestinationMockFromLabel(String label) {
-    final base = _mapCenter ?? _destination ?? _origin ?? const LatLng(-16.5, -68.1);
-    final p = _mockLatLngForLabel(label, base);
+  void _pickDestinationRecentPlace(TripRecentPlaceItem place) {
+    final p = LatLng(place.lat, place.lng);
     setState(() {
       _destination = p;
-      _destinationDisplayLabel = label;
+      _destinationDisplayLabel = place.label;
       _routePoints = null;
     });
     ref.read(tripRequestProvider.notifier).setDestination(p.latitude, p.longitude);
@@ -959,14 +1090,365 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
     _collapseStops();
   }
 
+  void _pickOriginSavedPlace(TripSavedPlaceItem place) {
+    final p = LatLng(place.lat, place.lng);
+    setState(() {
+      _origin = p;
+      _originDisplayLabel = place.address.isNotEmpty ? place.address : place.label;
+      _routePoints = null;
+    });
+    ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
+    _controller?.animateCamera(CameraUpdate.newLatLng(p));
+    if (_destination != null) {
+      _originConfirmed = true;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _collapseStops();
+      unawaited(_fetchRoute());
+    } else {
+      _requireOriginConfirmation();
+    }
+  }
+
+  void _pickDestinationSavedPlace(TripSavedPlaceItem place) {
+    final p = LatLng(place.lat, place.lng);
+    setState(() {
+      _destination = p;
+      _destinationDisplayLabel = place.address.isNotEmpty ? place.address : place.label;
+      _routePoints = null;
+    });
+    ref.read(tripRequestProvider.notifier).setDestination(p.latitude, p.longitude);
+    _controller?.animateCamera(CameraUpdate.newLatLng(p));
+    _fetchRoute();
+    _fitCameraToOriginDestination();
+    _collapseStops();
+  }
+
+  Future<void> _saveCurrentOriginPlace() async {
+    if (_origin == null) return;
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final rawLabel = (_originDisplayLabel ?? l10n.tripOrigin).split(',').first.trim();
+    final rawAddress =
+        (_originDisplayLabel ?? '${_origin!.latitude.toStringAsFixed(6)},${_origin!.longitude.toStringAsFixed(6)}').trim();
+    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripOrigin);
+    final address = _ensureSavedPlaceAddress(rawAddress, _origin!.latitude, _origin!.longitude);
+    try {
+      await TripsApi(token: token).savePassengerPlace(
+        label: label.isNotEmpty ? label : l10n.tripOrigin,
+        address: address,
+        lat: _origin!.latitude,
+        lng: _origin!.longitude,
+      );
+      await _loadSavedPlaces();
+      if (!mounted) return;
+      _showSubtleSnack(l10n.profileSavedPlaces);
+    } catch (_) {
+      if (!mounted) return;
+      _showSubtleSnack(l10n.commonError);
+    }
+  }
+
+  Future<void> _saveCurrentDestinationPlace() async {
+    if (_destination == null) return;
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final rawLabel = (_destinationDisplayLabel ?? l10n.tripDestination).split(',').first.trim();
+    final rawAddress =
+        (_destinationDisplayLabel ?? '${_destination!.latitude.toStringAsFixed(6)},${_destination!.longitude.toStringAsFixed(6)}').trim();
+    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripDestination);
+    final address = _ensureSavedPlaceAddress(rawAddress, _destination!.latitude, _destination!.longitude);
+    try {
+      await TripsApi(token: token).savePassengerPlace(
+        label: label.isNotEmpty ? label : l10n.tripDestination,
+        address: address,
+        lat: _destination!.latitude,
+        lng: _destination!.longitude,
+      );
+      await _loadSavedPlaces();
+      if (!mounted) return;
+      _showSubtleSnack(l10n.profileSavedPlaces);
+    } catch (_) {
+      if (!mounted) return;
+      _showSubtleSnack(l10n.commonError);
+    }
+  }
+
+  Future<void> _openSavedPlacesManager({required bool forOrigin}) async {
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    await _loadSavedPlaces();
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final places = forOrigin ? _savedOriginPlaces : _savedDestinationPlaces;
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.profileSavedPlaces,
+                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (places.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          child: Text(l10n.profileStateEmpty),
+                        )
+                      else
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 320),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: places.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final p = places[index];
+                              return ListTile(
+                                dense: true,
+                                leading: Icon(
+                                  p.isFavorite ? Icons.star_rounded : Icons.place_rounded,
+                                  color: p.isFavorite ? AppColors.primary : AppColors.textSecondary,
+                                ),
+                                title: Text(
+                                  p.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: Text(
+                                  p.address,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  if (forOrigin) {
+                                    _pickOriginSavedPlace(p);
+                                  } else {
+                                    _pickDestinationSavedPlace(p);
+                                  }
+                                  Navigator.of(ctx).pop();
+                                },
+                                trailing: PopupMenuButton<String>(
+                                  onSelected: (action) async {
+                                    final api = TripsApi(token: token);
+                                    if (action == 'favorite') {
+                                      await api.updatePassengerSavedPlace(
+                                        placeId: p.id,
+                                        isFavorite: !p.isFavorite,
+                                      );
+                                      await _loadSavedPlaces();
+                                      if (!mounted) return;
+                                      setSheet(() {});
+                                    }
+                                    if (action == 'delete') {
+                                      await api.deletePassengerSavedPlace(p.id);
+                                      await _loadSavedPlaces();
+                                      if (!mounted) return;
+                                      setSheet(() {});
+                                    }
+                                  },
+                                  itemBuilder: (_) => [
+                                    PopupMenuItem(
+                                      value: 'favorite',
+                                      child: Text(l10n.placeFavorite),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: const Text('Eliminar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _newPlacesSessionToken() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    final random = now ^ (now >> 7) ^ (now << 11);
+    return '$now$random';
+  }
+
+  void _onOriginSearchChanged(
+    String query, [
+    void Function(void Function())? setModalState,
+  ]) {
+    void bumpModal() => setModalState?.call(() {});
+    _originSearchDebounce?.cancel();
+    if (query.trim().length < 2) {
+      if (!mounted) return;
+      setState(() {
+        _originSuggestions = const <PlaceSuggestion>[];
+        _loadingOriginSuggestions = false;
+      });
+      bumpModal();
+      return;
+    }
+    _originSearchDebounce = Timer(const Duration(milliseconds: 320), () async {
+      if (!mounted) return;
+      setState(() => _loadingOriginSuggestions = true);
+      bumpModal();
+      final center = _mapCenter ?? _origin;
+      final result = await _places.fetchSuggestions(
+        query: query,
+        sessionToken: _originPlacesSessionToken,
+        nearLat: center?.latitude,
+        nearLng: center?.longitude,
+      );
+      if (!mounted) return;
+      setState(() {
+        _originSuggestions = result;
+        _loadingOriginSuggestions = false;
+      });
+      bumpModal();
+    });
+  }
+
+  void _onDestinationSearchChanged(
+    String query, [
+    void Function(void Function())? setModalState,
+  ]) {
+    void bumpModal() => setModalState?.call(() {});
+    _destinationSearchDebounce?.cancel();
+    if (query.trim().length < 2) {
+      if (!mounted) return;
+      setState(() {
+        _destinationSuggestions = const <PlaceSuggestion>[];
+        _loadingDestinationSuggestions = false;
+      });
+      bumpModal();
+      return;
+    }
+    _destinationSearchDebounce = Timer(const Duration(milliseconds: 320), () async {
+      if (!mounted) return;
+      setState(() => _loadingDestinationSuggestions = true);
+      bumpModal();
+      final center = _mapCenter ?? _destination ?? _origin;
+      final result = await _places.fetchSuggestions(
+        query: query,
+        sessionToken: _destinationPlacesSessionToken,
+        nearLat: center?.latitude,
+        nearLng: center?.longitude,
+      );
+      if (!mounted) return;
+      setState(() {
+        _destinationSuggestions = result;
+        _loadingDestinationSuggestions = false;
+      });
+      bumpModal();
+    });
+  }
+
+  Future<void> _selectOriginSuggestion(
+    PlaceSuggestion suggestion,
+    BuildContext sheetContext,
+  ) async {
+    setState(() => _searchingOriginAddress = true);
+    final details = await _places.fetchPlaceDetails(
+      placeId: suggestion.placeId,
+      sessionToken: _originPlacesSessionToken,
+    );
+    _originPlacesSessionToken = _newPlacesSessionToken();
+    if (!mounted) return;
+    if (details == null) {
+      setState(() => _searchingOriginAddress = false);
+      await _searchAndSetOrigin(suggestion.fullText, sheetContext);
+      return;
+    }
+    setState(() {
+      _origin = LatLng(details.lat, details.lng);
+      _originDisplayLabel = details.formattedAddress.isNotEmpty
+          ? details.formattedAddress
+          : suggestion.fullText;
+      _mapCenter = _origin;
+      _routePoints = null;
+      _searchingOriginAddress = false;
+      _originSuggestions = const <PlaceSuggestion>[];
+    });
+    ref.read(tripRequestProvider.notifier).setOrigin(details.lat, details.lng);
+    _controller?.animateCamera(CameraUpdate.newLatLng(LatLng(details.lat, details.lng)));
+    if (_destination != null) _fetchRoute();
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+    if (_destination == null) {
+      _requireOriginConfirmation();
+    } else {
+      _originConfirmed = true;
+      _collapseStops();
+    }
+  }
+
+  Future<void> _selectDestinationSuggestion(
+    PlaceSuggestion suggestion,
+    BuildContext sheetContext,
+  ) async {
+    setState(() => _searchingDestinationAddress = true);
+    final details = await _places.fetchPlaceDetails(
+      placeId: suggestion.placeId,
+      sessionToken: _destinationPlacesSessionToken,
+    );
+    _destinationPlacesSessionToken = _newPlacesSessionToken();
+    if (!mounted) return;
+    if (details == null) {
+      setState(() => _searchingDestinationAddress = false);
+      await _searchAndSetDestination(suggestion.fullText, sheetContext);
+      return;
+    }
+    setState(() {
+      _destination = LatLng(details.lat, details.lng);
+      _destinationDisplayLabel = details.formattedAddress.isNotEmpty
+          ? details.formattedAddress
+          : suggestion.fullText;
+      _routePoints = null;
+      _searchingDestinationAddress = false;
+      _destinationSuggestions = const <PlaceSuggestion>[];
+    });
+    ref.read(tripRequestProvider.notifier).setDestination(details.lat, details.lng);
+    _controller?.animateCamera(CameraUpdate.newLatLng(LatLng(details.lat, details.lng)));
+    _fetchRoute();
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+    _fitCameraToOriginDestination();
+    _collapseStops();
+  }
+
   void _showOriginSearchSheet() {
     final l10n = AppLocalizations.of(context)!;
+    _originPlacesSessionToken = _newPlacesSessionToken();
+    _originSuggestions = const <PlaceSuggestion>[];
     _originSearchController.clear();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           decoration: const BoxDecoration(
@@ -999,8 +1481,44 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                       filled: true,
                       fillColor: AppColors.background,
                     ),
+                    onChanged: (q) => _onOriginSearchChanged(q, setModal),
                     onSubmitted: (q) => _searchAndSetOrigin(q, ctx),
                   ),
+                  if (_loadingOriginSuggestions) ...[
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(minHeight: 2),
+                  ],
+                  if (_originSuggestions.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _originSuggestions.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = _originSuggestions[index];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.location_on_outlined),
+                            title: Text(
+                              item.mainText.isNotEmpty ? item.mainText : item.fullText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: item.secondaryText.isNotEmpty
+                                ? Text(
+                                    item.secondaryText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                : null,
+                            onTap: () => unawaited(_selectOriginSuggestion(item, ctx)),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 48,
@@ -1020,6 +1538,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -1044,6 +1563,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         _mapCenter = _origin;
         _searchingOriginAddress = false;
         _routePoints = null;
+        _originSuggestions = const <PlaceSuggestion>[];
       });
       ref.read(tripRequestProvider.notifier).setOrigin(result.lat, result.lng);
       _controller?.animateCamera(CameraUpdate.newLatLng(LatLng(result.lat, result.lng)));
@@ -1060,6 +1580,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         setState(() {
           _searchingOriginAddress = false;
           _error = AppLocalizations.of(context)!.tripSearchError;
+          _originSuggestions = const <PlaceSuggestion>[];
         });
         if (sheetContext.mounted) Navigator.pop(sheetContext);
       }
@@ -1440,12 +1961,15 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
 
   void _showDestinationSearchSheet() {
     final l10n = AppLocalizations.of(context)!;
+    _destinationPlacesSessionToken = _newPlacesSessionToken();
+    _destinationSuggestions = const <PlaceSuggestion>[];
     _destinationSearchController.clear();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Padding(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           decoration: const BoxDecoration(
@@ -1478,8 +2002,44 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                       filled: true,
                       fillColor: AppColors.background,
                     ),
+                    onChanged: (q) => _onDestinationSearchChanged(q, setModal),
                     onSubmitted: (q) => _searchAndSetDestination(q, ctx),
                   ),
+                  if (_loadingDestinationSuggestions) ...[
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(minHeight: 2),
+                  ],
+                  if (_destinationSuggestions.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: _destinationSuggestions.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = _destinationSuggestions[index];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.location_on_outlined),
+                            title: Text(
+                              item.mainText.isNotEmpty ? item.mainText : item.fullText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: item.secondaryText.isNotEmpty
+                                ? Text(
+                                    item.secondaryText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                : null,
+                            onTap: () => unawaited(_selectDestinationSuggestion(item, ctx)),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 48,
@@ -1499,6 +2059,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -1521,6 +2082,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         _destination = LatLng(result.lat, result.lng);
         _destinationDisplayLabel = result.formattedAddress ?? query;
         _routePoints = null;
+        _destinationSuggestions = const <PlaceSuggestion>[];
       });
       ref.read(tripRequestProvider.notifier).setDestination(result.lat, result.lng);
       _controller?.animateCamera(CameraUpdate.newLatLng(LatLng(result.lat, result.lng)));
@@ -1533,6 +2095,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
         setState(() {
           _searchingDestinationAddress = false;
           _error = AppLocalizations.of(context)!.tripSearchError;
+          _destinationSuggestions = const <PlaceSuggestion>[];
         });
         if (sheetContext.mounted) Navigator.pop(sheetContext);
       }
@@ -1806,6 +2369,17 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final mapUiResetTick = ref.watch(passengerTripMapUiResetTickProvider);
+    if (mapUiResetTick > _lastConsumedPassengerTripMapUiTick) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final latest = ref.read(passengerTripMapUiResetTickProvider);
+        if (latest <= _lastConsumedPassengerTripMapUiTick) return;
+        _lastConsumedPassengerTripMapUiTick = latest;
+        _resetLocalMapAfterExternalTripSessionClear();
+      });
+    }
+
     if (_loadingOrigin || _origin == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -1929,6 +2503,25 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       });
     }
 
+    // Completado pero el rating ya figuraba hecho (p. ej. storage desincronizado): no se abre el sheet
+    // y el panel de estado bloqueaba el flujo; volvemos al inicio como con "Omitir".
+    if (tripId != null && rtState.status == 'completed' && _ratingDone) {
+      if (_completedStaleAutoResetTripId != tripId) {
+        _completedStaleAutoResetTripId = tripId;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          if (ref.read(tripRequestProvider).tripId != tripId ||
+              ref.read(passengerRealtimeProvider).status != 'completed') {
+            _completedStaleAutoResetTripId = null;
+            return;
+          }
+          await _resetHomeAfterTripEnded(tripId);
+        });
+      }
+    } else if (tripId == null || rtState.status != 'completed') {
+      _completedStaleAutoResetTripId = null;
+    }
+
     // Si el viaje termina en estados finales sin rating (cancelled/expired), resetear automáticamente.
     if (tripId != null && (rtState.status == 'cancelled' || rtState.status == 'expired')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1958,11 +2551,6 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
       });
     }
 
-    // Marcadores simples: puntos de color amarillo (origen), azul (destino) y verde (conductor).
-    final originIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
-    final destIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure);
-    final driverIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-
     // Marcadores: al confirmar, deben quedar visibles en el mapa (como antes).
     // Durante confirmación de ORIGEN, el marcador de origen sigue el centro.
     final originMarkerPos = confirmingOrigin ? (_mapCenter ?? origin) : origin;
@@ -1977,10 +2565,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
           children: [
             Positioned.fill(
               child: GoogleMap(
-                key: _mapRenderKey,
               initialCameraPosition: CameraPosition(target: origin, zoom: 15),
               onMapCreated: _onMapCreated,
                 zoomControlsEnabled: false,
+                compassEnabled: false,
+                mapToolbarEnabled: false,
+                buildingsEnabled: false,
+                indoorViewEnabled: false,
+                trafficEnabled: false,
                 myLocationEnabled: _mapMyLocationDotEnabled,
                 // Recentrado unificado en barra superior (mismo círculo que idioma/perfil); evita duplicar el FAB nativo.
                 myLocationButtonEnabled: false,
@@ -2007,20 +2599,20 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   Marker(
                     markerId: const MarkerId('origin'),
                     position: originMarkerPos,
-                    icon: originIcon,
+                    icon: _originFallbackIcon,
                     // Ancla por defecto (0.5, 1.0): la punta inferior del pin marca el punto real.
                   ),
                 if (destMarkerPos != null)
                   Marker(
                     markerId: const MarkerId('destination'),
                     position: destMarkerPos,
-                    icon: destIcon,
+                    icon: _destFallbackIcon,
                   ),
                 if (tripId != null && driverLat != null && driverLng != null)
                   Marker(
                     markerId: const MarkerId('driver'),
                     position: LatLng(driverLat, driverLng),
-                    icon: _driverOnTripIcon ?? driverIcon,
+                    icon: _driverOnTripIcon ?? _driverFallbackIcon,
                     rotation: driverBearing ?? 0,
                     flat: true,
                     anchor: _driverOnTripIcon != null
@@ -2138,7 +2730,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: AppSafeScrolling.systemNavBottom(context),
               child: TripSearchingDriverOverlay(
                 onCancel: () => unawaited(_cancelSearchingTrip()),
                 searchingTitle: l10n.searchingTitle,
@@ -2150,7 +2742,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
             Positioned(
               left: 16,
               right: 16,
-              bottom: 16 + MediaQuery.paddingOf(context).bottom,
+              bottom: 16 + AppSafeScrolling.systemNavBottom(context),
               child: Material(
                 color: AppColors.surface,
                 elevation: 6,
@@ -2207,9 +2799,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   ),
                   child: ListView(
                     controller: scrollController,
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom + 16,
-                    ),
+                    padding: EdgeInsets.zero,
                     children: [
                       TripStatusCard(
                         status: rtState.status!,
@@ -2235,6 +2825,11 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                         driverAssignedLabel: l10n.tripStatusDriverAssigned,
                         statusMinutesLabel: (int c) => l10n.tripStatusMinutes(c),
                         statusKmLabel: (String v) => l10n.tripStatusKm(v),
+                        onFinishedClose: rtState.status == 'completed'
+                            ? () => unawaited(_resetHomeAfterTripEnded(tripId))
+                            : null,
+                        finishedCloseLabel:
+                            rtState.status == 'completed' ? l10n.tripFinishedBackToHome : null,
                       ),
                     ],
                   ),
@@ -2246,7 +2841,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
             Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: AppSafeScrolling.systemNavBottom(context),
               child: TripConnectionErrorOverlay(
                 message: localizedPassengerRealtimeError(
                   l10n,
@@ -2296,7 +2891,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                   child: ListView(
                     controller: scrollController,
                     padding: EdgeInsets.only(
-                      bottom: MediaQuery.paddingOf(context).bottom + 16,
+                      bottom: AppSafeScrolling.systemNavBottom(context) + 16,
                     ),
                     children: [
                       TripBottomRequestCardContent(
@@ -2312,8 +2907,16 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                         onOriginUseMyLocation: _setOriginFromCurrentLocation,
                         onOriginSearch: _showOriginSearchSheet,
                         onOriginPickOnMap: _startPickOriginOnMap,
-                        onPickOriginSaved: _pickOriginMockFromLabel,
-                        onPickOriginRecent: _pickOriginMockFromLabel,
+                        onPickOriginSaved: _pickOriginSavedPlace,
+                        onPickOriginRecent: _pickOriginRecentPlace,
+                        recentOriginPlaces: _recentOriginPlaces,
+                        recentDestinationPlaces: _recentDestinationPlaces,
+                        savedOriginPlaces: _savedOriginPlaces,
+                        savedDestinationPlaces: _savedDestinationPlaces,
+                        onSaveCurrentOrigin: () => unawaited(_saveCurrentOriginPlace()),
+                        onSaveCurrentDestination: () => unawaited(_saveCurrentDestinationPlace()),
+                        onManageSavedOrigin: () => unawaited(_openSavedPlacesManager(forOrigin: true)),
+                        onManageSavedDestination: () => unawaited(_openSavedPlacesManager(forOrigin: false)),
                         destinationLabel: l10n.tripWhereTo,
                         destinationDisplayText: _destination != null
                             ? (_destinationDisplayLabel ??
@@ -2349,8 +2952,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen> with Widg
                         onDestinationUseMyLocation: _setDestinationFromCurrentLocation,
                         onDestinationSearch: _showDestinationSearchSheet,
                         onDestinationPickOnMap: _startPickDestinationOnMap,
-                        onPickDestinationSaved: _pickDestinationMockFromLabel,
-                        onPickDestinationRecent: _pickDestinationMockFromLabel,
+                        onPickDestinationSaved: _pickDestinationSavedPlace,
+                        onPickDestinationRecent: _pickDestinationRecentPlace,
                         onSeePrices: (_destination != null &&
                                 _origin != null &&
                                 !_pickingOrigin &&

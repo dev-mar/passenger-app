@@ -261,6 +261,8 @@ class TripStatusCard extends StatelessWidget {
     required this.driverAssignedLabel,
     required this.statusMinutesLabel,
     required this.statusKmLabel,
+    this.onFinishedClose,
+    this.finishedCloseLabel,
   });
 
   final String status;
@@ -281,6 +283,9 @@ class TripStatusCard extends StatelessWidget {
   final String driverAssignedLabel;
   final String Function(int) statusMinutesLabel;
   final String Function(String) statusKmLabel;
+  /// Al completar el viaje: permite salir del panel y volver a pedir otro viaje.
+  final VoidCallback? onFinishedClose;
+  final String? finishedCloseLabel;
 
   IconData _statusIcon() {
     switch (status) {
@@ -517,6 +522,20 @@ class TripStatusCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (status == 'completed' &&
+                onFinishedClose != null &&
+                (finishedCloseLabel != null && finishedCloseLabel!.isNotEmpty)) ...[
+              const SizedBox(height: AppSpacing.xl),
+              TexiScalePress(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: onFinishedClose,
+                    child: Text(finishedCloseLabel!),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

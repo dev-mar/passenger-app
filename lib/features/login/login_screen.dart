@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -137,9 +138,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.4),
-                  Colors.black.withValues(alpha: 0.75),
-                  Colors.black,
+                  Colors.black.withValues(alpha: 0.24),
+                  Colors.black.withValues(alpha: 0.52),
+                  Colors.black.withValues(alpha: 0.72),
                 ],
               ),
             ),
@@ -148,14 +149,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: AbsorbPointer(
               absorbing: _isLoading,
               child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                      24,
+                      0,
+                      24,
+                      16 + AppSafeScrolling.systemNavBottom(context),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: AppColors.surface.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
                       Image.asset(
                         AppAssets.logoAmaBlanco,
                         height: 56,
@@ -163,7 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         errorBuilder: (context, error, stackTrace) =>
                             const SizedBox(height: 56),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       Text(
                         AppLocalizations.of(context)!.loginWelcome,
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -171,15 +188,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Text(
                         AppLocalizations.of(context)!.loginSubtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.textSecondary,
+                          fontSize: 14,
+                          height: 1.25,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 30),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -220,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           message: _errorMessage!,
                         ),
                       ],
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       SizedBox(
                         height: 48,
                         width: double.infinity,
@@ -244,11 +263,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
-                    ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
             ),
           ),
           if (_isLoading)

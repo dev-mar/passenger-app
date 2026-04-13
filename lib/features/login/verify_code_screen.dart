@@ -7,6 +7,7 @@ import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -420,7 +421,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 16 + AppSafeScrolling.systemNavBottom(context),
+                        ),
                       ],
                     ),
                   ),

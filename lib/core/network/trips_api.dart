@@ -142,6 +142,142 @@ class TripsApi {
   Future<void> cancelPassengerTrip({required String tripId}) async {
     await _dio.post('/passengers/trips/$tripId/cancel');
   }
+
+  /// GET /passengers/trips/recent-places
+  Future<List<PassengerRecentPlace>> getPassengerRecentPlaces({int limit = 5}) async {
+    final response = await _dio.get(
+      '/passengers/trips/recent-places',
+      queryParameters: {'limit': limit},
+    );
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    final placesRaw = data['places'] as List<dynamic>? ?? const [];
+    return placesRaw
+        .whereType<Map>()
+        .map((e) => PassengerRecentPlace.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<List<PassengerSavedPlace>> getPassengerSavedPlaces({int limit = 12}) async {
+    final response = await _dio.get(
+      '/passengers/places/saved',
+      queryParameters: {'limit': limit},
+    );
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    final placesRaw = data['places'] as List<dynamic>? ?? const [];
+    return placesRaw
+        .whereType<Map>()
+        .map((e) => PassengerSavedPlace.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<PassengerSavedPlace> savePassengerPlace({
+    required String label,
+    required String address,
+    required double lat,
+    required double lng,
+    bool isFavorite = false,
+  }) async {
+    final response = await _dio.post('/passengers/places/saved', data: {
+      'label': label,
+      'address': address,
+      'lat': lat,
+      'lng': lng,
+      'isFavorite': isFavorite,
+    });
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    return PassengerSavedPlace.fromJson(data);
+  }
+
+  Future<void> deletePassengerSavedPlace(String placeId) async {
+    await _dio.delete('/passengers/places/saved/$placeId');
+  }
+
+  Future<PassengerSavedPlace> updatePassengerSavedPlace({
+    required String placeId,
+    String? label,
+    String? address,
+    double? lat,
+    double? lng,
+    bool? isFavorite,
+  }) async {
+    final data = <String, dynamic>{};
+    if (label != null) data['label'] = label;
+    if (address != null) data['address'] = address;
+    if (lat != null && lng != null) {
+      data['lat'] = lat;
+      data['lng'] = lng;
+    }
+    if (isFavorite != null) data['isFavorite'] = isFavorite;
+    final response = await _dio.patch('/passengers/places/saved/$placeId', data: data);
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final payload = body['data'] as Map<String, dynamic>? ?? const {};
+    return PassengerSavedPlace.fromJson(payload);
+  }
+}
+
+class PassengerRecentPlace {
+  const PassengerRecentPlace({
+    required this.placeType,
+    required this.label,
+    this.subtitle,
+    required this.lat,
+    required this.lng,
+  });
+
+  final String placeType; // origin | destination
+  final String label;
+  final String? subtitle;
+  final double lat;
+  final double lng;
+
+  factory PassengerRecentPlace.fromJson(Map<String, dynamic> json) {
+    final latRaw = json['lat'];
+    final lngRaw = json['lng'];
+    final lat = latRaw is num ? latRaw.toDouble() : double.tryParse('$latRaw') ?? 0.0;
+    final lng = lngRaw is num ? lngRaw.toDouble() : double.tryParse('$lngRaw') ?? 0.0;
+    final subtitleRaw = json['subtitle']?.toString().trim();
+    return PassengerRecentPlace(
+      placeType: json['placeType']?.toString() ?? 'origin',
+      label: json['label']?.toString() ?? '',
+      subtitle: subtitleRaw == null || subtitleRaw.isEmpty ? null : subtitleRaw,
+      lat: lat,
+      lng: lng,
+    );
+  }
+}
+
+class PassengerSavedPlace {
+  const PassengerSavedPlace({
+    required this.id,
+    required this.label,
+    required this.address,
+    required this.lat,
+    required this.lng,
+    required this.isFavorite,
+  });
+
+  final String id;
+  final String label;
+  final String address;
+  final double lat;
+  final double lng;
+  final bool isFavorite;
+
+  factory PassengerSavedPlace.fromJson(Map<String, dynamic> json) {
+    final latRaw = json['lat'];
+    final lngRaw = json['lng'];
+    return PassengerSavedPlace(
+      id: json['id']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      lat: latRaw is num ? latRaw.toDouble() : double.tryParse('$latRaw') ?? 0.0,
+      lng: lngRaw is num ? lngRaw.toDouble() : double.tryParse('$lngRaw') ?? 0.0,
+      isFavorite: json['isFavorite'] == true,
+    );
+  }
 }
 
 /// Respuesta de POST /passengers/trips
@@ -185,6 +321,10 @@ class TripStatusResponse {
     this.driverBearing,
     this.driverPhotoUrl,
     this.driverPhotoExpiresAt,
+    this.driverName,
+    this.carModel,
+    this.carPlate,
+    this.carColor,
   });
 
   final String tripId;
@@ -196,6 +336,10 @@ class TripStatusResponse {
   /// Foto de perfil del conductor (GET enriquecido; misma fuente que `trip:accepted`).
   final String? driverPhotoUrl;
   final DateTime? driverPhotoExpiresAt;
+  final String? driverName;
+  final String? carModel;
+  final String? carPlate;
+  final String? carColor;
 
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
@@ -222,6 +366,27 @@ class TripStatusResponse {
     final expiresAt = (rawExpiresAt != null && rawExpiresAt.trim().isNotEmpty)
         ? DateTime.tryParse(rawExpiresAt.trim())
         : null;
+    final driverObj = json['driver'];
+    Map<String, dynamic>? driverMap;
+    if (driverObj is Map) {
+      driverMap = Map<String, dynamic>.from(driverObj);
+    }
+    String? pickStr(dynamic v) {
+      final s = v?.toString().trim();
+      if (s == null || s.isEmpty) return null;
+      return s;
+    }
+
+    final driverName = pickStr(json['fullName']) ??
+        pickStr(json['driverName']) ??
+        pickStr(driverMap?['fullName']) ??
+        pickStr(driverMap?['driverName']) ??
+        pickStr(driverMap?['displayName']) ??
+        pickStr(driverMap?['display_name']);
+    final carModel = pickStr(json['carModel']) ?? pickStr(driverMap?['carModel']);
+    final carPlate = pickStr(json['carPlate']) ?? pickStr(json['plate']) ?? pickStr(driverMap?['carPlate']);
+    final carColor = pickStr(json['carColor']) ?? pickStr(driverMap?['carColor']);
+
     return TripStatusResponse(
       tripId: json['tripId']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
@@ -230,6 +395,10 @@ class TripStatusResponse {
       driverBearing: dBearing,
       driverPhotoUrl: photo,
       driverPhotoExpiresAt: expiresAt,
+      driverName: driverName,
+      carModel: carModel,
+      carPlate: carPlate,
+      carColor: carColor,
     );
   }
 }

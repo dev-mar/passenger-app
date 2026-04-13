@@ -5,14 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_service.dart';
+import '../network/trips_api.dart';
 import '../router/app_router.dart';
 import '../storage/trip_session_storage.dart';
 import '../../features/trip/trip_request_state.dart';
 import '../../features/trip/passenger_realtime_controller.dart';
+import 'passenger_notification_trip_reconcile.dart';
 
 Future<void> _persistAndNavigateToTrip(String tripId) async {
-  await TripSessionStorage.saveActiveTripId(tripId);
-
   final token = await AuthService.getValidToken();
   if (token == null || token.isEmpty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -23,7 +23,34 @@ Future<void> _persistAndNavigateToTrip(String tripId) async {
     return;
   }
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  TripStatusResponse? remoteStatus;
+  try {
+    final api = TripsApi(token: token);
+    remoteStatus = await api.getPassengerTripStatus(tripId: tripId);
+  } catch (_) {
+    remoteStatus = null;
+  }
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final ctx = AppRouter.navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+
+    try {
+      final container = ProviderScope.containerOf(ctx, listen: false);
+      if (remoteStatus != null && passengerTripStatusIsTerminal(remoteStatus.status)) {
+        await clearPassengerTripSessionFromContainer(
+          container,
+          tripId,
+          remoteStatus.status,
+        );
+        AppRouter.router.goNamed(AppRouter.tripRequest);
+        return;
+      }
+    } catch (_) {
+      // Sin ProviderScope o error puntual: mismo fallback que antes.
+    }
+
+    await TripSessionStorage.saveActiveTripId(tripId);
     _applyTripRequestNavigation(tripId);
   });
 }

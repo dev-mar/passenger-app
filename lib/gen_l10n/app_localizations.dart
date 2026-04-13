@@ -488,6 +488,12 @@ abstract class AppLocalizations {
   /// **'Skip'**
   String get tripSkipRating;
 
+  /// No description provided for @tripFinishedBackToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get tripFinishedBackToHome;
+
   /// No description provided for @tripStatusEstimatedTime.
   ///
   /// In en, this message translates to:
@@ -1303,6 +1309,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Last access'**
   String get profileFieldLastAccess;
+
+  /// No description provided for @profileSecurityNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get profileSecurityNotAvailable;
 
   /// No description provided for @profileMockBiometricsValue.
   ///

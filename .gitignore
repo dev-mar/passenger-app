@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Informe opcional de gen-l10n (regenerar con `dart run tool/verify_l10n.dart`)
+/lib/l10n/untranslated_report.json

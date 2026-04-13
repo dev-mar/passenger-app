@@ -3,3 +3,5 @@ template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-dir: lib/gen_l10n
 output-class: AppLocalizations
+# Lista mensajes faltantes en locales vs template (revisar con `dart run tool/verify_l10n.dart`).
+untranslated-messages-file: lib/l10n/untranslated_report.json

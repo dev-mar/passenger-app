@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/config/locale_provider.dart';
 import '../../core/router/app_router.dart';
@@ -160,21 +161,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: _buildBody(),
       bottomSheet: _userPosition != null ? _buildBottomSheet() : null,
       floatingActionButton: _userPosition != null
-          ? TexiScalePress(
-              minScale: 0.96,
-              child: FloatingActionButton.extended(
-                onPressed: () {
-                  TexiUiFeedback.lightTap();
-                  final lat = _userPosition!.latitude;
-                  final lng = _userPosition!.longitude;
-                  context.push(
-                    '/trip/request?lat=${lat.toStringAsFixed(6)}&lng=${lng.toStringAsFixed(6)}',
-                  );
-                },
-                icon: const Icon(Icons.directions_car_rounded),
-                label: Text(AppLocalizations.of(context)!.homeRequestRide),
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
+          ? Padding(
+              padding: EdgeInsets.only(
+                bottom: 8 + AppSafeScrolling.systemNavBottom(context),
+              ),
+              child: TexiScalePress(
+                minScale: 0.96,
+                child: FloatingActionButton.extended(
+                  onPressed: () {
+                    TexiUiFeedback.lightTap();
+                    final lat = _userPosition!.latitude;
+                    final lng = _userPosition!.longitude;
+                    context.push(
+                      '/trip/request?lat=${lat.toStringAsFixed(6)}&lng=${lng.toStringAsFixed(6)}',
+                    );
+                  },
+                  icon: const Icon(Icons.directions_car_rounded),
+                  label: Text(AppLocalizations.of(context)!.homeRequestRide),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
+                ),
               ),
             )
           : null,
@@ -227,6 +233,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         target: initialPosition,
         zoom: 15,
       ),
+      zoomControlsEnabled: false,
+      compassEnabled: false,
+      mapToolbarEnabled: false,
+      buildingsEnabled: false,
+      indoorViewEnabled: false,
+      trafficEnabled: false,
       myLocationEnabled: true,
       myLocationButtonEnabled: true,
       markers: _buildMarkers(initialPosition),

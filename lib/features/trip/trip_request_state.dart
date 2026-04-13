@@ -56,6 +56,10 @@ final tripRequestProvider =
 final tripRecoverySnackShownForTripIdProvider =
     StateProvider<String?>((ref) => null);
 
+/// Se incrementa al limpiar la sesión de viaje fuera del mapa (p. ej. notificación con viaje ya terminal).
+/// [TripRequestScreen] lo escucha para alinear pines, ruta y modo de confirmación sin recrear el widget.
+final passengerTripMapUiResetTickProvider = StateProvider<int>((ref) => 0);
+
 class TripRequestNotifier extends StateNotifier<TripRequestState> {
   TripRequestNotifier() : super(const TripRequestState());
 

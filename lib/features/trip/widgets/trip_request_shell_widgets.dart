@@ -2,9 +2,42 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/ui/app_safe_scrolling.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'trip_location_panel_widgets.dart';
+
+class TripRecentPlaceItem {
+  const TripRecentPlaceItem({
+    required this.label,
+    required this.lat,
+    required this.lng,
+    this.subtitle,
+  });
+
+  final String label;
+  final String? subtitle;
+  final double lat;
+  final double lng;
+}
+
+class TripSavedPlaceItem {
+  const TripSavedPlaceItem({
+    required this.id,
+    required this.label,
+    required this.address,
+    required this.lat,
+    required this.lng,
+    this.isFavorite = false,
+  });
+
+  final String id;
+  final String label;
+  final String address;
+  final double lat;
+  final double lng;
+  final bool isFavorite;
+}
 
 class TripCircleButton extends StatelessWidget {
   const TripCircleButton({
@@ -83,6 +116,14 @@ class TripBottomRequestCardContent extends StatelessWidget {
     required this.onPickOriginRecent,
     required this.onPickDestinationSaved,
     required this.onPickDestinationRecent,
+    required this.recentOriginPlaces,
+    required this.recentDestinationPlaces,
+    required this.savedOriginPlaces,
+    required this.savedDestinationPlaces,
+    required this.onSaveCurrentOrigin,
+    required this.onSaveCurrentDestination,
+    required this.onManageSavedOrigin,
+    required this.onManageSavedDestination,
     this.showCancelQuoteDraft = false,
     this.cancelQuoteDraftLabel,
     this.onCancelQuoteDraft,
@@ -117,10 +158,18 @@ class TripBottomRequestCardContent extends StatelessWidget {
   final VoidCallback onDestinationSearch;
   final VoidCallback onDestinationPickOnMap;
   final VoidCallback? onSeePrices;
-  final ValueChanged<String> onPickOriginSaved;
-  final ValueChanged<String> onPickOriginRecent;
-  final ValueChanged<String> onPickDestinationSaved;
-  final ValueChanged<String> onPickDestinationRecent;
+  final ValueChanged<TripSavedPlaceItem> onPickOriginSaved;
+  final ValueChanged<TripRecentPlaceItem> onPickOriginRecent;
+  final ValueChanged<TripSavedPlaceItem> onPickDestinationSaved;
+  final ValueChanged<TripRecentPlaceItem> onPickDestinationRecent;
+  final List<TripRecentPlaceItem> recentOriginPlaces;
+  final List<TripRecentPlaceItem> recentDestinationPlaces;
+  final List<TripSavedPlaceItem> savedOriginPlaces;
+  final List<TripSavedPlaceItem> savedDestinationPlaces;
+  final VoidCallback onSaveCurrentOrigin;
+  final VoidCallback onSaveCurrentDestination;
+  final VoidCallback onManageSavedOrigin;
+  final VoidCallback onManageSavedDestination;
   final bool showCancelQuoteDraft;
   final String? cancelQuoteDraftLabel;
   final VoidCallback? onCancelQuoteDraft;
@@ -130,11 +179,17 @@ class TripBottomRequestCardContent extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final hasDestination = destinationDisplayText != null && destinationDisplayText!.isNotEmpty;
     final destText = destinationDisplayText ?? destinationPlaceholder;
+    final bottomInset = AppSafeScrolling.systemNavBottom(context);
 
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.xxx, AppSpacing.lg, AppSpacing.xxx, AppSpacing.xl),
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xxx,
+          AppSpacing.lg,
+          AppSpacing.xxx,
+          AppSpacing.xl + bottomInset,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -201,20 +256,22 @@ class TripBottomRequestCardContent extends StatelessWidget {
                   spacing: AppSpacing.md,
                   runSpacing: AppSpacing.md,
                   children: [
-                    TripQuickActionChip(
-                      icon: Icons.home_rounded,
-                      label: l10n.placeHome,
-                      onTap: () => onPickOriginSaved(l10n.placeHome),
+                    ...savedOriginPlaces.map(
+                      (p) => TripQuickActionChip(
+                        icon: p.isFavorite ? Icons.star_rounded : Icons.place_rounded,
+                        label: p.label,
+                        onTap: () => onPickOriginSaved(p),
+                      ),
                     ),
                     TripQuickActionChip(
-                      icon: Icons.apartment_rounded,
-                      label: l10n.placeOffice,
-                      onTap: () => onPickOriginSaved(l10n.placeOffice),
+                      icon: Icons.add_location_alt_rounded,
+                      label: l10n.profileSavedPlaces,
+                      onTap: onSaveCurrentOrigin,
                     ),
                     TripQuickActionChip(
-                      icon: Icons.star_rounded,
-                      label: l10n.placeFavorite,
-                      onTap: () => onPickOriginSaved(l10n.placeFavorite),
+                      icon: Icons.tune_rounded,
+                      label: l10n.profileSectionPreferences,
+                      onTap: onManageSavedOrigin,
                     ),
                   ],
                 ),
@@ -227,15 +284,12 @@ class TripBottomRequestCardContent extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                TripRecentDestinationTile(
-                  title: l10n.placeMainSquare,
-                  subtitle: l10n.placeDowntown,
-                  onTap: () => onPickOriginRecent(l10n.placeMainSquare),
-                ),
-                TripRecentDestinationTile(
-                  title: l10n.placeAirport,
-                  subtitle: l10n.placeNorthZone,
-                  onTap: () => onPickOriginRecent(l10n.placeAirport),
+                ...recentOriginPlaces.map(
+                  (p) => TripRecentDestinationTile(
+                    title: p.label,
+                    subtitle: p.subtitle ?? l10n.profileRecentPlaces,
+                    onTap: () => onPickOriginRecent(p),
+                  ),
                 ),
               ],
             ],
@@ -293,20 +347,22 @@ class TripBottomRequestCardContent extends StatelessWidget {
                   spacing: AppSpacing.md,
                   runSpacing: AppSpacing.md,
                   children: [
-                    TripQuickActionChip(
-                      icon: Icons.home_rounded,
-                      label: l10n.placeHome,
-                      onTap: () => onPickDestinationSaved(l10n.placeHome),
+                    ...savedDestinationPlaces.map(
+                      (p) => TripQuickActionChip(
+                        icon: p.isFavorite ? Icons.star_rounded : Icons.place_rounded,
+                        label: p.label,
+                        onTap: () => onPickDestinationSaved(p),
+                      ),
                     ),
                     TripQuickActionChip(
-                      icon: Icons.apartment_rounded,
-                      label: l10n.placeOffice,
-                      onTap: () => onPickDestinationSaved(l10n.placeOffice),
+                      icon: Icons.add_location_alt_rounded,
+                      label: l10n.profileSavedPlaces,
+                      onTap: onSaveCurrentDestination,
                     ),
                     TripQuickActionChip(
-                      icon: Icons.star_rounded,
-                      label: l10n.placeFavorite,
-                      onTap: () => onPickDestinationSaved(l10n.placeFavorite),
+                      icon: Icons.tune_rounded,
+                      label: l10n.profileSectionPreferences,
+                      onTap: onManageSavedDestination,
                     ),
                   ],
                 ),
@@ -319,15 +375,12 @@ class TripBottomRequestCardContent extends StatelessWidget {
                       ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
-                TripRecentDestinationTile(
-                  title: l10n.placeMainSquare,
-                  subtitle: l10n.placeDowntown,
-                  onTap: () => onPickDestinationRecent(l10n.placeMainSquare),
-                ),
-                TripRecentDestinationTile(
-                  title: l10n.placeAirport,
-                  subtitle: l10n.placeNorthZone,
-                  onTap: () => onPickDestinationRecent(l10n.placeAirport),
+                ...recentDestinationPlaces.map(
+                  (p) => TripRecentDestinationTile(
+                    title: p.label,
+                    subtitle: p.subtitle ?? l10n.profileRecentPlaces,
+                    onTap: () => onPickDestinationRecent(p),
+                  ),
                 ),
               ],
             ],
