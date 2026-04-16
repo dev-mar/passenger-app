@@ -300,6 +300,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripMapRecenterShort => 'Recenter';
 
   @override
+  String get tripSavedPlaceFallbackLabel => 'Place';
+
+  @override
+  String tripSavedPlacesMax(int count) {
+    return 'Maximum $count places.';
+  }
+
+  @override
+  String get tripSavedPlaceDialogTitle => 'New saved place';
+
+  @override
+  String get tripSavedPlaceNameLabel => 'Name';
+
+  @override
+  String get tripSavedPlaceNameHint => 'E.g.: Home, Work';
+
+  @override
+  String get tripSavedPlaceSaveCta => 'Save';
+
+  @override
+  String get tripSavedPlaceSaved => 'Place saved';
+
+  @override
+  String tripSavedPlacesLimitReached(int count) {
+    return '$count places limit reached.';
+  }
+
+  @override
+  String get tripSavedPlaceSaveMapCta => 'Save location on map';
+
+  @override
+  String get tripSavedPlaceDeleteCta => 'Delete';
+
+  @override
+  String get tripMapAdjustPickupHint =>
+      'Adjust the map to set your pickup point';
+
+  @override
+  String get tripMapAdjustDestinationHint =>
+      'Adjust the map to set your destination';
+
+  @override
   String get tripRequireGpsForRequest =>
       'We need your real location (GPS on and permission granted) to request a ride. Check GPS and location permissions.';
 

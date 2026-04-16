@@ -301,6 +301,48 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripMapRecenterShort => 'Centrarme';
 
   @override
+  String get tripSavedPlaceFallbackLabel => 'Lugar';
+
+  @override
+  String tripSavedPlacesMax(int count) {
+    return 'Máximo $count lugares.';
+  }
+
+  @override
+  String get tripSavedPlaceDialogTitle => 'Nuevo lugar guardado';
+
+  @override
+  String get tripSavedPlaceNameLabel => 'Nombre';
+
+  @override
+  String get tripSavedPlaceNameHint => 'Ej.: Casa, Trabajo';
+
+  @override
+  String get tripSavedPlaceSaveCta => 'Guardar';
+
+  @override
+  String get tripSavedPlaceSaved => 'Lugar guardado';
+
+  @override
+  String tripSavedPlacesLimitReached(int count) {
+    return 'Límite de $count lugares alcanzado.';
+  }
+
+  @override
+  String get tripSavedPlaceSaveMapCta => 'Guardar ubicación en el mapa';
+
+  @override
+  String get tripSavedPlaceDeleteCta => 'Eliminar';
+
+  @override
+  String get tripMapAdjustPickupHint =>
+      'Ajusta el mapa para definir tu punto de partida';
+
+  @override
+  String get tripMapAdjustDestinationHint =>
+      'Ajusta el mapa para definir tu destino';
+
+  @override
   String get tripRequireGpsForRequest =>
       'Necesitamos tu ubicación real (GPS activo y permiso) para solicitar un viaje. Revisa el GPS y los permisos de ubicación.';
 

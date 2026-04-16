@@ -70,7 +70,9 @@ class _PassengerTripHistoryScreenState
     final storedDateRange = await _storage.read(key: _kDateRangeKey);
     final storedFrom = await _storage.read(key: _kCustomFromKey);
     final storedTo = await _storage.read(key: _kCustomToKey);
-    final parsedFrom = storedFrom != null ? DateTime.tryParse(storedFrom) : null;
+    final parsedFrom = storedFrom != null
+        ? DateTime.tryParse(storedFrom)
+        : null;
     final parsedTo = storedTo != null ? DateTime.tryParse(storedTo) : null;
     if (!mounted) {
       return;
@@ -280,35 +282,38 @@ class _PassengerTripHistoryScreenState
                   child: _loading
                       ? const _LoadingSkeletonList(key: ValueKey('loading'))
                       : _error != null
-                          ? Card(
-                              key: const ValueKey('error'),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  _error == 'NO_SESSION'
-                                      ? l10n.tripHistoryNoSession
-                                      : l10n.tripHistoryLoadError,
+                      ? Card(
+                          key: const ValueKey('error'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              _error == 'NO_SESSION'
+                                  ? l10n.tripHistoryNoSession
+                                  : l10n.tripHistoryLoadError,
+                            ),
+                          ),
+                        )
+                      : trips.isEmpty
+                      ? Card(
+                          key: const ValueKey('empty'),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.receipt_long_outlined,
+                                  size: 34,
                                 ),
-                              ),
-                            )
-                          : trips.isEmpty
-                              ? Card(
-                                  key: const ValueKey('empty'),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      children: [
-                                        const Icon(Icons.receipt_long_outlined, size: 34),
-                                        const SizedBox(height: 8),
-                                        Text(l10n.tripHistoryEmpty),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : Column(
-                                  key: const ValueKey('list'),
-                                  children: _buildGroupedTripWidgets(trips, l10n),
-                                ),
+                                const SizedBox(height: 8),
+                                Text(l10n.tripHistoryEmpty),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Column(
+                          key: const ValueKey('list'),
+                          children: _buildGroupedTripWidgets(trips, l10n),
+                        ),
                 ),
               ),
             ),
@@ -537,7 +542,9 @@ class _FiltersPanelPassenger extends StatelessWidget {
         ),
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 180),
-          crossFadeState: compact ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          crossFadeState: compact
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
           firstChild: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -547,14 +554,21 @@ class _FiltersPanelPassenger extends StatelessWidget {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    for (final range in const <String>['today', '7d', '30d', 'custom']) ...[
+                    for (final range in const <String>[
+                      'today',
+                      '7d',
+                      '30d',
+                      'custom',
+                    ]) ...[
                       ChoiceChip(
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         backgroundColor: unselectedBg,
                         selectedColor: selectedBg,
                         side: BorderSide(
-                          color: dateRange == range ? selectedBorder : unselectedBorder,
+                          color: dateRange == range
+                              ? selectedBorder
+                              : unselectedBorder,
                         ),
                         iconTheme: IconThemeData(
                           color: dateRange == range ? selectedFg : unselectedFg,
@@ -565,7 +579,9 @@ class _FiltersPanelPassenger extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: dateRange == range ? selectedFg : AppColors.textPrimary,
+                            color: dateRange == range
+                                ? selectedFg
+                                : AppColors.textPrimary,
                           ),
                         ),
                         labelPadding: const EdgeInsets.symmetric(horizontal: 2),
@@ -584,40 +600,45 @@ class _FiltersPanelPassenger extends StatelessWidget {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: statusOptions
-                      .map((status) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              backgroundColor: unselectedBg,
-                              selectedColor: selectedBg,
-                              side: BorderSide(
-                                color: selectedStatus == status
-                                    ? selectedBorder
-                                    : unselectedBorder,
-                              ),
-                              iconTheme: IconThemeData(
+                      .map(
+                        (status) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: unselectedBg,
+                            selectedColor: selectedBg,
+                            side: BorderSide(
+                              color: selectedStatus == status
+                                  ? selectedBorder
+                                  : unselectedBorder,
+                            ),
+                            iconTheme: IconThemeData(
+                              color: selectedStatus == status
+                                  ? selectedFg
+                                  : unselectedFg,
+                            ),
+                            avatar: Icon(statusIcon(status), size: 15),
+                            label: Text(
+                              _statusText(l10n, status),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                                 color: selectedStatus == status
                                     ? selectedFg
-                                    : unselectedFg,
+                                    : AppColors.textPrimary,
                               ),
-                              avatar: Icon(statusIcon(status), size: 15),
-                              label: Text(
-                                _statusText(l10n, status),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: selectedStatus == status
-                                      ? selectedFg
-                                      : AppColors.textPrimary,
-                                ),
-                              ),
-                              labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              selected: selectedStatus == status,
-                              onSelected: (_) => onStatusTap(status),
                             ),
-                          ))
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            selected: selectedStatus == status,
+                            onSelected: (_) => onStatusTap(status),
+                          ),
+                        ),
+                      )
                       .toList(growable: false),
                 ),
               ),
@@ -625,7 +646,9 @@ class _FiltersPanelPassenger extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   '${l10n.tripHistoryCustomRangeLabel}: ${fmtDate(customRange!.start)} - ${fmtDate(customRange!.end)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ],
@@ -666,7 +689,11 @@ class _FiltersPanelPassenger extends StatelessWidget {
 }
 
 class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _StickyHeaderDelegate({required this.minHeight, required this.maxHeight, required this.builder});
+  _StickyHeaderDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.builder,
+  });
 
   final double minHeight;
   final double maxHeight;
@@ -678,11 +705,15 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => maxHeight;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => builder(context, shrinkOffset, overlapsContent);
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => builder(context, shrinkOffset, overlapsContent);
 
   @override
   bool shouldRebuild(covariant _StickyHeaderDelegate oldDelegate) {
-    return minHeight != oldDelegate.minHeight || maxHeight != oldDelegate.maxHeight;
+    return true;
   }
 }
 
@@ -720,14 +751,17 @@ class _SkeletonLine extends StatefulWidget {
   State<_SkeletonLine> createState() => _SkeletonLineState();
 }
 
-class _SkeletonLineState extends State<_SkeletonLine> with SingleTickerProviderStateMixin {
+class _SkeletonLineState extends State<_SkeletonLine>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
   }
 
   @override
@@ -810,7 +844,10 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
               ),
               child: Text(
                 statusText,
-                style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -818,9 +855,9 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
         trailing: Text(
           amount,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: statusColor,
-              ),
+            fontWeight: FontWeight.w700,
+            color: statusColor,
+          ),
         ),
         children: [
           AnimatedContainer(
@@ -834,7 +871,9 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
                 children: [
                   Text('${l10n.tripOrigin}: ${trip.originAddress ?? '-'}'),
                   const SizedBox(height: 6),
-                  Text('${l10n.tripDestination}: ${trip.destinationAddress ?? '-'}'),
+                  Text(
+                    '${l10n.tripDestination}: ${trip.destinationAddress ?? '-'}',
+                  ),
                   if ((trip.driverName ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text('Conductor: ${trip.driverName}'),
@@ -844,11 +883,7 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
                       (trip.driverCarPlate ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Vehículo: ${[
-                        if ((trip.driverCarColor ?? '').trim().isNotEmpty) trip.driverCarColor,
-                        if ((trip.driverCarModel ?? '').trim().isNotEmpty) trip.driverCarModel,
-                        if ((trip.driverCarPlate ?? '').trim().isNotEmpty) trip.driverCarPlate,
-                      ].join(' · ')}',
+                      'Vehículo: ${[if ((trip.driverCarColor ?? '').trim().isNotEmpty) trip.driverCarColor, if ((trip.driverCarModel ?? '').trim().isNotEmpty) trip.driverCarModel, if ((trip.driverCarPlate ?? '').trim().isNotEmpty) trip.driverCarPlate].join(' · ')}',
                     ),
                   ],
                   const SizedBox(height: 6),
@@ -909,7 +944,12 @@ class _DateSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(2, 10, 2, 8),
       child: Row(
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Divider(color: Theme.of(context).colorScheme.outlineVariant),

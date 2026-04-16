@@ -27,6 +27,10 @@ import '../../core/network/passenger_map_telemetry_service.dart';
 import '../../core/network/places_autocomplete_service.dart';
 import '../../data/models/quote_response.dart';
 import '../../core/router/app_router.dart';
+import '../../core/notifications/passenger_fcm_navigation.dart'
+    show
+        passengerTripChatOpenBump,
+        takePendingPassengerChatTripIdFromNotification;
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -121,6 +125,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   List<TripSavedPlaceItem> _savedDestinationPlaces =
       const <TripSavedPlaceItem>[];
   List<LatLng>? _routePoints;
+
   /// Misma polyline codificada que Directions (se envía al crear viaje para el mapa del conductor).
   String? _routeOverviewEncoded;
   bool _loadingRoute = false;
@@ -141,6 +146,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   /// `true` mientras el bottom sheet del chat está visible (para cerrarlo al cambiar fase del viaje).
   bool _tripChatSheetDisplayed = false;
+  int _lastHandledTripChatOpenBump = 0;
 
   // Resiliencia: si falta el último evento por WebSocket (p. ej. driver finaliza offline),
   // refrescamos el status vía REST cada cierto tiempo.
@@ -592,7 +598,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   }
 
   Future<void> _openTripChatSheet({required String tripId}) async {
-    if (!passengerTripChatPhaseActive(ref.read(passengerRealtimeProvider).status)) {
+    if (!passengerTripChatPhaseActive(
+      ref.read(passengerRealtimeProvider).status,
+    )) {
       return;
     }
     final controller = ref.read(passengerRealtimeProvider.notifier);
@@ -608,300 +616,378 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       final mm = dt.minute.toString().padLeft(2, '0');
       return '$hh:$mm';
     }
+
     _tripChatSheetDisplayed = true;
     try {
       await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        final mq = MediaQuery.of(ctx);
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: mq.viewInsets.bottom,
-            left: 10,
-            right: 10,
-            top: 8,
-          ),
-          child: FractionallySizedBox(
-            heightFactor: 0.82,
-            child: Consumer(
-              builder: (context, ref, _) {
-                final rt = ref.watch(passengerRealtimeProvider);
-                return Material(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(22),
-                  clipBehavior: Clip.antiAlias,
-                  child: SafeArea(
-                    top: false,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        14,
-                        10,
-                        14,
-                        12 + mq.viewPadding.bottom,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) {
+          final mq = MediaQuery.of(ctx);
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: mq.viewInsets.bottom,
+              left: 10,
+              right: 10,
+              top: 8,
+            ),
+            child: FractionallySizedBox(
+              heightFactor: 0.82,
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final rt = ref.watch(passengerRealtimeProvider);
+                  return Material(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(22),
+                    clipBehavior: Clip.antiAlias,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          14,
+                          10,
+                          14,
+                          12 + mq.viewPadding.bottom,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.16,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.chat_bubble_rounded,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    'Chat del viaje',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 17,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: rt.connected
+                                        ? AppColors.success.withValues(
+                                            alpha: 0.12,
+                                          )
+                                        : AppColors.error.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    rt.connected ? 'En línea' : 'Sin conexión',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: rt.connected
+                                          ? AppColors.success
+                                          : AppColors.error,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'Conversación activa con el conductor en tiempo real.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.95,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 38,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: quickTemplates.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 8),
+                                itemBuilder: (context, index) {
+                                  final it = quickTemplates[index];
+                                  return OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      textController.text = it['label']!;
+                                      textController.selection =
+                                          TextSelection.collapsed(
+                                            offset: textController.text.length,
+                                          );
+                                    },
+                                    child: Text(
+                                      it['label']!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (rt.tripChatErrorCode != null) ...[
+                              const SizedBox(height: 8),
                               Container(
-                                width: 36,
-                                height: 36,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.16),
+                                  color: AppColors.error.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(
-                                  Icons.chat_bubble_rounded,
-                                  color: AppColors.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Expanded(
                                 child: Text(
-                                  'Chat del viaje',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 17,
+                                  (rt.tripChatErrorCode == '42P01' ||
+                                          rt.tripChatErrorCode ==
+                                              'TRIP_CHAT_STORAGE_UNAVAILABLE')
+                                      ? 'Chat no disponible: falta configuración en el servidor. Contactá soporte.'
+                                      : rt.tripChatErrorCode ==
+                                            'TRIP_CHAT_NOT_AVAILABLE'
+                                      ? 'El chat solo está disponible antes de iniciar el viaje.'
+                                      : rt.tripChatErrorCode == '23503'
+                                      ? 'El chat no está listo para este viaje todavía. Reintenta en unos segundos.'
+                                      : 'No se pudo enviar/recibir chat (${rt.tripChatErrorCode!}). Revisa la conexión.',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.error,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: rt.connected
-                                      ? AppColors.success.withValues(alpha: 0.12)
-                                      : AppColors.error.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  rt.connected ? 'En línea' : 'Sin conexión',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: rt.connected ? AppColors.success : AppColors.error,
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                icon: const Icon(Icons.close_rounded),
                               ),
                             ],
-                          ),
-                          Text(
-                            'Conversación activa con el conductor en tiempo real.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary.withValues(alpha: 0.95),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            height: 38,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: quickTemplates.length,
-                              separatorBuilder: (_, _) => const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final it = quickTemplates[index];
-                                return OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                            const SizedBox(height: 10),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: AppColors.border.withValues(
+                                      alpha: 0.45,
+                                    ),
                                   ),
-                                  onPressed: () {
-                                    textController.text = it['label']!;
-                                    textController.selection = TextSelection.collapsed(
-                                      offset: textController.text.length,
-                                    );
-                                  },
-                                  child: Text(
-                                    it['label']!,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          if (rt.tripChatErrorCode != null) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: rt.chatMessages.isEmpty
+                                    ? Center(
+                                        child: Text(
+                                          'Aún no hay mensajes.\nEnvía uno para iniciar la conversación.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppColors.textSecondary
+                                                .withValues(alpha: 0.9),
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        padding: const EdgeInsets.all(10),
+                                        itemCount: rt.chatMessages.length,
+                                        itemBuilder: (context, index) {
+                                          final msg = rt.chatMessages[index];
+                                          final mine =
+                                              msg.senderRole == 'passenger';
+                                          return Align(
+                                            alignment: mine
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                            child: Container(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 280,
+                                              ),
+                                              margin: const EdgeInsets.only(
+                                                bottom: 8,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 9,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: mine
+                                                    ? AppColors.primary
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          )
+                                                    : AppColors.surface,
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft:
+                                                      const Radius.circular(14),
+                                                  topRight:
+                                                      const Radius.circular(14),
+                                                  bottomLeft: Radius.circular(
+                                                    mine ? 14 : 4,
+                                                  ),
+                                                  bottomRight: Radius.circular(
+                                                    mine ? 4 : 14,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    msg.messageText,
+                                                    style: const TextStyle(
+                                                      height: 1.25,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    '${mine ? 'Tú' : 'Conductor'} · ${formatTime(msg.createdAt)}',
+                                                    style: TextStyle(
+                                                      fontSize: 10.5,
+                                                      color: AppColors
+                                                          .textSecondary
+                                                          .withValues(
+                                                            alpha: 0.85,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
                               ),
-                              child: Text(
-                                (rt.tripChatErrorCode == '42P01' ||
-                                        rt.tripChatErrorCode ==
-                                            'TRIP_CHAT_STORAGE_UNAVAILABLE')
-                                    ? 'Chat no disponible: falta configuración en el servidor. Contactá soporte.'
-                                    : rt.tripChatErrorCode == 'TRIP_CHAT_NOT_AVAILABLE'
-                                        ? 'El chat solo está disponible antes de iniciar el viaje.'
-                                        : 'No se pudo enviar/recibir chat (${rt.tripChatErrorCode!}). Revisa la conexión.',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.error,
-                                  fontWeight: FontWeight.w600,
+                            ),
+                            const SizedBox(height: 10),
+                            Material(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: AppColors.border.withValues(
+                                      alpha: 0.55,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: textController,
+                                        minLines: 1,
+                                        maxLines: 4,
+                                        decoration: const InputDecoration(
+                                          hintText: 'Escribe un mensaje',
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 10,
+                                          ),
+                                          isDense: true,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    SizedBox(
+                                      height: 40,
+                                      child: FilledButton(
+                                        onPressed: () {
+                                          final t = textController.text.trim();
+                                          if (t.isEmpty) return;
+                                          controller.sendTripChatText(
+                                            tripId: tripId,
+                                            text: t,
+                                          );
+                                          textController.clear();
+                                        },
+                                        style: FilledButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                          ),
+                                          minimumSize: const Size(44, 40),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              11,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.send_rounded,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ],
-                          const SizedBox(height: 10),
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: AppColors.border.withValues(alpha: 0.45),
-                                ),
-                              ),
-                              child: rt.chatMessages.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                        'Aún no hay mensajes.\nEnvía uno para iniciar la conversación.',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: AppColors.textSecondary.withValues(alpha: 0.9),
-                                        ),
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: const EdgeInsets.all(10),
-                                      itemCount: rt.chatMessages.length,
-                                      itemBuilder: (context, index) {
-                                        final msg = rt.chatMessages[index];
-                                        final mine = msg.senderRole == 'passenger';
-                                        return Align(
-                                          alignment: mine
-                                              ? Alignment.centerRight
-                                              : Alignment.centerLeft,
-                                          child: Container(
-                                            constraints: const BoxConstraints(maxWidth: 280),
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 9,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: mine
-                                                  ? AppColors.primary.withValues(alpha: 0.2)
-                                                  : AppColors.surface,
-                                              borderRadius: BorderRadius.only(
-                                                topLeft: const Radius.circular(14),
-                                                topRight: const Radius.circular(14),
-                                                bottomLeft: Radius.circular(mine ? 14 : 4),
-                                                bottomRight: Radius.circular(mine ? 4 : 14),
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  msg.messageText,
-                                                  style: const TextStyle(height: 1.25),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '${mine ? 'Tú' : 'Conductor'} · ${formatTime(msg.createdAt)}',
-                                                  style: TextStyle(
-                                                    fontSize: 10.5,
-                                                    color: AppColors.textSecondary.withValues(
-                                                      alpha: 0.85,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Material(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: AppColors.border.withValues(alpha: 0.55),
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Expanded(
-                                    child: TextField(
-                                      controller: textController,
-                                      minLines: 1,
-                                      maxLines: 4,
-                                      decoration: const InputDecoration(
-                                        hintText: 'Escribe un mensaje',
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 10,
-                                        ),
-                                        isDense: true,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  SizedBox(
-                                    height: 40,
-                                    child: FilledButton(
-                                      onPressed: () {
-                                        final t = textController.text.trim();
-                                        if (t.isEmpty) return;
-                                        controller.sendTripChatText(
-                                          tripId: tripId,
-                                          text: t,
-                                        );
-                                        textController.clear();
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                                        minimumSize: const Size(44, 40),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(11),
-                                        ),
-                                      ),
-                                      child: const Icon(Icons.send_rounded, size: 20),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
     } finally {
       _tripChatSheetDisplayed = false;
       textController.dispose();
     }
+  }
+
+  void _onPassengerTripChatOpenBump() {
+    final bump = passengerTripChatOpenBump.value;
+    if (bump <= _lastHandledTripChatOpenBump) return;
+    _lastHandledTripChatOpenBump = bump;
+    if (!mounted) return;
+    final pendingTripId = takePendingPassengerChatTripIdFromNotification();
+    if (pendingTripId == null || pendingTripId.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final tripId = ref.read(tripRequestProvider).tripId;
+      if (tripId == null || tripId != pendingTripId) return;
+      await ref
+          .read(passengerRealtimeProvider.notifier)
+          .syncTripStatusFromApi(tripId: tripId, force: true);
+      if (!mounted) return;
+      final status = ref.read(passengerRealtimeProvider).status;
+      if (!passengerTripChatPhaseActive(status)) return;
+      if (_tripChatSheetDisplayed) return;
+      await _openTripChatSheet(tripId: tripId);
+    });
   }
 
   @override
@@ -925,8 +1011,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     unawaited(_loadSavedPlaces());
     unawaited(_refreshBatteryLevel());
     WidgetsBinding.instance.addObserver(this);
+    passengerTripChatOpenBump.addListener(_onPassengerTripChatOpenBump);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_loadDriverTripIcon());
+      _onPassengerTripChatOpenBump();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -959,8 +1047,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                 carPlate: cached['carPlate'],
                 carModel: cached['carModel'],
                 driverRating: double.tryParse(cached['driverRating'] ?? ''),
-                driverRatingsCount:
-                    int.tryParse(cached['driverRatingsCount'] ?? ''),
+                driverRatingsCount: int.tryParse(
+                  cached['driverRatingsCount'] ?? '',
+                ),
                 currencyCode: cached['currencyCode'],
                 driverPhotoUrl: cached['driverPhotoUrl'],
                 driverPhotoExpiresAt: cached['driverPhotoExpiresAt'],
@@ -1013,8 +1102,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                 carPlate: cached['carPlate'],
                 carModel: cached['carModel'],
                 driverRating: double.tryParse(cached['driverRating'] ?? ''),
-                driverRatingsCount:
-                    int.tryParse(cached['driverRatingsCount'] ?? ''),
+                driverRatingsCount: int.tryParse(
+                  cached['driverRatingsCount'] ?? '',
+                ),
                 currencyCode: cached['currencyCode'],
                 driverPhotoUrl: cached['driverPhotoUrl'],
                 driverPhotoExpiresAt: cached['driverPhotoExpiresAt'],
@@ -1255,6 +1345,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _tripStatusSyncTimerTripId = null;
     _tripStatusSyncInterval = const Duration(seconds: 60);
     WidgetsBinding.instance.removeObserver(this);
+    passengerTripChatOpenBump.removeListener(_onPassengerTripChatOpenBump);
     _originSearchController.dispose();
     _destinationSearchController.dispose();
     _controller?.dispose();
@@ -1333,7 +1424,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     final minGap = trackingDriver
         ? const Duration(seconds: 10)
         : const Duration(seconds: 55);
-    if (!mustRefreshPhotoNow && now.difference(_lastTripStatusSyncAt) < minGap) {
+    if (!mustRefreshPhotoNow &&
+        now.difference(_lastTripStatusSyncAt) < minGap) {
       return;
     }
     _tripStatusSyncInFlight = true;
@@ -1408,8 +1500,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
               carPlate: cached['carPlate'],
               carModel: cached['carModel'],
               driverRating: double.tryParse(cached['driverRating'] ?? ''),
-              driverRatingsCount:
-                  int.tryParse(cached['driverRatingsCount'] ?? ''),
+              driverRatingsCount: int.tryParse(
+                cached['driverRatingsCount'] ?? '',
+              ),
               currencyCode: cached['currencyCode'],
               driverPhotoUrl: cached['driverPhotoUrl'],
               driverPhotoExpiresAt: cached['driverPhotoExpiresAt'],
@@ -1494,14 +1587,18 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   }
 
   /// Backend exige label 2–60 y address 3–180 caracteres.
-  String _ensureSavedPlaceLabel(String primary, String backupMin2) {
+  String _ensureSavedPlaceLabel(
+    String primary,
+    String backupMin2,
+    AppLocalizations l10n,
+  ) {
     var a = primary.trim();
     if (a.length > 60) a = a.substring(0, 60);
     if (a.length >= 2) return a;
     var b = backupMin2.trim();
     if (b.length > 60) b = b.substring(0, 60);
     if (b.length >= 2) return b;
-    return 'Lugar';
+    return l10n.tripSavedPlaceFallbackLabel;
   }
 
   String _ensureSavedPlaceAddress(String primary, double lat, double lng) {
@@ -1660,7 +1757,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         (_originDisplayLabel ??
                 '${_origin!.latitude.toStringAsFixed(6)},${_origin!.longitude.toStringAsFixed(6)}')
             .trim();
-    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripOrigin);
+    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripOrigin, l10n);
     final address = _ensureSavedPlaceAddress(
       rawAddress,
       _origin!.latitude,
@@ -1695,7 +1792,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         (_destinationDisplayLabel ??
                 '${_destination!.latitude.toStringAsFixed(6)},${_destination!.longitude.toStringAsFixed(6)}')
             .trim();
-    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripDestination);
+    final label = _ensureSavedPlaceLabel(rawLabel, l10n.tripDestination, l10n);
     final address = _ensureSavedPlaceAddress(
       rawAddress,
       _destination!.latitude,
@@ -1755,10 +1852,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Máximo $_kMaxSavedPlaces lugares.',
+                        l10n.tripSavedPlacesMax(_kMaxSavedPlaces),
                         style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       FilledButton.tonalIcon(
@@ -1773,12 +1870,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                 final ok = await showDialog<bool>(
                                   context: ctx,
                                   builder: (dCtx) => AlertDialog(
-                                    title: const Text('Nuevo lugar guardado'),
+                                    title: Text(l10n.tripSavedPlaceDialogTitle),
                                     content: TextField(
                                       controller: labelCtrl,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Nombre',
-                                        hintText: 'Ej.: Casa, Trabajo',
+                                      decoration: InputDecoration(
+                                        labelText: l10n.tripSavedPlaceNameLabel,
+                                        hintText: l10n.tripSavedPlaceNameHint,
                                       ),
                                       autofocus: true,
                                     ),
@@ -1791,7 +1888,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                       FilledButton(
                                         onPressed: () =>
                                             Navigator.pop(dCtx, true),
-                                        child: const Text('Guardar'),
+                                        child: Text(l10n.tripSavedPlaceSaveCta),
                                       ),
                                     ],
                                   ),
@@ -1799,7 +1896,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                 if (ok != true || !mounted) return;
                                 final label = _ensureSavedPlaceLabel(
                                   labelCtrl.text,
-                                  forOrigin ? l10n.tripOrigin : l10n.tripDestination,
+                                  forOrigin
+                                      ? l10n.tripOrigin
+                                      : l10n.tripDestination,
+                                  l10n,
                                 );
                                 final latLng = forOrigin
                                     ? _origin
@@ -1816,7 +1916,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                   latLng.longitude,
                                 );
                                 try {
-                                  await TripsApi(token: token).savePassengerPlace(
+                                  await TripsApi(
+                                    token: token,
+                                  ).savePassengerPlace(
                                     label: label,
                                     address: addr,
                                     lat: latLng.latitude,
@@ -1825,7 +1927,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                   await _loadSavedPlaces();
                                   if (!mounted) return;
                                   setSheet(() {});
-                                  _showSubtleSnack('Lugar guardado');
+                                  _showSubtleSnack(l10n.tripSavedPlaceSaved);
                                 } catch (e) {
                                   if (!mounted) return;
                                   final code = e is DioException
@@ -1835,13 +1937,15 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                       : null;
                                   _showSubtleSnack(
                                     code == 'SAVED_PLACES_LIMIT_REACHED'
-                                        ? 'Límite de $_kMaxSavedPlaces lugares alcanzado.'
+                                        ? l10n.tripSavedPlacesLimitReached(
+                                            _kMaxSavedPlaces,
+                                          )
                                         : l10n.commonError,
                                   );
                                 }
                               },
                         icon: const Icon(Icons.add_location_alt_rounded),
-                        label: const Text('Guardar ubicación en el mapa'),
+                        label: Text(l10n.tripSavedPlaceSaveMapCta),
                       ),
                       const SizedBox(height: 10),
                       if (places.isEmpty)
@@ -1913,7 +2017,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                     ),
                                     PopupMenuItem(
                                       value: 'delete',
-                                      child: const Text('Eliminar'),
+                                      child: Text(l10n.tripSavedPlaceDeleteCta),
                                     ),
                                   ],
                                 ),
@@ -2387,7 +2491,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           (_animatedDriverLatLng!.longitude - rawDriverLng).abs() > 0.000001) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          setState(() => _animatedDriverLatLng = LatLng(rawDriverLat, rawDriverLng));
+          setState(
+            () => _animatedDriverLatLng = LatLng(rawDriverLat, rawDriverLng),
+          );
         });
       }
       _lastDriverRawLat = rawDriverLat;
@@ -2421,10 +2527,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     }
     final lowPowerVisual = _lowBatteryModeActive || _driverLikelyIdle;
     final totalSteps = lowPowerVisual ? 5 : 9;
-    final stepDuration =
-        lowPowerVisual
-            ? const Duration(milliseconds: 120)
-            : const Duration(milliseconds: 85);
+    final stepDuration = lowPowerVisual
+        ? const Duration(milliseconds: 120)
+        : const Duration(milliseconds: 85);
     var step = 0;
     _driverMotionTimer = Timer.periodic(stepDuration, (timer) {
       if (!mounted) {
@@ -2637,7 +2742,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundColor: AppColors.primary.withValues(alpha: 0.18),
+                                backgroundColor: AppColors.primary.withValues(
+                                  alpha: 0.18,
+                                ),
                                 child: const Icon(
                                   Icons.person_rounded,
                                   color: AppColors.primary,
@@ -2647,7 +2754,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                               const SizedBox(height: 8),
                               Text(
                                 l10n.profileScreenTitle,
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w800,
                                       color: AppColors.textPrimary,
                                     ),
@@ -3266,7 +3374,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     final driverLng = rtState.driverLng;
     final driverBearing = rtState.driverBearing;
 
-    ref.listen<PassengerRealtimeState>(passengerRealtimeProvider, (previous, next) {
+    ref.listen<PassengerRealtimeState>(passengerRealtimeProvider, (
+      previous,
+      next,
+    ) {
       final was = passengerTripChatPhaseActive(previous?.status);
       final now = passengerTripChatPhaseActive(next.status);
       if (was && !now && _tripChatSheetDisplayed && mounted) {
@@ -3317,9 +3428,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
     final isSearchingDriver =
         tripId != null &&
-        (rtState.status == 'searching' ||
+        (rtState.status == 'requested' ||
+            rtState.status == 'searching' ||
             (rtState.connecting &&
-                (rtState.status == null || rtState.status == 'searching')));
+                (rtState.status == null ||
+                    rtState.status == 'requested' ||
+                    rtState.status == 'searching')));
     final isRecoveringActiveTrip = tripId != null && rtState.status == null;
     final isTripActive =
         tripId != null &&
@@ -3637,31 +3751,32 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                           ),
                         ],
                       ),
-                        child: Row(
-                          children: [
-                            Icon(
+                      child: Row(
+                        children: [
+                          Icon(
+                            confirmingOrigin
+                                ? Icons.trip_origin_rounded
+                                : Icons.flag_rounded,
+                            size: 18,
+                            color: confirmingOrigin
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
                               confirmingOrigin
-                                  ? Icons.trip_origin_rounded
-                                  : Icons.flag_rounded,
-                              size: 18,
-                              color: confirmingOrigin
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
+                                  ? l10n.tripMapAdjustPickupHint
+                                  : l10n.tripMapAdjustDestinationHint,
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                confirmingOrigin
-                                    ? 'Ajusta el mapa para definir tu punto de partida'
-                                    : 'Ajusta el mapa para definir tu destino',
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textSecondary,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -3698,7 +3813,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                             Expanded(
                               child: Text(
                                 _tripStatusLabel(l10n, rtState.status!),
-                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textSecondary,
                                     ),
@@ -3903,7 +4019,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                           finishedCloseLabel: rtState.status == 'completed'
                               ? l10n.tripFinishedBackToHome
                               : null,
-                          onOpenChat: passengerTripChatPhaseActive(rtState.status)
+                          onOpenChat:
+                              passengerTripChatPhaseActive(rtState.status)
                               ? () => _openTripChatSheet(tripId: tripId)
                               : null,
                           chatLabel: 'Chat seguro',
@@ -3983,114 +4100,122 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                         ListView(
                           controller: scrollController,
                           padding: EdgeInsets.only(
-                            bottom: AppSafeScrolling.systemNavBottom(context) + 110,
+                            bottom:
+                                AppSafeScrolling.systemNavBottom(context) + 110,
                           ),
                           children: [
                             TripBottomRequestCardContent(
                               scrollController: scrollController,
                               showSeePricesButton: false,
-                          originDisplayText:
-                              _originDisplayLabel ?? l10n.tripYourLocation,
-                          originSubtitle: l10n.tripOrigin,
-                          onOriginTap: () {
-                            setState(() {
-                              _activeStop = _activeStop == ActiveStop.origin
-                                  ? ActiveStop.none
-                                  : ActiveStop.origin;
-                            });
-                          },
-                          onOriginUseMyLocation: _setOriginFromCurrentLocation,
-                          onOriginSearch: _showOriginSearchSheet,
-                          onOriginPickOnMap: _startPickOriginOnMap,
-                          onPickOriginSaved: _pickOriginSavedPlace,
-                          onPickOriginRecent: _pickOriginRecentPlace,
-                          recentOriginPlaces: _recentOriginPlaces,
-                          recentDestinationPlaces: _recentDestinationPlaces,
-                          savedOriginPlaces: _savedOriginPlaces,
-                          savedDestinationPlaces: _savedDestinationPlaces,
-                          onSaveCurrentOrigin: () =>
-                              unawaited(_saveCurrentOriginPlace()),
-                          onSaveCurrentDestination: () =>
-                              unawaited(_saveCurrentDestinationPlace()),
-                          onManageSavedOrigin: () => unawaited(
-                            _openSavedPlacesManager(forOrigin: true),
-                          ),
-                          onManageSavedDestination: () => unawaited(
-                            _openSavedPlacesManager(forOrigin: false),
-                          ),
-                          destinationLabel: l10n.tripWhereTo,
-                          destinationDisplayText: _destination != null
-                              ? (_destinationDisplayLabel ??
-                                    '${_destination!.latitude.toStringAsFixed(4)}, ${_destination!.longitude.toStringAsFixed(4)}')
-                              : null,
-                          destinationPlaceholder: l10n.tripTapMapDestination,
-                          loadingRoute: _loadingRoute,
-                          loadingQuote: _loading,
-                          error: _error,
-                          routeHint: l10n.tripSearchingAddress,
-                          isPickingOrigin: _pickingOrigin,
-                          isPickingDestination: _pickingDestination,
-                          expandOrigin: _activeStop == ActiveStop.origin,
-                          expandDestination:
-                              _activeStop == ActiveStop.destination,
-                          useMapCenterLabel: l10n.tripUseMapCenter,
-                          useAsPickupLabel: l10n.tripUseAsPickup,
-                          useAsDestinationLabel: l10n.tripUseAsDestination,
-                          seePricesLabel: l10n.tripSeePrices,
-                          onUseMapCenter: _useMapCenterAsDestination,
-                          onSetOriginFromMap: _setOriginFromMapCenter,
-                          onSetDestinationFromMap: _setDestinationFromMapCenter,
-                          onDestinationTap: () {
-                            if (!_originConfirmed && _destination == null) {
-                              _showSubtleSnack(l10n.tripConfirmOriginFirst);
-                              return;
-                            }
-                            setState(() {
-                              _activeStop =
-                                  _activeStop == ActiveStop.destination
-                                  ? ActiveStop.none
-                                  : ActiveStop.destination;
-                            });
-                          },
-                          onDestinationUseMyLocation:
-                              _setDestinationFromCurrentLocation,
-                          onDestinationSearch: _showDestinationSearchSheet,
-                          onDestinationPickOnMap: _startPickDestinationOnMap,
-                          onPickDestinationSaved: _pickDestinationSavedPlace,
-                          onPickDestinationRecent: _pickDestinationRecentPlace,
-                          onSeePrices:
-                              (_destination != null &&
+                              originDisplayText:
+                                  _originDisplayLabel ?? l10n.tripYourLocation,
+                              originSubtitle: l10n.tripOrigin,
+                              onOriginTap: () {
+                                setState(() {
+                                  _activeStop = _activeStop == ActiveStop.origin
+                                      ? ActiveStop.none
+                                      : ActiveStop.origin;
+                                });
+                              },
+                              onOriginUseMyLocation:
+                                  _setOriginFromCurrentLocation,
+                              onOriginSearch: _showOriginSearchSheet,
+                              onOriginPickOnMap: _startPickOriginOnMap,
+                              onPickOriginSaved: _pickOriginSavedPlace,
+                              onPickOriginRecent: _pickOriginRecentPlace,
+                              recentOriginPlaces: _recentOriginPlaces,
+                              recentDestinationPlaces: _recentDestinationPlaces,
+                              savedOriginPlaces: _savedOriginPlaces,
+                              savedDestinationPlaces: _savedDestinationPlaces,
+                              onSaveCurrentOrigin: () =>
+                                  unawaited(_saveCurrentOriginPlace()),
+                              onSaveCurrentDestination: () =>
+                                  unawaited(_saveCurrentDestinationPlace()),
+                              onManageSavedOrigin: () => unawaited(
+                                _openSavedPlacesManager(forOrigin: true),
+                              ),
+                              onManageSavedDestination: () => unawaited(
+                                _openSavedPlacesManager(forOrigin: false),
+                              ),
+                              destinationLabel: l10n.tripWhereTo,
+                              destinationDisplayText: _destination != null
+                                  ? (_destinationDisplayLabel ??
+                                        '${_destination!.latitude.toStringAsFixed(4)}, ${_destination!.longitude.toStringAsFixed(4)}')
+                                  : null,
+                              destinationPlaceholder:
+                                  l10n.tripTapMapDestination,
+                              loadingRoute: _loadingRoute,
+                              loadingQuote: _loading,
+                              error: _error,
+                              routeHint: l10n.tripSearchingAddress,
+                              isPickingOrigin: _pickingOrigin,
+                              isPickingDestination: _pickingDestination,
+                              expandOrigin: _activeStop == ActiveStop.origin,
+                              expandDestination:
+                                  _activeStop == ActiveStop.destination,
+                              useMapCenterLabel: l10n.tripUseMapCenter,
+                              useAsPickupLabel: l10n.tripUseAsPickup,
+                              useAsDestinationLabel: l10n.tripUseAsDestination,
+                              seePricesLabel: l10n.tripSeePrices,
+                              onUseMapCenter: _useMapCenterAsDestination,
+                              onSetOriginFromMap: _setOriginFromMapCenter,
+                              onSetDestinationFromMap:
+                                  _setDestinationFromMapCenter,
+                              onDestinationTap: () {
+                                if (!_originConfirmed && _destination == null) {
+                                  _showSubtleSnack(l10n.tripConfirmOriginFirst);
+                                  return;
+                                }
+                                setState(() {
+                                  _activeStop =
+                                      _activeStop == ActiveStop.destination
+                                      ? ActiveStop.none
+                                      : ActiveStop.destination;
+                                });
+                              },
+                              onDestinationUseMyLocation:
+                                  _setDestinationFromCurrentLocation,
+                              onDestinationSearch: _showDestinationSearchSheet,
+                              onDestinationPickOnMap:
+                                  _startPickDestinationOnMap,
+                              onPickDestinationSaved:
+                                  _pickDestinationSavedPlace,
+                              onPickDestinationRecent:
+                                  _pickDestinationRecentPlace,
+                              onSeePrices:
+                                  (_destination != null &&
+                                      _origin != null &&
+                                      !_pickingOrigin &&
+                                      !_pickingDestination &&
+                                      !_loadingRoute)
+                                  ? _fetchQuote
+                                  : null,
+                              showCancelQuoteDraft:
+                                  tripId == null &&
                                   _origin != null &&
-                                  !_pickingOrigin &&
-                                  !_pickingDestination &&
-                                  !_loadingRoute)
-                              ? _fetchQuote
-                              : null,
-                          showCancelQuoteDraft:
-                              tripId == null &&
-                              _origin != null &&
-                              _destination != null,
-                          cancelQuoteDraftLabel: l10n.tripCancelQuoteDraft,
-                          onCancelQuoteDraft: _cancelQuoteDraft,
-                        ),
+                                  _destination != null,
+                              cancelQuoteDraftLabel: l10n.tripCancelQuoteDraft,
+                              onCancelQuoteDraft: _cancelQuoteDraft,
+                            ),
                           ],
                         ),
                         if (!_pickingOrigin && !_pickingDestination)
                           Positioned(
                             left: AppSpacing.xxx,
                             right: AppSpacing.xxx,
-                            bottom: AppSafeScrolling.systemNavBottom(context) + 16,
+                            bottom:
+                                AppSafeScrolling.systemNavBottom(context) + 16,
                             child: SizedBox(
                               height: AppSizes.buttonHeight,
                               child: TexiScalePress(
                                 child: FilledButton(
                                   onPressed:
                                       (_destination != null &&
-                                              _origin != null &&
-                                              !_loadingRoute &&
-                                              !_loading)
-                                          ? _fetchQuote
-                                          : null,
+                                          _origin != null &&
+                                          !_loadingRoute &&
+                                          !_loading)
+                                      ? _fetchQuote
+                                      : null,
                                   style: FilledButton.styleFrom(
                                     backgroundColor: AppColors.primary,
                                     foregroundColor: AppColors.onPrimary,
@@ -4256,7 +4381,8 @@ class _PassengerRatingSheetContent extends StatefulWidget {
       _PassengerRatingSheetContentState();
 }
 
-class _PassengerRatingSheetContentState extends State<_PassengerRatingSheetContent>
+class _PassengerRatingSheetContentState
+    extends State<_PassengerRatingSheetContent>
     with SingleTickerProviderStateMixin {
   int _rating = 5;
   bool _loadingCatalog = true;
@@ -4635,25 +4761,29 @@ class _PassengerRatingSheetContentState extends State<_PassengerRatingSheetConte
                               alignment: WrapAlignment.center,
                               spacing: 8,
                               runSpacing: 8,
-                              children: _displayedOptions.map((item) {
-                                final selected =
-                                    _selectedFeedbackCodes.contains(item.code);
-                                return FilterChip(
-                                  selected: selected,
-                                  onSelected: (value) {
-                                    setState(() {
-                                      if (value) {
-                                        _selectedFeedbackCodes.add(item.code);
-                                      } else {
-                                        _selectedFeedbackCodes.remove(
-                                          item.code,
-                                        );
-                                      }
-                                    });
-                                  },
-                                  label: Text(item.label),
-                                );
-                              }).toList(growable: false),
+                              children: _displayedOptions
+                                  .map((item) {
+                                    final selected = _selectedFeedbackCodes
+                                        .contains(item.code);
+                                    return FilterChip(
+                                      selected: selected,
+                                      onSelected: (value) {
+                                        setState(() {
+                                          if (value) {
+                                            _selectedFeedbackCodes.add(
+                                              item.code,
+                                            );
+                                          } else {
+                                            _selectedFeedbackCodes.remove(
+                                              item.code,
+                                            );
+                                          }
+                                        });
+                                      },
+                                      label: Text(item.label),
+                                    );
+                                  })
+                                  .toList(growable: false),
                             ),
                         ],
                         const SizedBox(height: 12),
@@ -4901,6 +5031,12 @@ class _QuoteBottomSheetState extends ConsumerState<_QuoteBottomSheet> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Center(child: TripQuoteSheetCloseOrb(onTap: widget.onClose)),
+          ),
           Container(
             margin: const EdgeInsets.only(top: AppSpacing.quoteSheetTopMargin),
             constraints: BoxConstraints(
@@ -5049,11 +5185,7 @@ class _MenuActionTileState extends State<_MenuActionTile> {
                     color: accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(
-                    widget.icon,
-                    color: accent,
-                    size: 20,
-                  ),
+                  child: Icon(widget.icon, color: accent, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(

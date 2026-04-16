@@ -114,6 +114,28 @@
     "description": "Texto cuando el nombre del conductor viene vacío o es el teléfono (username)"
   },
   "tripMapRecenterShort": "Centrarme",
+  "tripSavedPlaceFallbackLabel": "Lugar",
+  "tripSavedPlacesMax": "Máximo {count} lugares.",
+  "@tripSavedPlacesMax": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripSavedPlaceDialogTitle": "Nuevo lugar guardado",
+  "tripSavedPlaceNameLabel": "Nombre",
+  "tripSavedPlaceNameHint": "Ej.: Casa, Trabajo",
+  "tripSavedPlaceSaveCta": "Guardar",
+  "tripSavedPlaceSaved": "Lugar guardado",
+  "tripSavedPlacesLimitReached": "Límite de {count} lugares alcanzado.",
+  "@tripSavedPlacesLimitReached": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripSavedPlaceSaveMapCta": "Guardar ubicación en el mapa",
+  "tripSavedPlaceDeleteCta": "Eliminar",
+  "tripMapAdjustPickupHint": "Ajusta el mapa para definir tu punto de partida",
+  "tripMapAdjustDestinationHint": "Ajusta el mapa para definir tu destino",
   "tripRequireGpsForRequest": "Necesitamos tu ubicación real (GPS activo y permiso) para solicitar un viaje. Revisa el GPS y los permisos de ubicación.",
   "tripConfirmOriginFirst": "Primero confirma el origen.",
   "tripConfirmOrigin": "Confirmar origen",

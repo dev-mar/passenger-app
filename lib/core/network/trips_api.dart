@@ -124,7 +124,8 @@ class TripsApi {
       'cityId': cityId,
       'serviceTypeId': serviceTypeId,
       'estimatedPrice': estimatedPrice,
-      if (routeOverviewEncoded != null && routeOverviewEncoded.trim().isNotEmpty)
+      if (routeOverviewEncoded != null &&
+          routeOverviewEncoded.trim().isNotEmpty)
         'routeOverviewEncoded': routeOverviewEncoded.trim(),
     };
     final response = await _dio.post('/passengers/trips', data: payload);
@@ -177,7 +178,9 @@ class TripsApi {
     final itemsRaw = data['items'] as List<dynamic>? ?? const [];
     return itemsRaw
         .whereType<Map>()
-        .map((e) => TripRatingFeedbackItem.fromJson(Map<String, dynamic>.from(e)))
+        .map(
+          (e) => TripRatingFeedbackItem.fromJson(Map<String, dynamic>.from(e)),
+        )
         .toList(growable: false);
   }
 
@@ -579,16 +582,30 @@ class TripStatusResponse {
         pickStr(driverMap?['displayName']) ??
         pickStr(driverMap?['display_name']);
     final carModel =
-        pickStr(json['carModel']) ?? pickStr(driverMap?['carModel']);
+        pickStr(json['carModel']) ??
+        pickStr(json['car_model']) ??
+        pickStr(driverMap?['carModel']) ??
+        pickStr(driverMap?['car_model']) ??
+        pickStr(driverMap?['model']);
     final carPlate =
         pickStr(json['carPlate']) ??
+        pickStr(json['car_plate']) ??
         pickStr(json['plate']) ??
-        pickStr(driverMap?['carPlate']);
+        pickStr(driverMap?['carPlate']) ??
+        pickStr(driverMap?['car_plate']) ??
+        pickStr(driverMap?['licensePlate']);
     final carColor =
-        pickStr(json['carColor']) ?? pickStr(driverMap?['carColor']);
+        pickStr(json['carColor']) ??
+        pickStr(json['car_color']) ??
+        pickStr(driverMap?['carColor']) ??
+        pickStr(driverMap?['car_color']) ??
+        pickStr(driverMap?['color']);
     final ratingRaw =
-        json['driverRating'] ?? json['averageRating'] ?? driverMap?['driverRating'];
-    final ratingsCountRaw = json['driverRatingsCount'] ?? driverMap?['ratingsCount'];
+        json['driverRating'] ??
+        json['averageRating'] ??
+        driverMap?['driverRating'];
+    final ratingsCountRaw =
+        json['driverRatingsCount'] ?? driverMap?['ratingsCount'];
     final driverRating = ratingRaw is num
         ? ratingRaw.toDouble()
         : double.tryParse('$ratingRaw');

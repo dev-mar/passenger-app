@@ -12,6 +12,27 @@ import '../../features/trip/trip_request_state.dart';
 import '../../features/trip/passenger_realtime_controller.dart';
 import 'passenger_notification_trip_reconcile.dart';
 
+final ValueNotifier<int> passengerTripChatOpenBump = ValueNotifier<int>(0);
+String? _pendingPassengerChatTripIdFromNotification;
+
+String? takePendingPassengerChatTripIdFromNotification() {
+  final id = _pendingPassengerChatTripIdFromNotification;
+  _pendingPassengerChatTripIdFromNotification = null;
+  return id;
+}
+
+({String? tripId, bool openChat}) _parsePassengerNotificationPayload(
+  String? raw,
+) {
+  final payload = raw?.trim() ?? '';
+  if (payload.isEmpty) return (tripId: null, openChat: false);
+  if (payload.startsWith('chat:')) {
+    final tripId = payload.substring(5).trim();
+    return (tripId: tripId.isEmpty ? null : tripId, openChat: true);
+  }
+  return (tripId: payload, openChat: false);
+}
+
 Future<void> _persistAndNavigateToTrip(String tripId) async {
   final token = await AuthService.getValidToken();
   if (token == null || token.isEmpty) {
@@ -37,7 +58,8 @@ Future<void> _persistAndNavigateToTrip(String tripId) async {
 
     try {
       final container = ProviderScope.containerOf(ctx, listen: false);
-      if (remoteStatus != null && passengerTripStatusIsTerminal(remoteStatus.status)) {
+      if (remoteStatus != null &&
+          passengerTripStatusIsTerminal(remoteStatus.status)) {
         await clearPassengerTripSessionFromContainer(
           container,
           tripId,
@@ -78,22 +100,34 @@ void _applyTripRequestNavigation(String tripId) {
   AppRouter.router.goNamed(AppRouter.tripRequest);
 }
 
+void _markPendingPassengerChatOpen(String tripId) {
+  _pendingPassengerChatTripIdFromNotification = tripId;
+  passengerTripChatOpenBump.value = passengerTripChatOpenBump.value + 1;
+}
+
 /// FCM con `event: driver_arrived` y `tripId` (contrato backend).
 Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
   final event = message.data['event']?.toString();
-  if (event != 'driver_arrived') return;
+  if (event != 'driver_arrived' && event != 'trip_chat') return;
 
   final tripId = message.data['tripId']?.toString().trim();
   if (tripId == null || tripId.isEmpty) return;
 
   await _persistAndNavigateToTrip(tripId);
+  if (event == 'trip_chat') {
+    _markPendingPassengerChatOpen(tripId);
+  }
 }
 
 /// Tap en notificación local (payload = `tripId`, p. ej. conductor llegó en foreground).
 Future<void> handlePassengerLocalNotificationTripTap(String? payload) async {
-  final tripId = payload?.trim();
+  final parsed = _parsePassengerNotificationPayload(payload);
+  final tripId = parsed.tripId;
   if (tripId == null || tripId.isEmpty) return;
   await _persistAndNavigateToTrip(tripId);
+  if (parsed.openChat) {
+    _markPendingPassengerChatOpen(tripId);
+  }
 }
 
 void schedulePassengerFcmNotificationOpen(RemoteMessage message) {

@@ -114,6 +114,28 @@
     "description": "Text when driver name is empty or is phone (username)"
   },
   "tripMapRecenterShort": "Recenter",
+  "tripSavedPlaceFallbackLabel": "Place",
+  "tripSavedPlacesMax": "Maximum {count} places.",
+  "@tripSavedPlacesMax": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripSavedPlaceDialogTitle": "New saved place",
+  "tripSavedPlaceNameLabel": "Name",
+  "tripSavedPlaceNameHint": "E.g.: Home, Work",
+  "tripSavedPlaceSaveCta": "Save",
+  "tripSavedPlaceSaved": "Place saved",
+  "tripSavedPlacesLimitReached": "{count} places limit reached.",
+  "@tripSavedPlacesLimitReached": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripSavedPlaceSaveMapCta": "Save location on map",
+  "tripSavedPlaceDeleteCta": "Delete",
+  "tripMapAdjustPickupHint": "Adjust the map to set your pickup point",
+  "tripMapAdjustDestinationHint": "Adjust the map to set your destination",
   "tripRequireGpsForRequest": "We need your real location (GPS on and permission granted) to request a ride. Check GPS and location permissions.",
   "tripConfirmOriginFirst": "Please confirm your pickup point first.",
   "tripConfirmOrigin": "Confirm origin",

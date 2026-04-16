@@ -8,11 +8,13 @@ import 'passenger_fcm_navigation.dart';
 
 class PassengerNotificationService {
   PassengerNotificationService._();
-  static final PassengerNotificationService instance = PassengerNotificationService._();
+  static final PassengerNotificationService instance =
+      PassengerNotificationService._();
 
   static const String _channelId = 'texi_passenger_trip_updates';
   static const String _channelName = 'Actualizaciones de viaje';
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   static const int _quietHoursStart = 22; // 22:00
   static const int _quietHoursEnd = 7; // 07:00
@@ -37,11 +39,15 @@ class PassengerNotificationService {
       enableVibration: true,
     );
     await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.requestNotificationsPermission();
     }
     _initialized = true;
@@ -57,7 +63,8 @@ class PassengerNotificationService {
       return;
     }
     final tripId =
-        message.data['tripId']?.toString() ?? message.data['trip_id']?.toString();
+        message.data['tripId']?.toString() ??
+        message.data['trip_id']?.toString();
     await inst._showRaw(
       title: title?.isNotEmpty == true ? title! : 'Texi',
       body: body ?? '',
@@ -72,18 +79,15 @@ class PassengerNotificationService {
     final title = n?.title?.trim().isNotEmpty == true
         ? n!.title!.trim()
         : (message.data['title']?.toString().trim().isNotEmpty == true
-            ? message.data['title']!.trim()
-            : 'Texi');
+              ? message.data['title']!.trim()
+              : 'Texi');
     final body = n?.body?.trim().isNotEmpty == true
         ? n!.body!.trim()
         : (message.data['body']?.toString() ?? '');
     final tripId =
-        message.data['tripId']?.toString() ?? message.data['trip_id']?.toString();
-    await _showRaw(
-      title: title,
-      body: body,
-      payload: tripId,
-    );
+        message.data['tripId']?.toString() ??
+        message.data['trip_id']?.toString();
+    await _showRaw(title: title, body: body, payload: tripId);
   }
 
   Future<void> _showRaw({
@@ -118,7 +122,8 @@ class PassengerNotificationService {
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,
-        channelDescription: 'Avisos cuando el conductor llega al punto de recogida.',
+        channelDescription:
+            'Avisos cuando el conductor llega al punto de recogida.',
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
@@ -167,7 +172,7 @@ class PassengerNotificationService {
       'Nuevo mensaje de chat',
       '$who: $messageText',
       details,
-      payload: tripId,
+      payload: 'chat:$tripId',
     );
   }
 
@@ -195,4 +200,3 @@ class PassengerNotificationService {
     }
   }
 }
-

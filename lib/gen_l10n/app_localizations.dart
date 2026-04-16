@@ -626,6 +626,78 @@ abstract class AppLocalizations {
   /// **'Recenter'**
   String get tripMapRecenterShort;
 
+  /// No description provided for @tripSavedPlaceFallbackLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Place'**
+  String get tripSavedPlaceFallbackLabel;
+
+  /// No description provided for @tripSavedPlacesMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum {count} places.'**
+  String tripSavedPlacesMax(int count);
+
+  /// No description provided for @tripSavedPlaceDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New saved place'**
+  String get tripSavedPlaceDialogTitle;
+
+  /// No description provided for @tripSavedPlaceNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get tripSavedPlaceNameLabel;
+
+  /// No description provided for @tripSavedPlaceNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g.: Home, Work'**
+  String get tripSavedPlaceNameHint;
+
+  /// No description provided for @tripSavedPlaceSaveCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get tripSavedPlaceSaveCta;
+
+  /// No description provided for @tripSavedPlaceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Place saved'**
+  String get tripSavedPlaceSaved;
+
+  /// No description provided for @tripSavedPlacesLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} places limit reached.'**
+  String tripSavedPlacesLimitReached(int count);
+
+  /// No description provided for @tripSavedPlaceSaveMapCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Save location on map'**
+  String get tripSavedPlaceSaveMapCta;
+
+  /// No description provided for @tripSavedPlaceDeleteCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get tripSavedPlaceDeleteCta;
+
+  /// No description provided for @tripMapAdjustPickupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the map to set your pickup point'**
+  String get tripMapAdjustPickupHint;
+
+  /// No description provided for @tripMapAdjustDestinationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the map to set your destination'**
+  String get tripMapAdjustDestinationHint;
+
   /// No description provided for @tripRequireGpsForRequest.
   ///
   /// In en, this message translates to:
