@@ -125,6 +125,9 @@ class TripSessionStorage {
     required String? carModel,
     String? driverPhotoUrl,
     String? driverPhotoExpiresAt,
+    double? driverRating,
+    int? driverRatingsCount,
+    String? currencyCode,
   }) async {
     final raw = await _storage.read(key: _keyDriverCacheByTripId);
     Map<String, dynamic> map = {};
@@ -144,6 +147,9 @@ class TripSessionStorage {
       'carModel': carModel,
       'driverPhotoUrl': driverPhotoUrl,
       'driverPhotoExpiresAt': driverPhotoExpiresAt,
+      'driverRating': driverRating?.toString(),
+      'driverRatingsCount': driverRatingsCount?.toString(),
+      'currencyCode': currencyCode,
     };
     await _storage.write(key: _keyDriverCacheByTripId, value: jsonEncode(map));
   }
@@ -163,6 +169,9 @@ class TripSessionStorage {
         'carModel': entry['carModel']?.toString(),
         'driverPhotoUrl': entry['driverPhotoUrl']?.toString(),
         'driverPhotoExpiresAt': entry['driverPhotoExpiresAt']?.toString(),
+        'driverRating': entry['driverRating']?.toString(),
+        'driverRatingsCount': entry['driverRatingsCount']?.toString(),
+        'currencyCode': entry['currencyCode']?.toString(),
       };
     } catch (_) {
       return null;

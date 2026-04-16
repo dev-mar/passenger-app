@@ -27,8 +27,8 @@ Future<void> main() async {
   final root = Directory.current.path;
   stdout.writeln('[verify_l10n] Paquete: $root');
 
-  final enFile = File('$_enArb');
-  final esFile = File('$_esArb');
+  final enFile = File(_enArb);
+  final esFile = File(_esArb);
   if (!enFile.existsSync() || !esFile.existsSync()) {
     stderr.writeln('[verify_l10n] ERROR: No se encontró $_enArb o $_esArb (ejecutar desde texi_passenger_app/).');
     exitCode = 1;
@@ -79,7 +79,7 @@ Future<void> main() async {
     return;
   }
 
-  final untranslated = File('$_untranslatedReport');
+  final untranslated = File(_untranslatedReport);
   if (untranslated.existsSync()) {
     final text = untranslated.readAsStringSync().trim();
     if (text.isEmpty) {

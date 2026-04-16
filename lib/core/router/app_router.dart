@@ -10,6 +10,7 @@ import '../../features/trip/trip_request_screen.dart';
 import '../../features/trip/trip_quote_screen.dart';
 import '../../features/trip/trip_confirm_screen.dart';
 import '../../features/trip/trip_searching_screen.dart';
+import '../../features/trip/passenger_trip_history_screen.dart';
 import '../../features/labs/passenger_labs_screen.dart';
 
 /// Rutas con nombres alineados a PASAJERO-APP-SETUP.md.
@@ -27,9 +28,11 @@ class AppRouter {
   static const String tripQuote = 'trip_quote';
   static const String tripConfirm = 'trip_confirm';
   static const String tripSearching = 'trip_searching';
+  static const String tripHistory = 'trip_history';
   static const String labs = 'passenger_labs';
 
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   static final GoRouter router = GoRouter(
     navigatorKey: navigatorKey,
@@ -52,10 +55,7 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final cc = q['cc'] ?? '+591';
           final phone = q['phone'] ?? '';
-          return VerifyCodeScreen(
-            countryCode: cc,
-            phoneNumber: phone,
-          );
+          return VerifyCodeScreen(countryCode: cc, phoneNumber: phone);
         },
       ),
       GoRoute(
@@ -65,10 +65,7 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final cc = q['cc'] ?? '+591';
           final phone = q['phone'] ?? '';
-          return ProfileSetupScreen(
-            countryCode: cc,
-            phoneNumber: phone,
-          );
+          return ProfileSetupScreen(countryCode: cc, phoneNumber: phone);
         },
       ),
       GoRoute(
@@ -105,6 +102,11 @@ class AppRouter {
         path: '/trip/searching',
         name: tripSearching,
         builder: (context, state) => const TripSearchingScreen(),
+      ),
+      GoRoute(
+        path: '/trip/history',
+        name: tripHistory,
+        builder: (context, state) => const PassengerTripHistoryScreen(),
       ),
       GoRoute(
         path: '/labs',

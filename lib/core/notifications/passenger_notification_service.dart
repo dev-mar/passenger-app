@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -13,6 +14,9 @@ class PassengerNotificationService {
   static const String _channelName = 'Actualizaciones de viaje';
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  static const int _quietHoursStart = 22; // 22:00
+  static const int _quietHoursEnd = 7; // 07:00
+  static const String _chatVibrationLevel = 'medium'; // low | medium | high
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -133,6 +137,62 @@ class PassengerNotificationService {
       details,
       payload: tripId,
     );
+  }
+
+  Future<void> showTripChatMessageIfBackground({
+    required bool isAppInForeground,
+    required String tripId,
+    required String senderRole,
+    required String messageText,
+    bool notifyInForeground = false,
+  }) async {
+    await initialize();
+    if (isAppInForeground && !notifyInForeground) return;
+    final quiet = isWithinQuietHours();
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: 'Mensajes de chat del viaje activo.',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: !quiet,
+        enableVibration: !quiet,
+        vibrationPattern: quiet ? null : _chatVibrationPattern(),
+      ),
+    );
+    final who = senderRole == 'driver' ? 'Conductor' : 'Pasajero';
+    await _plugin.show(
+      (tripId + messageText).hashCode.abs() % 2147483647,
+      'Nuevo mensaje de chat',
+      '$who: $messageText',
+      details,
+      payload: tripId,
+    );
+  }
+
+  static bool isWithinQuietHours([DateTime? now]) {
+    final h = (now ?? DateTime.now()).hour;
+    if (_quietHoursStart < _quietHoursEnd) {
+      return h >= _quietHoursStart && h < _quietHoursEnd;
+    }
+    return h >= _quietHoursStart || h < _quietHoursEnd;
+  }
+
+  static bool shouldPlayForegroundChatAlert([DateTime? now]) {
+    return !isWithinQuietHours(now);
+  }
+
+  static Int64List? _chatVibrationPattern() {
+    switch (_chatVibrationLevel) {
+      case 'low':
+        return Int64List.fromList(<int>[0, 80, 80, 80]);
+      case 'high':
+        return Int64List.fromList(<int>[0, 180, 110, 180, 110, 180]);
+      case 'medium':
+      default:
+        return Int64List.fromList(<int>[0, 120, 90, 120]);
+    }
   }
 }
 

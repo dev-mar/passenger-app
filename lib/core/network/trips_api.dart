@@ -12,16 +12,18 @@ class TripsApi {
   TripsApi({required String token}) : _dio = _createDio(token);
 
   static Dio _createDio(String token) {
-    final dio = Dio(BaseOptions(
-      baseUrl: AppConfig.baseUrlTripsRest,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.baseUrlTripsRest,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ),
+    );
 
     if (kDebugMode) {
       dio.interceptors.add(
@@ -110,6 +112,7 @@ class TripsApi {
     required String cityId,
     required int serviceTypeId,
     required double estimatedPrice,
+    String? routeOverviewEncoded,
   }) async {
     final payload = {
       'origin': {'lat': originLat, 'lng': originLng},
@@ -121,6 +124,8 @@ class TripsApi {
       'cityId': cityId,
       'serviceTypeId': serviceTypeId,
       'estimatedPrice': estimatedPrice,
+      if (routeOverviewEncoded != null && routeOverviewEncoded.trim().isNotEmpty)
+        'routeOverviewEncoded': routeOverviewEncoded.trim(),
     };
     final response = await _dio.post('/passengers/trips', data: payload);
     final body = response.data as Map<String, dynamic>? ?? const {};
@@ -143,8 +148,43 @@ class TripsApi {
     await _dio.post('/passengers/trips/$tripId/cancel');
   }
 
+  Future<void> submitPassengerTripRating({
+    required String tripId,
+    required int stars,
+    String? commentText,
+    List<String>? feedbackCodes,
+  }) async {
+    await _dio.post(
+      '/passengers/trips/$tripId/rating',
+      data: {
+        'stars': stars,
+        if (commentText != null && commentText.trim().isNotEmpty)
+          'commentText': commentText.trim(),
+        'feedbackCodes': ?feedbackCodes,
+      },
+    );
+  }
+
+  Future<List<TripRatingFeedbackItem>> getPassengerRatingFeedbackCatalog({
+    required int stars,
+  }) async {
+    final response = await _dio.get(
+      '/passengers/trips/rating-feedback-catalog',
+      queryParameters: {'stars': stars},
+    );
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    final itemsRaw = data['items'] as List<dynamic>? ?? const [];
+    return itemsRaw
+        .whereType<Map>()
+        .map((e) => TripRatingFeedbackItem.fromJson(Map<String, dynamic>.from(e)))
+        .toList(growable: false);
+  }
+
   /// GET /passengers/trips/recent-places
-  Future<List<PassengerRecentPlace>> getPassengerRecentPlaces({int limit = 5}) async {
+  Future<List<PassengerRecentPlace>> getPassengerRecentPlaces({
+    int limit = 5,
+  }) async {
     final response = await _dio.get(
       '/passengers/trips/recent-places',
       queryParameters: {'limit': limit},
@@ -158,7 +198,31 @@ class TripsApi {
         .toList();
   }
 
-  Future<List<PassengerSavedPlace>> getPassengerSavedPlaces({int limit = 12}) async {
+  Future<PassengerTripHistoryResponse> getPassengerTripHistory({
+    String? status,
+    DateTime? from,
+    DateTime? to,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final response = await _dio.get(
+      '/passengers/trips/history',
+      queryParameters: {
+        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+        if (from != null) 'from': from.toIso8601String(),
+        if (to != null) 'to': to.toIso8601String(),
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    final body = response.data as Map<String, dynamic>? ?? const {};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    return PassengerTripHistoryResponse.fromJson(data);
+  }
+
+  Future<List<PassengerSavedPlace>> getPassengerSavedPlaces({
+    int limit = 12,
+  }) async {
     final response = await _dio.get(
       '/passengers/places/saved',
       queryParameters: {'limit': limit},
@@ -179,13 +243,16 @@ class TripsApi {
     required double lng,
     bool isFavorite = false,
   }) async {
-    final response = await _dio.post('/passengers/places/saved', data: {
-      'label': label,
-      'address': address,
-      'lat': lat,
-      'lng': lng,
-      'isFavorite': isFavorite,
-    });
+    final response = await _dio.post(
+      '/passengers/places/saved',
+      data: {
+        'label': label,
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        'isFavorite': isFavorite,
+      },
+    );
     final body = response.data as Map<String, dynamic>? ?? const {};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return PassengerSavedPlace.fromJson(data);
@@ -211,7 +278,10 @@ class TripsApi {
       data['lng'] = lng;
     }
     if (isFavorite != null) data['isFavorite'] = isFavorite;
-    final response = await _dio.patch('/passengers/places/saved/$placeId', data: data);
+    final response = await _dio.patch(
+      '/passengers/places/saved/$placeId',
+      data: data,
+    );
     final body = response.data as Map<String, dynamic>? ?? const {};
     final payload = body['data'] as Map<String, dynamic>? ?? const {};
     return PassengerSavedPlace.fromJson(payload);
@@ -236,8 +306,12 @@ class PassengerRecentPlace {
   factory PassengerRecentPlace.fromJson(Map<String, dynamic> json) {
     final latRaw = json['lat'];
     final lngRaw = json['lng'];
-    final lat = latRaw is num ? latRaw.toDouble() : double.tryParse('$latRaw') ?? 0.0;
-    final lng = lngRaw is num ? lngRaw.toDouble() : double.tryParse('$lngRaw') ?? 0.0;
+    final lat = latRaw is num
+        ? latRaw.toDouble()
+        : double.tryParse('$latRaw') ?? 0.0;
+    final lng = lngRaw is num
+        ? lngRaw.toDouble()
+        : double.tryParse('$lngRaw') ?? 0.0;
     final subtitleRaw = json['subtitle']?.toString().trim();
     return PassengerRecentPlace(
       placeType: json['placeType']?.toString() ?? 'origin',
@@ -273,9 +347,115 @@ class PassengerSavedPlace {
       id: json['id']?.toString() ?? '',
       label: json['label']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
-      lat: latRaw is num ? latRaw.toDouble() : double.tryParse('$latRaw') ?? 0.0,
-      lng: lngRaw is num ? lngRaw.toDouble() : double.tryParse('$lngRaw') ?? 0.0,
+      lat: latRaw is num
+          ? latRaw.toDouble()
+          : double.tryParse('$latRaw') ?? 0.0,
+      lng: lngRaw is num
+          ? lngRaw.toDouble()
+          : double.tryParse('$lngRaw') ?? 0.0,
       isFavorite: json['isFavorite'] == true,
+    );
+  }
+}
+
+class PassengerTripHistoryResponse {
+  const PassengerTripHistoryResponse({
+    required this.trips,
+    required this.total,
+    required this.limit,
+    required this.offset,
+  });
+
+  final List<PassengerTripHistoryItem> trips;
+  final int total;
+  final int limit;
+  final int offset;
+
+  factory PassengerTripHistoryResponse.fromJson(Map<String, dynamic> json) {
+    final tripsRaw = json['trips'] as List<dynamic>? ?? const [];
+    final totalRaw = json['total'];
+    final limitRaw = json['limit'];
+    final offsetRaw = json['offset'];
+    return PassengerTripHistoryResponse(
+      trips: tripsRaw
+          .whereType<Map>()
+          .map(
+            (e) =>
+                PassengerTripHistoryItem.fromJson(Map<String, dynamic>.from(e)),
+          )
+          .toList(growable: false),
+      total: totalRaw is num
+          ? totalRaw.toInt()
+          : int.tryParse('$totalRaw') ?? 0,
+      limit: limitRaw is num
+          ? limitRaw.toInt()
+          : int.tryParse('$limitRaw') ?? 20,
+      offset: offsetRaw is num
+          ? offsetRaw.toInt()
+          : int.tryParse('$offsetRaw') ?? 0,
+    );
+  }
+}
+
+class PassengerTripHistoryItem {
+  const PassengerTripHistoryItem({
+    required this.id,
+    required this.status,
+    this.estimatedPrice,
+    this.finalPrice,
+    this.originAddress,
+    this.destinationAddress,
+    this.driverIdentityUserId,
+    this.driverName,
+    this.driverCarModel,
+    this.driverCarPlate,
+    this.driverCarColor,
+    this.createdAt,
+    this.updatedAt,
+    this.currencyCode,
+  });
+
+  final String id;
+  final String status;
+  final double? estimatedPrice;
+  final double? finalPrice;
+  final String? originAddress;
+  final String? destinationAddress;
+  final String? driverIdentityUserId;
+  final String? driverName;
+  final String? driverCarModel;
+  final String? driverCarPlate;
+  final String? driverCarColor;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? currencyCode;
+
+  factory PassengerTripHistoryItem.fromJson(Map<String, dynamic> json) {
+    double? parseNum(dynamic v) {
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      return null;
+    }
+
+    return PassengerTripHistoryItem(
+      id: json['id']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      estimatedPrice: parseNum(json['estimatedPrice']),
+      finalPrice: parseNum(json['finalPrice']),
+      originAddress: json['originAddress']?.toString(),
+      destinationAddress: json['destinationAddress']?.toString(),
+      driverIdentityUserId: json['driverIdentityUserId']?.toString(),
+      driverName: json['driverName']?.toString(),
+      driverCarModel: json['driverCarModel']?.toString(),
+      driverCarPlate: json['driverCarPlate']?.toString(),
+      driverCarColor: json['driverCarColor']?.toString(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse('${json['createdAt']}')
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse('${json['updatedAt']}')
+          : null,
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
     );
   }
 }
@@ -287,12 +467,14 @@ class CreateTripResponse {
     required this.status,
     this.estimatedPrice,
     this.offers,
+    this.currencyCode,
   });
 
   final String tripId;
   final String status;
   final double? estimatedPrice;
   final List<CreateTripOffer>? offers;
+  final String? currencyCode;
 
   factory CreateTripResponse.fromJson(Map<String, dynamic> json) {
     final offersList = json['offers'] as List<dynamic>? ?? [];
@@ -307,6 +489,7 @@ class CreateTripResponse {
       offers: offersList
           .map((e) => CreateTripOffer.fromJson(e as Map<String, dynamic>))
           .toList(),
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
     );
   }
 }
@@ -325,14 +508,19 @@ class TripStatusResponse {
     this.carModel,
     this.carPlate,
     this.carColor,
+    this.driverRating,
+    this.driverRatingsCount,
+    this.currencyCode,
   });
 
   final String tripId;
   final String status;
+
   /// Última posición conocida del conductor (GET enriquecido si el socket va atrasado).
   final double? driverLat;
   final double? driverLng;
   final double? driverBearing;
+
   /// Foto de perfil del conductor (GET enriquecido; misma fuente que `trip:accepted`).
   final String? driverPhotoUrl;
   final DateTime? driverPhotoExpiresAt;
@@ -340,6 +528,9 @@ class TripStatusResponse {
   final String? carModel;
   final String? carPlate;
   final String? carColor;
+  final double? driverRating;
+  final int? driverRatingsCount;
+  final String? currencyCode;
 
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
@@ -358,11 +549,14 @@ class TripStatusResponse {
       if (bearRaw is num) dBearing = bearRaw.toDouble();
       if (bearRaw is String) dBearing = double.tryParse(bearRaw);
     }
-    final rawPhoto = json['profilePhotoUrl']?.toString() ??
+    final rawPhoto =
+        json['profilePhotoUrl']?.toString() ??
         json['picture_profile']?.toString() ??
         json['driverPhotoUrl']?.toString();
     final rawExpiresAt = json['profilePhotoExpiresAt']?.toString();
-    final photo = (rawPhoto != null && rawPhoto.trim().isNotEmpty) ? rawPhoto.trim() : null;
+    final photo = (rawPhoto != null && rawPhoto.trim().isNotEmpty)
+        ? rawPhoto.trim()
+        : null;
     final expiresAt = (rawExpiresAt != null && rawExpiresAt.trim().isNotEmpty)
         ? DateTime.tryParse(rawExpiresAt.trim())
         : null;
@@ -377,15 +571,30 @@ class TripStatusResponse {
       return s;
     }
 
-    final driverName = pickStr(json['fullName']) ??
+    final driverName =
+        pickStr(json['fullName']) ??
         pickStr(json['driverName']) ??
         pickStr(driverMap?['fullName']) ??
         pickStr(driverMap?['driverName']) ??
         pickStr(driverMap?['displayName']) ??
         pickStr(driverMap?['display_name']);
-    final carModel = pickStr(json['carModel']) ?? pickStr(driverMap?['carModel']);
-    final carPlate = pickStr(json['carPlate']) ?? pickStr(json['plate']) ?? pickStr(driverMap?['carPlate']);
-    final carColor = pickStr(json['carColor']) ?? pickStr(driverMap?['carColor']);
+    final carModel =
+        pickStr(json['carModel']) ?? pickStr(driverMap?['carModel']);
+    final carPlate =
+        pickStr(json['carPlate']) ??
+        pickStr(json['plate']) ??
+        pickStr(driverMap?['carPlate']);
+    final carColor =
+        pickStr(json['carColor']) ?? pickStr(driverMap?['carColor']);
+    final ratingRaw =
+        json['driverRating'] ?? json['averageRating'] ?? driverMap?['driverRating'];
+    final ratingsCountRaw = json['driverRatingsCount'] ?? driverMap?['ratingsCount'];
+    final driverRating = ratingRaw is num
+        ? ratingRaw.toDouble()
+        : double.tryParse('$ratingRaw');
+    final driverRatingsCount = ratingsCountRaw is num
+        ? ratingsCountRaw.toInt()
+        : int.tryParse('$ratingsCountRaw');
 
     return TripStatusResponse(
       tripId: json['tripId']?.toString() ?? '',
@@ -399,6 +608,9 @@ class TripStatusResponse {
       carModel: carModel,
       carPlate: carPlate,
       carColor: carColor,
+      driverRating: driverRating,
+      driverRatingsCount: driverRatingsCount,
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
     );
   }
 }
@@ -408,11 +620,13 @@ class CreateTripOffer {
     required this.driverId,
     this.offeredPrice,
     this.etaMinutes,
+    this.currencyCode,
   });
 
   final int driverId;
   final double? offeredPrice;
   final int? etaMinutes;
+  final String? currencyCode;
 
   factory CreateTripOffer.fromJson(Map<String, dynamic> json) {
     final rawId = json['driverId'];
@@ -445,6 +659,32 @@ class CreateTripOffer {
       driverId: driverId,
       offeredPrice: offeredPrice,
       etaMinutes: etaMinutes,
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
+    );
+  }
+}
+
+class TripRatingFeedbackItem {
+  const TripRatingFeedbackItem({
+    required this.code,
+    required this.label,
+    required this.minStars,
+    required this.maxStars,
+  });
+
+  final String code;
+  final String label;
+  final int minStars;
+  final int maxStars;
+
+  factory TripRatingFeedbackItem.fromJson(Map<String, dynamic> json) {
+    final minRaw = json['minStars'];
+    final maxRaw = json['maxStars'];
+    return TripRatingFeedbackItem(
+      code: json['code']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      minStars: minRaw is num ? minRaw.toInt() : int.tryParse('$minRaw') ?? 1,
+      maxStars: maxRaw is num ? maxRaw.toInt() : int.tryParse('$maxRaw') ?? 5,
     );
   }
 }

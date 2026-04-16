@@ -10,11 +10,21 @@ class TripQuickPickRow extends StatelessWidget {
     required this.onGps,
     required this.onSearch,
     required this.onMap,
+    this.onSavedPlaces,
+    this.gpsLabel,
+    this.searchLabel,
+    this.mapLabel,
+    this.savedPlacesLabel,
   });
 
   final VoidCallback onGps;
   final VoidCallback onSearch;
   final VoidCallback onMap;
+  final VoidCallback? onSavedPlaces;
+  final String? gpsLabel;
+  final String? searchLabel;
+  final String? mapLabel;
+  final String? savedPlacesLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -24,29 +34,85 @@ class TripQuickPickRow extends StatelessWidget {
           fontWeight: FontWeight.w600,
         );
 
-    return Wrap(
-      spacing: AppSpacing.md,
-      runSpacing: AppSpacing.md,
-      children: [
+    final items = <Widget>[
+      TripQuickActionChip(
+        icon: Icons.my_location_rounded,
+        label: gpsLabel ?? l10n.quickGps,
+        onTap: onGps,
+        textStyle: textStyle,
+      ),
+      TripQuickActionChip(
+        icon: Icons.search_rounded,
+        label: searchLabel ?? l10n.quickSearch,
+        onTap: onSearch,
+        textStyle: textStyle,
+      ),
+      TripQuickActionChip(
+        icon: Icons.map_rounded,
+        label: mapLabel ?? l10n.quickMap,
+        onTap: onMap,
+        textStyle: textStyle,
+      ),
+      if (onSavedPlaces != null)
         TripQuickActionChip(
-          icon: Icons.my_location_rounded,
-          label: l10n.quickGps,
-          onTap: onGps,
+          icon: Icons.bookmark_rounded,
+          label: savedPlacesLabel ?? l10n.profileSavedPlaces,
+          onTap: onSavedPlaces!,
           textStyle: textStyle,
         ),
-        TripQuickActionChip(
-          icon: Icons.search_rounded,
-          label: l10n.quickSearch,
-          onTap: onSearch,
-          textStyle: textStyle,
-        ),
-        TripQuickActionChip(
-          icon: Icons.map_rounded,
-          label: l10n.quickMap,
-          onTap: onMap,
-          textStyle: textStyle,
-        ),
-      ],
+    ];
+
+    return SizedBox(
+      height: 46,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            physics: const BouncingScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+            itemBuilder: (context, i) => items[i],
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 18,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.surface,
+                      AppColors.surface.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 18,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.surface.withValues(alpha: 0),
+                      AppColors.surface,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

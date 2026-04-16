@@ -19,13 +19,18 @@ enum ActiveTripGuardResult {
 /// Evita un segundo `POST /passengers/trips` cuando el pasajero ya tiene un viaje en curso
 /// (p. ej. cerró la app en "buscando conductor" y el `tripId` sigue en almacenamiento).
 ///
-/// - Si `GET /passengers/trips/:id` indica `cancelled` / `expired`, limpia almacenamiento y provider.
+/// - Si `GET /passengers/trips/:id` indica estado final, limpia almacenamiento y provider.
 /// - Cualquier otro estado no final → [recoveredExisting] (reconectar socket, no duplicar).
 Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
   required WidgetRef ref,
   required TripsApi api,
   QuoteResponse? quoteForSocket,
 }) async {
+  bool isTerminalTripStatus(String status) {
+    final s = status.toLowerCase();
+    return s == 'completed' || s == 'cancelled' || s == 'expired';
+  }
+
   final fromProvider = ref.read(tripRequestProvider).tripId;
   final fromStorage = await TripSessionStorage.getActiveTripId();
   final tid = (fromProvider != null && fromProvider.isNotEmpty)
@@ -38,9 +43,9 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
 
   try {
     final st = await api.getPassengerTripStatus(tripId: tid);
-    final s = st.status.toLowerCase();
+    final s = st.status;
 
-    if (s == 'cancelled' || s == 'expired') {
+    if (isTerminalTripStatus(s)) {
       await TripSessionStorage.clearActiveTripId();
       clearTripRecoverySnackTracking(ref);
       ref.read(tripRequestProvider.notifier).reset();
@@ -65,6 +70,7 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
   } catch (_) {
     await TripSessionStorage.clearActiveTripId();
     clearTripRecoverySnackTracking(ref);
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
     ref.read(tripRequestProvider.notifier).reset();
     return ActiveTripGuardResult.allowCreateNew;
   }

@@ -112,6 +112,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     l10n.loginErrorPhoneOtherAccountType,
                   'PASS_AUTH_DUPLICATE_USER' =>
                     l10n.loginErrorPhoneDuplicatePassenger,
+                  'PASS_AUTH_OTP_STORE' =>
+                    l10n.loginErrorVerificationServiceUnavailable,
                   _ =>
                     loginState.errorMessage ??
                         l10n.loginErrorInvalidCredentials,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/money_formatter.dart';
 import '../../core/utils/service_type_display.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -89,7 +90,7 @@ class TripQuoteScreen extends ConsumerWidget {
                                         ),
                                   ),
                                   Text(
-                                    '${option.estimatedPrice.toStringAsFixed(1)} ${l10n.quotePerTrip}',
+                                    '${formatMoney(option.estimatedPrice, currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
                                     style: Theme.of(context).textTheme.bodyMedium,
                                   ),
                                 ],

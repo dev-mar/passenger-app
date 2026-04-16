@@ -10,6 +10,7 @@ class PassengerTripSyncResponse {
     this.carColor,
     this.carPlate,
     this.carModel,
+    this.currencyCode,
   });
 
   final String tripId;
@@ -19,6 +20,7 @@ class PassengerTripSyncResponse {
   final String? carColor;
   final String? carPlate;
   final String? carModel;
+  final String? currencyCode;
 
   factory PassengerTripSyncResponse.fromJson(Map<String, dynamic> json) {
     final tripId = json['tripId']?.toString() ?? json['id']?.toString() ?? '';
@@ -45,6 +47,7 @@ class PassengerTripSyncResponse {
       carColor: carColor,
       carPlate: carPlate,
       carModel: carModel,
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
     );
   }
 }

@@ -8,7 +8,6 @@ import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
-import '../../core/config/locale_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/network/trips_api.dart';
@@ -141,11 +140,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
           IconButton(
-            icon: const Icon(Icons.language_rounded),
-            tooltip: AppLocalizations.of(context)!.homeTooltipLanguage,
+            icon: const Icon(Icons.receipt_long_outlined),
+            tooltip: AppLocalizations.of(context)!.tripHistoryMenu,
             onPressed: () {
               TexiUiFeedback.lightTap();
-              _showLanguageMenu(context);
+              context.pushNamed(AppRouter.tripHistory);
             },
           ),
           IconButton(
@@ -229,10 +228,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final initialPosition = LatLng(pos.latitude, pos.longitude);
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: initialPosition,
-        zoom: 15,
-      ),
+      initialCameraPosition: CameraPosition(target: initialPosition, zoom: 15),
       zoomControlsEnabled: false,
       compassEnabled: false,
       mapToolbarEnabled: false,
@@ -262,10 +258,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         Marker(
           markerId: MarkerId('driver_${d.driverId}'),
           position: LatLng(d.lat, d.lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
           infoWindow: InfoWindow(
             title: AppLocalizations.of(context)!.homeMapDriverTitle(d.driverId),
-            snippet: AppLocalizations.of(context)!.homeDriverDistanceKm(d.distanceKm.toStringAsFixed(1)),
+            snippet: AppLocalizations.of(
+              context,
+            )!.homeDriverDistanceKm(d.distanceKm.toStringAsFixed(1)),
           ),
         ),
       );
@@ -296,7 +296,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   context.pushNamed(AppRouter.passengerProfile);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 4,
+                  ),
                   child: Row(
                     children: [
                       Container(
@@ -318,7 +321,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             Text(
                               l10n.homeProfileQuickAccess,
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.textPrimary,
                                   ),
@@ -327,9 +331,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               l10n.homeProfileQuickAccessSubtitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -351,9 +354,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
             Text(
@@ -361,9 +364,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -371,44 +374,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _showLanguageMenu(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l10n.settingsLanguage,
-                style: Theme.of(ctx).textTheme.titleMedium,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(l10n.languageSpanish),
-              onTap: () {
-                ref.read(localeProvider.notifier).state = const Locale('es');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(l10n.languageEnglish),
-              onTap: () {
-                ref.read(localeProvider.notifier).state = const Locale('en');
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
+import 'request_policy_cache.dart';
 
 class PlaceSuggestion {
   const PlaceSuggestion({
@@ -34,6 +35,14 @@ class PlacesAutocompleteService {
   PlacesAutocompleteService() : _dio = Dio();
 
   final Dio _dio;
+  static final RequestPolicyCache<List<PlaceSuggestion>> _suggestionsCache =
+      RequestPolicyCache<List<PlaceSuggestion>>(
+        defaultTtl: const Duration(seconds: 20),
+      );
+  static final RequestPolicyCache<PlaceDetailsResult?> _detailsCache =
+      RequestPolicyCache<PlaceDetailsResult?>(
+        defaultTtl: const Duration(minutes: 10),
+      );
   static const _autocompleteUrl =
       'https://maps.googleapis.com/maps/api/place/autocomplete/json';
   static const _detailsUrl =
@@ -47,43 +56,56 @@ class PlacesAutocompleteService {
   }) async {
     final q = query.trim();
     if (q.length < 2) return const [];
-    try {
-      final params = <String, dynamic>{
-        'input': q,
-        'key': AppConfig.googleMapsApiKey,
-        'language': 'es',
-        'sessiontoken': sessionToken,
-      };
-      if (nearLat != null && nearLng != null) {
-        params['location'] = '$nearLat,$nearLng';
-        params['radius'] = 25000;
-      }
+    final locationBucket = nearLat != null && nearLng != null
+        ? '${nearLat.toStringAsFixed(3)},${nearLng.toStringAsFixed(3)}'
+        : 'none';
+    final key = 's:$q:$locationBucket';
+    return _suggestionsCache.run(
+      key: key,
+      fetcher: () async {
+        try {
+          final params = <String, dynamic>{
+            'input': q,
+            'key': AppConfig.googleMapsApiKey,
+            'language': 'es',
+            'sessiontoken': sessionToken,
+          };
+          if (nearLat != null && nearLng != null) {
+            params['location'] = '$nearLat,$nearLng';
+            params['radius'] = 25000;
+          }
 
-      final response = await _dio.get<Map<String, dynamic>>(
-        _autocompleteUrl,
-        queryParameters: params,
-      );
-      final data = response.data;
-      if (data == null || data['status'] != 'OK') return const [];
-      final preds = data['predictions'] as List<dynamic>?;
-      if (preds == null || preds.isEmpty) return const [];
-      return preds.map((raw) {
-        final item = raw as Map<String, dynamic>;
-        final structured =
-            item['structured_formatting'] as Map<String, dynamic>?;
-        final main = structured?['main_text']?.toString() ?? '';
-        final secondary = structured?['secondary_text']?.toString() ?? '';
-        final description = item['description']?.toString() ?? '';
-        return PlaceSuggestion(
-          placeId: item['place_id']?.toString() ?? '',
-          mainText: main,
-          secondaryText: secondary,
-          fullText: description,
-        );
-      }).where((e) => e.placeId.isNotEmpty).toList(growable: false);
-    } catch (_) {
-      return const [];
-    }
+          final response = await _dio.get<Map<String, dynamic>>(
+            _autocompleteUrl,
+            queryParameters: params,
+          );
+          final data = response.data;
+          if (data == null || data['status'] != 'OK') return const [];
+          final preds = data['predictions'] as List<dynamic>?;
+          if (preds == null || preds.isEmpty) return const [];
+          return preds
+              .map((raw) {
+                final item = raw as Map<String, dynamic>;
+                final structured =
+                    item['structured_formatting'] as Map<String, dynamic>?;
+                final main = structured?['main_text']?.toString() ?? '';
+                final secondary =
+                    structured?['secondary_text']?.toString() ?? '';
+                final description = item['description']?.toString() ?? '';
+                return PlaceSuggestion(
+                  placeId: item['place_id']?.toString() ?? '',
+                  mainText: main,
+                  secondaryText: secondary,
+                  fullText: description,
+                );
+              })
+              .where((e) => e.placeId.isNotEmpty)
+              .toList(growable: false);
+        } catch (_) {
+          return const [];
+        }
+      },
+    );
   }
 
   Future<PlaceDetailsResult?> fetchPlaceDetails({
@@ -91,36 +113,41 @@ class PlacesAutocompleteService {
     required String sessionToken,
   }) async {
     if (placeId.trim().isEmpty) return null;
-    try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        _detailsUrl,
-        queryParameters: {
-          'place_id': placeId,
-          'fields': 'geometry/location,formatted_address',
-          'key': AppConfig.googleMapsApiKey,
-          'language': 'es',
-          'sessiontoken': sessionToken,
-        },
-      );
-      final data = response.data;
-      if (data == null || data['status'] != 'OK') return null;
-      final result = data['result'] as Map<String, dynamic>?;
-      final geometry = result?['geometry'] as Map<String, dynamic>?;
-      final location = geometry?['location'] as Map<String, dynamic>?;
-      final lat = (location?['lat'] as num?)?.toDouble();
-      final lng = (location?['lng'] as num?)?.toDouble();
-      if (lat == null || lng == null) return null;
-      final formatted =
-          result?['formatted_address']?.toString().trim().isNotEmpty == true
+    return _detailsCache.run(
+      key: 'd:${placeId.trim()}',
+      fetcher: () async {
+        try {
+          final response = await _dio.get<Map<String, dynamic>>(
+            _detailsUrl,
+            queryParameters: {
+              'place_id': placeId,
+              'fields': 'geometry/location,formatted_address',
+              'key': AppConfig.googleMapsApiKey,
+              'language': 'es',
+              'sessiontoken': sessionToken,
+            },
+          );
+          final data = response.data;
+          if (data == null || data['status'] != 'OK') return null;
+          final result = data['result'] as Map<String, dynamic>?;
+          final geometry = result?['geometry'] as Map<String, dynamic>?;
+          final location = geometry?['location'] as Map<String, dynamic>?;
+          final lat = (location?['lat'] as num?)?.toDouble();
+          final lng = (location?['lng'] as num?)?.toDouble();
+          if (lat == null || lng == null) return null;
+          final formatted =
+              result?['formatted_address']?.toString().trim().isNotEmpty == true
               ? result!['formatted_address'].toString()
               : '';
-      return PlaceDetailsResult(
-        lat: lat,
-        lng: lng,
-        formattedAddress: formatted,
-      );
-    } catch (_) {
-      return null;
-    }
+          return PlaceDetailsResult(
+            lat: lat,
+            lng: lng,
+            formattedAddress: formatted,
+          );
+        } catch (_) {
+          return null;
+        }
+      },
+    );
   }
 }

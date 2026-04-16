@@ -83,6 +83,7 @@ class TripCircleButton extends StatelessWidget {
 class TripBottomRequestCardContent extends StatelessWidget {
   const TripBottomRequestCardContent({
     super.key,
+    this.scrollController,
     required this.originDisplayText,
     required this.originSubtitle,
     required this.onOriginTap,
@@ -127,8 +128,10 @@ class TripBottomRequestCardContent extends StatelessWidget {
     this.showCancelQuoteDraft = false,
     this.cancelQuoteDraftLabel,
     this.onCancelQuoteDraft,
+    this.showSeePricesButton = true,
   });
 
+  final ScrollController? scrollController;
   final String originDisplayText;
   final String originSubtitle;
   final VoidCallback onOriginTap;
@@ -173,6 +176,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
   final bool showCancelQuoteDraft;
   final String? cancelQuoteDraftLabel;
   final VoidCallback? onCancelQuoteDraft;
+  final bool showSeePricesButton;
 
   @override
   Widget build(BuildContext context) {
@@ -199,15 +203,30 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 SizedBox(
                   width: AppSizes.iconButtonMin,
                   child: showCancelQuoteDraft && onCancelQuoteDraft != null
-                      ? IconButton(
-                          tooltip: cancelQuoteDraftLabel,
-                          onPressed: onCancelQuoteDraft,
-                          icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: AppSizes.iconButtonMin,
-                            minHeight: AppSizes.iconButtonMin,
+                      ? Tooltip(
+                          message: cancelQuoteDraftLabel ?? '',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onCancelQuoteDraft,
+                              customBorder: const CircleBorder(),
+                              child: Ink(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.background.withValues(alpha: 0.35),
+                                  border: Border.all(
+                                    color: AppColors.border.withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: AppColors.textSecondary,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
                           ),
                         )
                       : const SizedBox.shrink(),
@@ -228,6 +247,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 const SizedBox(width: AppSizes.iconButtonMin),
               ],
             ),
+            const SizedBox(height: AppSpacing.sm),
             TripStopRow(
               icon: Icons.trip_origin_rounded,
               label: originSubtitle,
@@ -241,40 +261,10 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 onGps: onOriginUseMyLocation,
                 onSearch: onOriginSearch,
                 onMap: onOriginPickOnMap,
+                onSavedPlaces: onManageSavedOrigin,
+                gpsLabel: 'Tu ubicación',
               ),
               ...[
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  l10n.profileSavedPlaces,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
-                  children: [
-                    ...savedOriginPlaces.map(
-                      (p) => TripQuickActionChip(
-                        icon: p.isFavorite ? Icons.star_rounded : Icons.place_rounded,
-                        label: p.label,
-                        onTap: () => onPickOriginSaved(p),
-                      ),
-                    ),
-                    TripQuickActionChip(
-                      icon: Icons.add_location_alt_rounded,
-                      label: l10n.profileSavedPlaces,
-                      onTap: onSaveCurrentOrigin,
-                    ),
-                    TripQuickActionChip(
-                      icon: Icons.tune_rounded,
-                      label: l10n.profileSectionPreferences,
-                      onTap: onManageSavedOrigin,
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.profileRecentPlaces,
@@ -332,40 +322,10 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 onGps: onDestinationUseMyLocation,
                 onSearch: onDestinationSearch,
                 onMap: onDestinationPickOnMap,
+                onSavedPlaces: onManageSavedDestination,
+                gpsLabel: 'Tu ubicación',
               ),
               ...[
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  l10n.profileSavedPlaces,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.md,
-                  runSpacing: AppSpacing.md,
-                  children: [
-                    ...savedDestinationPlaces.map(
-                      (p) => TripQuickActionChip(
-                        icon: p.isFavorite ? Icons.star_rounded : Icons.place_rounded,
-                        label: p.label,
-                        onTap: () => onPickDestinationSaved(p),
-                      ),
-                    ),
-                    TripQuickActionChip(
-                      icon: Icons.add_location_alt_rounded,
-                      label: l10n.profileSavedPlaces,
-                      onTap: onSaveCurrentDestination,
-                    ),
-                    TripQuickActionChip(
-                      icon: Icons.tune_rounded,
-                      label: l10n.profileSectionPreferences,
-                      onTap: onManageSavedDestination,
-                    ),
-                  ],
-                ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
                   l10n.profileRecentPlaces,
@@ -421,7 +381,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 ),
               ),
             ],
-            if (!isPickingOrigin && !isPickingDestination) ...[
+            if (showSeePricesButton && !isPickingOrigin && !isPickingDestination) ...[
               const SizedBox(height: AppSpacing.xxl),
               SizedBox(
                 height: AppSizes.buttonHeight,

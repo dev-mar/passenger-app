@@ -52,6 +52,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'No pudimos iniciar el registro pasajero con este número. Si ya lo usás como conductor, usá la app de conductor u otro número aquí.';
 
   @override
+  String get loginErrorVerificationServiceUnavailable =>
+      'Servicio de verificación no disponible. Intenta más tarde.';
+
+  @override
   String get serviceTypeNameStandard => 'Estándar';
 
   @override
@@ -225,6 +229,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripSkipRating => 'Omitir';
 
   @override
+  String get tripRatingSheetHeaderTitle => 'Viaje completado';
+
+  @override
+  String get tripRatingYourRating => 'Tu valoración';
+
+  @override
+  String get tripRatingFeedbackPromptLow =>
+      '¿Qué afectó tu experiencia? (múltiple)';
+
+  @override
+  String get tripRatingFeedbackPromptHigh =>
+      '¿Qué destacó del servicio? (múltiple)';
+
+  @override
   String get tripFinishedBackToHome => 'Volver al inicio';
 
   @override
@@ -297,6 +315,86 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get tripLogout => 'Cerrar sesion';
+
+  @override
+  String get profileLogoutSubtitle => 'Salir de la cuenta actual';
+
+  @override
+  String get tripHistoryMenu => 'Historial';
+
+  @override
+  String get tripHistoryTitle => 'Historial de viajes';
+
+  @override
+  String get tripHistoryFilterAll => 'Todos';
+
+  @override
+  String get tripHistoryFilterCompleted => 'Completados';
+
+  @override
+  String get tripHistoryFilterCancelled => 'Cancelados';
+
+  @override
+  String get tripHistoryFilterInProgress => 'En curso';
+
+  @override
+  String get tripHistoryDateAll => 'Todo el tiempo';
+
+  @override
+  String get tripHistoryDateToday => 'Hoy';
+
+  @override
+  String get tripHistoryDate7d => 'Últimos 7 días';
+
+  @override
+  String get tripHistoryDate30d => 'Últimos 30 días';
+
+  @override
+  String get tripHistoryStatusCompleted => 'Completado';
+
+  @override
+  String get tripHistoryStatusCancelled => 'Cancelado';
+
+  @override
+  String get tripHistoryStatusInProgress => 'En curso';
+
+  @override
+  String get tripHistoryDateCustom => 'Personalizado';
+
+  @override
+  String get tripHistoryActiveFilters => 'Filtros activos';
+
+  @override
+  String get tripHistoryCustomRangeLabel => 'Rango elegido';
+
+  @override
+  String get tripHistorySectionToday => 'Hoy';
+
+  @override
+  String get tripHistorySectionYesterday => 'Ayer';
+
+  @override
+  String get tripHistorySectionOlder => 'Anteriores';
+
+  @override
+  String get tripHistoryEmpty => 'Aún no tienes viajes en este filtro.';
+
+  @override
+  String get tripHistoryLoadError =>
+      'No se pudo cargar tu historial. Intenta nuevamente.';
+
+  @override
+  String get tripHistoryNoSession =>
+      'Tu sesión expiró. Vuelve a iniciar sesión.';
+
+  @override
+  String get tripHistoryPrevPage => 'Anterior';
+
+  @override
+  String get tripHistoryNextPage => 'Siguiente';
+
+  @override
+  String get tripHistoryPricePending => 'Sin monto';
 
   @override
   String get profileSetupTitle => 'Completa tu perfil';
@@ -619,7 +717,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileStatRatingValue => '4.9';
 
   @override
-  String get profileStatSavingsValue => 'Bs 340';
+  String get profileStatSavingsValue => 'BOB 340';
 
   @override
   String get profileSectionPersonalData => 'Datos personales';

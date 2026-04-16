@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/utils/money_formatter.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../driver_avatar_premium.dart';
 
@@ -247,6 +248,7 @@ class TripStatusCard extends StatelessWidget {
     required this.statusLabel,
     this.driverName,
     this.driverPhotoUrl,
+    this.driverRating,
     this.showAvatarRefreshingRing = false,
     this.carColor,
     this.carPlate,
@@ -256,6 +258,7 @@ class TripStatusCard extends StatelessWidget {
     required this.durationMinutes,
     required this.distanceKm,
     required this.estimatedPrice,
+    this.currencyCode,
     required this.statusFromLabel,
     required this.statusToLabel,
     required this.driverAssignedLabel,
@@ -263,12 +266,15 @@ class TripStatusCard extends StatelessWidget {
     required this.statusKmLabel,
     this.onFinishedClose,
     this.finishedCloseLabel,
+    this.onOpenChat,
+    this.chatLabel,
   });
 
   final String status;
   final String statusLabel;
   final String? driverName;
   final String? driverPhotoUrl;
+  final double? driverRating;
   final bool showAvatarRefreshingRing;
   final String? carColor;
   final String? carPlate;
@@ -278,6 +284,7 @@ class TripStatusCard extends StatelessWidget {
   final int durationMinutes;
   final double distanceKm;
   final double estimatedPrice;
+  final String? currencyCode;
   final String statusFromLabel;
   final String statusToLabel;
   final String driverAssignedLabel;
@@ -286,6 +293,21 @@ class TripStatusCard extends StatelessWidget {
   /// Al completar el viaje: permite salir del panel y volver a pedir otro viaje.
   final VoidCallback? onFinishedClose;
   final String? finishedCloseLabel;
+  final VoidCallback? onOpenChat;
+  final String? chatLabel;
+
+  /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
+  Color? _carColorDotColor(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    var s = raw.trim();
+    if (s.startsWith('#')) s = s.substring(1);
+    if (s.length != 6) return null;
+    try {
+      return Color(int.parse('FF$s', radix: 16));
+    } catch (_) {
+      return null;
+    }
+  }
 
   IconData _statusIcon() {
     switch (status) {
@@ -302,8 +324,59 @@ class TripStatusCard extends StatelessWidget {
     }
   }
 
+  Color _statusAccent() {
+    switch (status) {
+      case 'accepted':
+        return const Color(0xFFFFC107);
+      case 'arrived':
+        return const Color(0xFF26A69A);
+      case 'started':
+      case 'in_trip':
+        return const Color(0xFF42A5F5);
+      case 'completed':
+        return const Color(0xFF66BB6A);
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  double _statusProgressValue() {
+    switch (status) {
+      case 'accepted':
+        return 0.25;
+      case 'arrived':
+        return 0.5;
+      case 'started':
+      case 'in_trip':
+        return 0.75;
+      case 'completed':
+        return 1.0;
+      default:
+        return 0.2;
+    }
+  }
+
+  int _statusStepIndex() {
+    switch (status) {
+      case 'accepted':
+        return 0;
+      case 'arrived':
+        return 1;
+      case 'started':
+      case 'in_trip':
+        return 2;
+      case 'completed':
+        return 3;
+      default:
+        return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final accent = _statusAccent();
+    final progress = _statusProgressValue();
+    final currentStep = _statusStepIndex();
     final hasDriverInfo = (driverName != null && driverName!.isNotEmpty) ||
         (driverPhotoUrl != null && driverPhotoUrl!.isNotEmpty) ||
         (carModel != null && carModel!.isNotEmpty) ||
@@ -340,14 +413,12 @@ class TripStatusCard extends StatelessWidget {
                   width: AppSizes.tileLeading,
                   height: AppSizes.tileLeading,
                   decoration: BoxDecoration(
-                    color: status == 'completed'
-                        ? AppColors.primary.withValues(alpha: 0.2)
-                        : AppColors.primary.withValues(alpha: 0.15),
+                    color: accent.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
                   child: Icon(
                     _statusIcon(),
-                    color: AppColors.primary,
+                    color: accent,
                     size: AppIconSizes.xl,
                   ),
                 ),
@@ -362,7 +433,72 @@ class TripStatusCard extends StatelessWidget {
                         ),
                   ),
                 ),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: progress,
+                color: accent,
+                backgroundColor: AppColors.border.withValues(alpha: 0.45),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: List.generate(4, (index) {
+                final isActive = index <= currentStep;
+                return Expanded(
+                  child: Align(
+                    alignment: index == 0
+                        ? Alignment.centerLeft
+                        : index == 3
+                            ? Alignment.centerRight
+                            : Alignment.center,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      width: isActive ? 11 : 8,
+                      height: isActive ? 11 : 8,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? accent
+                            : AppColors.border.withValues(alpha: 0.7),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isActive
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : AppColors.border.withValues(alpha: 0.5),
+                        ),
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: accent.withValues(alpha: 0.35),
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ),
             const SizedBox(height: AppSpacing.xxx),
             Container(
@@ -371,10 +507,10 @@ class TripStatusCard extends StatelessWidget {
                 vertical: AppSpacing.xl,
               ),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.06),
+                color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppRadii.sm),
                 border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.15),
+                  color: accent.withValues(alpha: 0.22),
                 ),
               ),
               child: hasDriverInfo
@@ -394,14 +530,39 @@ class TripStatusCard extends StatelessWidget {
                               ),
                               const SizedBox(width: AppSpacing.xxl),
                               Expanded(
-                                child: Text(
-                                  (driverName != null && driverName!.isNotEmpty)
-                                      ? driverName!
-                                      : driverAssignedLabel,
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textPrimary,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      (driverName != null && driverName!.isNotEmpty)
+                                          ? driverName!
+                                          : driverAssignedLabel,
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                    ),
+                                    if (driverRating != null) ...[
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: AppIconSizes.sm,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: AppSpacing.xs),
+                                          Text(
+                                            driverRating!.toStringAsFixed(1),
+                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
+                                        ],
                                       ),
+                                    ],
+                                  ],
                                 ),
                               ),
                             ],
@@ -418,6 +579,26 @@ class TripStatusCard extends StatelessWidget {
                                 color: AppColors.textSecondary,
                               ),
                               const SizedBox(width: AppSpacing.md),
+                              if (_carColorDotColor(carColor) != null) ...[
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: _carColorDotColor(carColor),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.border.withValues(alpha: 0.9),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.12),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                              ],
                               Expanded(
                                 child: Text(
                                   [
@@ -511,10 +692,14 @@ class TripStatusCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        'Bs ${estimatedPrice.toStringAsFixed(1)}',
+                        formatMoney(
+                          estimatedPrice,
+                          currencyCode: currencyCode,
+                          decimals: 1,
+                        ),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                              color: accent,
                             ),
                       ),
                     ],
@@ -522,6 +707,17 @@ class TripStatusCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (onOpenChat != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onOpenChat,
+                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  label: Text(chatLabel ?? 'Chat de viaje'),
+                ),
+              ),
+            ],
             if (status == 'completed' &&
                 onFinishedClose != null &&
                 (finishedCloseLabel != null && finishedCloseLabel!.isNotEmpty)) ...[

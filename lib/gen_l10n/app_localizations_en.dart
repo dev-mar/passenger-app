@@ -52,6 +52,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not start passenger registration with this number. If you already use it as a driver, use the driver app or another number here.';
 
   @override
+  String get loginErrorVerificationServiceUnavailable =>
+      'Verification service unavailable. Please try again later.';
+
+  @override
   String get serviceTypeNameStandard => 'Standard';
 
   @override
@@ -224,6 +228,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripSkipRating => 'Skip';
 
   @override
+  String get tripRatingSheetHeaderTitle => 'Trip completed';
+
+  @override
+  String get tripRatingYourRating => 'Your rating';
+
+  @override
+  String get tripRatingFeedbackPromptLow =>
+      'What affected your experience? (multiple)';
+
+  @override
+  String get tripRatingFeedbackPromptHigh =>
+      'What stood out about the service? (multiple)';
+
+  @override
   String get tripFinishedBackToHome => 'Back to home';
 
   @override
@@ -297,6 +315,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripLogout => 'Log out';
+
+  @override
+  String get profileLogoutSubtitle => 'Sign out from this account';
+
+  @override
+  String get tripHistoryMenu => 'History';
+
+  @override
+  String get tripHistoryTitle => 'Trip history';
+
+  @override
+  String get tripHistoryFilterAll => 'All';
+
+  @override
+  String get tripHistoryFilterCompleted => 'Completed';
+
+  @override
+  String get tripHistoryFilterCancelled => 'Cancelled';
+
+  @override
+  String get tripHistoryFilterInProgress => 'In progress';
+
+  @override
+  String get tripHistoryDateAll => 'All time';
+
+  @override
+  String get tripHistoryDateToday => 'Today';
+
+  @override
+  String get tripHistoryDate7d => 'Last 7 days';
+
+  @override
+  String get tripHistoryDate30d => 'Last 30 days';
+
+  @override
+  String get tripHistoryStatusCompleted => 'Completed';
+
+  @override
+  String get tripHistoryStatusCancelled => 'Cancelled';
+
+  @override
+  String get tripHistoryStatusInProgress => 'In progress';
+
+  @override
+  String get tripHistoryDateCustom => 'Custom';
+
+  @override
+  String get tripHistoryActiveFilters => 'Active filters';
+
+  @override
+  String get tripHistoryCustomRangeLabel => 'Selected range';
+
+  @override
+  String get tripHistorySectionToday => 'Today';
+
+  @override
+  String get tripHistorySectionYesterday => 'Yesterday';
+
+  @override
+  String get tripHistorySectionOlder => 'Older';
+
+  @override
+  String get tripHistoryEmpty => 'You have no trips for this filter yet.';
+
+  @override
+  String get tripHistoryLoadError =>
+      'We could not load your history. Please try again.';
+
+  @override
+  String get tripHistoryNoSession =>
+      'Your session expired. Please sign in again.';
+
+  @override
+  String get tripHistoryPrevPage => 'Previous';
+
+  @override
+  String get tripHistoryNextPage => 'Next';
+
+  @override
+  String get tripHistoryPricePending => 'No amount';
 
   @override
   String get profileSetupTitle => 'Complete your profile';
@@ -618,7 +716,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileStatRatingValue => '4.9';
 
   @override
-  String get profileStatSavingsValue => 'Bs 340';
+  String get profileStatSavingsValue => 'BOB 340';
 
   @override
   String get profileSectionPersonalData => 'Personal data';

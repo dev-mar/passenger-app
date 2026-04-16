@@ -33,8 +33,13 @@ class PassengerRealtimeState {
   final String? carColor;
   final String? carPlate;
   final String? carModel;
+  final double? driverRating;
+  final int? driverRatingsCount;
+  final String? currencyCode;
   final String? driverPhotoUrl;
   final DateTime? driverPhotoExpiresAt;
+  final List<TripChatMessage> chatMessages;
+  final String? tripChatErrorCode;
 
   const PassengerRealtimeState({
     required this.connecting,
@@ -50,8 +55,13 @@ class PassengerRealtimeState {
     this.carColor,
     this.carPlate,
     this.carModel,
+    this.driverRating,
+    this.driverRatingsCount,
+    this.currencyCode,
     this.driverPhotoUrl,
     this.driverPhotoExpiresAt,
+    this.chatMessages = const [],
+    this.tripChatErrorCode,
   });
 
   static const initial = PassengerRealtimeState(
@@ -68,8 +78,13 @@ class PassengerRealtimeState {
     carColor: null,
     carPlate: null,
     carModel: null,
+    driverRating: null,
+    driverRatingsCount: null,
+    currencyCode: null,
     driverPhotoUrl: null,
     driverPhotoExpiresAt: null,
+    chatMessages: [],
+    tripChatErrorCode: null,
   );
 
   PassengerRealtimeState copyWith({
@@ -86,8 +101,13 @@ class PassengerRealtimeState {
     String? carColor,
     String? carPlate,
     String? carModel,
+    double? driverRating,
+    int? driverRatingsCount,
+    String? currencyCode,
     String? driverPhotoUrl,
     DateTime? driverPhotoExpiresAt,
+    List<TripChatMessage>? chatMessages,
+    String? tripChatErrorCode,
   }) {
     return PassengerRealtimeState(
       connecting: connecting ?? this.connecting,
@@ -103,10 +123,35 @@ class PassengerRealtimeState {
       carColor: carColor ?? this.carColor,
       carPlate: carPlate ?? this.carPlate,
       carModel: carModel ?? this.carModel,
+      driverRating: driverRating ?? this.driverRating,
+      driverRatingsCount: driverRatingsCount ?? this.driverRatingsCount,
+      currencyCode: currencyCode ?? this.currencyCode,
       driverPhotoUrl: driverPhotoUrl ?? this.driverPhotoUrl,
       driverPhotoExpiresAt: driverPhotoExpiresAt ?? this.driverPhotoExpiresAt,
+      chatMessages: chatMessages ?? this.chatMessages,
+      tripChatErrorCode: tripChatErrorCode,
     );
   }
+}
+
+class TripChatMessage {
+  final String id;
+  final String tripId;
+  final String senderRole;
+  final String messageKind;
+  final String? templateCode;
+  final String messageText;
+  final DateTime? createdAt;
+
+  const TripChatMessage({
+    required this.id,
+    required this.tripId,
+    required this.senderRole,
+    required this.messageKind,
+    required this.templateCode,
+    required this.messageText,
+    required this.createdAt,
+  });
 }
 
 /// Fallback cuando el backend envía username (teléfono) en lugar de fullName.
@@ -119,6 +164,11 @@ String displayDriverName(String? raw, [String fallback = driverNameFallbackDefau
   final t = raw.trim();
   if (RegExp(r'^[\d\s+\-()]+$').hasMatch(t)) return fallback;
   return t;
+}
+
+/// Chat pasajero–conductor: solo entre aceptación y arranque del viaje (pickup).
+bool passengerTripChatPhaseActive(String? status) {
+  return status == 'accepted' || status == 'arrived';
 }
 
 String? normalizeDriverPhotoUrl(String? raw) {
@@ -258,6 +308,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           ? res.driverName!.trim()
           : state.driverName;
       final mergedDriverName = displayDriverName(mergedNameRaw);
+      final chatOk = passengerTripChatPhaseActive(res.status);
       state = state.copyWith(
         activeTripId: tripId,
         status: res.status,
@@ -271,6 +322,11 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         carColor: res.carColor ?? state.carColor,
         carPlate: res.carPlate ?? state.carPlate,
         carModel: res.carModel ?? state.carModel,
+        driverRating: res.driverRating ?? state.driverRating,
+        driverRatingsCount: res.driverRatingsCount ?? state.driverRatingsCount,
+        currencyCode: res.currencyCode ?? state.currencyCode,
+        chatMessages: chatOk ? state.chatMessages : const [],
+        tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
       );
       _lastTripSyncApiAt = DateTime.now();
     } catch (e) {
@@ -288,6 +344,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
     String? carColor,
     String? carPlate,
     String? carModel,
+    double? driverRating,
+    int? driverRatingsCount,
+    String? currencyCode,
     String? driverPhotoUrl,
     String? driverPhotoExpiresAt,
   }) {
@@ -297,6 +356,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
       carColor: carColor,
       carPlate: carPlate,
       carModel: carModel,
+      driverRating: driverRating,
+      driverRatingsCount: driverRatingsCount,
+      currencyCode: currencyCode,
       driverPhotoUrl: normalizeDriverPhotoUrl(driverPhotoUrl),
       driverPhotoExpiresAt: parseDriverPhotoExpiresAt(driverPhotoExpiresAt),
     );
@@ -379,6 +441,8 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           activeTripId: tripId,
           status: state.status ?? 'searching',
           quote: quote,
+          chatMessages: const [],
+          tripChatErrorCode: null,
         );
         unawaited(syncTripStatusFromApi(tripId: tripId, force: true));
       }
@@ -435,6 +499,11 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
                 data['driver_photo_url']?.toString(),
           );
           final driverPhotoExpiresAt = parseDriverPhotoExpiresAt(data['profilePhotoExpiresAt']);
+          final ratingRaw = data['driverRating'] ?? data['averageRating'];
+          final ratingsCountRaw = data['driverRatingsCount'] ?? data['ratingsCount'];
+          final driverRating = ratingRaw is num ? ratingRaw.toDouble() : double.tryParse('$ratingRaw');
+          final driverRatingsCount = ratingsCountRaw is num ? ratingsCountRaw.toInt() : int.tryParse('$ratingsCountRaw');
+          final currencyCode = (data['currencyCode'] ?? data['currency'])?.toString();
           if (kDebugMode) {
             debugPrint('[PASSENGER_RT] trip:accepted tripId=$tripIdData driver=$driverName');
           }
@@ -445,6 +514,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
             carColor: carColor,
             carPlate: carPlate,
             carModel: carModel,
+            driverRating: driverRating,
+            driverRatingsCount: driverRatingsCount,
+            currencyCode: currencyCode ?? state.currencyCode,
             driverPhotoUrl: driverPhotoUrl,
             driverPhotoExpiresAt: driverPhotoExpiresAt,
           );
@@ -455,6 +527,9 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
               carColor: carColor,
               carPlate: carPlate,
               carModel: carModel,
+              driverRating: driverRating,
+              driverRatingsCount: driverRatingsCount,
+              currencyCode: currencyCode,
               driverPhotoUrl: driverPhotoUrl,
               driverPhotoExpiresAt: driverPhotoExpiresAt?.toIso8601String(),
             );
@@ -486,6 +561,11 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
               ? nameFromEvent.trim()
               : state.driverName;
           final newDriverName = displayDriverName(mergedRaw);
+          final ratingRaw = data['driverRating'] ?? data['averageRating'];
+          final ratingsCountRaw = data['driverRatingsCount'] ?? data['ratingsCount'];
+          final driverRating = ratingRaw is num ? ratingRaw.toDouble() : double.tryParse('$ratingRaw');
+          final driverRatingsCount = ratingsCountRaw is num ? ratingsCountRaw.toInt() : int.tryParse('$ratingsCountRaw');
+          final currencyCode = (data['currencyCode'] ?? data['currency'])?.toString();
           if (newStatus == 'arrived') {
             final fg = PassengerAppVisibility.isInForeground.value;
             if (fg) {
@@ -499,10 +579,16 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
               ),
             );
           }
+          final chatOk = passengerTripChatPhaseActive(newStatus);
           state = state.copyWith(
             activeTripId: tripIdData,
             status: newStatus,
             driverName: newDriverName,
+            driverRating: driverRating ?? state.driverRating,
+            driverRatingsCount: driverRatingsCount ?? state.driverRatingsCount,
+            currencyCode: currencyCode ?? state.currencyCode,
+            chatMessages: chatOk ? state.chatMessages : const [],
+            tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
           );
         } catch (e) {
           if (kDebugMode) {
@@ -565,6 +651,90 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
           }
         }
       });
+
+      socket.on('trip:arrival_reminder', (data) {
+        try {
+          if (data is! Map) return;
+          final tripIdData = data['tripId']?.toString();
+          if (tripIdData == null || tripIdData != tripId) return;
+          final fg = PassengerAppVisibility.isInForeground.value;
+          if (fg &&
+              PassengerNotificationService.shouldPlayForegroundChatAlert()) {
+            SystemSound.play(SystemSoundType.alert);
+            HapticFeedback.mediumImpact();
+          }
+          unawaited(
+            PassengerNotificationService.instance.showTripChatMessageIfBackground(
+              isAppInForeground: fg,
+              tripId: tripIdData,
+              senderRole: 'driver',
+              messageText: 'Tu conductor te está esperando en el punto de recogida.',
+              notifyInForeground: true,
+            ),
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] Error manejando trip:arrival_reminder: $e');
+          }
+        }
+      });
+
+      socket.on('trip:chat:new', (data) {
+        try {
+          if (data is! Map) return;
+          if (!passengerTripChatPhaseActive(state.status)) return;
+          final eventTripId = data['tripId']?.toString();
+          if (eventTripId == null || eventTripId != tripId) return;
+          final id = data['id']?.toString() ??
+              '${DateTime.now().millisecondsSinceEpoch}-${state.chatMessages.length}';
+          final senderRole = data['senderRole']?.toString() ?? 'driver';
+          final messageKind = data['messageKind']?.toString() ?? 'text';
+          final templateCode = data['templateCode']?.toString();
+          final messageText = data['messageText']?.toString().trim() ?? '';
+          if (messageText.isEmpty) return;
+          final createdAt = DateTime.tryParse(data['createdAt']?.toString() ?? '');
+          final next = List<TripChatMessage>.from(state.chatMessages)
+            ..add(
+              TripChatMessage(
+                id: id,
+                tripId: eventTripId,
+                senderRole: senderRole,
+                messageKind: messageKind,
+                templateCode: templateCode,
+                messageText: messageText,
+                createdAt: createdAt,
+              ),
+            );
+          state = state.copyWith(chatMessages: next, tripChatErrorCode: null);
+          final fromOtherRole = senderRole != 'passenger';
+          if (fromOtherRole) {
+            final inForeground = PassengerAppVisibility.isInForeground.value;
+            if (inForeground &&
+                PassengerNotificationService.shouldPlayForegroundChatAlert()) {
+              SystemSound.play(SystemSoundType.alert);
+              HapticFeedback.lightImpact();
+            }
+            unawaited(
+              PassengerNotificationService.instance.showTripChatMessageIfBackground(
+                isAppInForeground: inForeground,
+                tripId: eventTripId,
+                senderRole: senderRole,
+                messageText: messageText,
+                notifyInForeground: true,
+              ),
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('[PASSENGER_RT] Error manejando trip:chat:new: $e');
+          }
+        }
+      });
+
+      socket.on('trip:chat:error', (data) {
+        final code = (data is Map ? data['code'] : null)?.toString() ?? 'TRIP_CHAT_ERROR';
+        state = state.copyWith(tripChatErrorCode: code);
+      });
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[PASSENGER_RT] Error general conectando: $e');
@@ -578,6 +748,46 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState> 
         errorCode: 'UNKNOWN',
       );
     }
+  }
+
+  void sendTripChatTemplate({
+    required String tripId,
+    required String templateCode,
+  }) {
+    if (!passengerTripChatPhaseActive(state.status)) {
+      state = state.copyWith(tripChatErrorCode: 'TRIP_CHAT_NOT_AVAILABLE');
+      return;
+    }
+    if (_socket == null || !state.connected) {
+      state = state.copyWith(tripChatErrorCode: 'SOCKET');
+      return;
+    }
+    _socket!.emit('trip:chat:send', {
+      'tripId': tripId,
+      'messageKind': 'template',
+      'templateCode': templateCode,
+    });
+  }
+
+  void sendTripChatText({
+    required String tripId,
+    required String text,
+  }) {
+    final sanitized = text.trim();
+    if (sanitized.isEmpty) return;
+    if (!passengerTripChatPhaseActive(state.status)) {
+      state = state.copyWith(tripChatErrorCode: 'TRIP_CHAT_NOT_AVAILABLE');
+      return;
+    }
+    if (_socket == null || !state.connected) {
+      state = state.copyWith(tripChatErrorCode: 'SOCKET');
+      return;
+    }
+    _socket!.emit('trip:chat:send', {
+      'tripId': tripId,
+      'messageKind': 'text',
+      'messageText': sanitized,
+    });
   }
 
   /// Desconecta el socket y resetea el estado (p. ej. cuando el pasajero cancela la búsqueda).

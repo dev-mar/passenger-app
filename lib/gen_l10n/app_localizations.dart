@@ -176,6 +176,12 @@ abstract class AppLocalizations {
   /// **'We could not start passenger registration with this number. If you already use it as a driver, use the driver app or another number here.'**
   String get loginErrorPhoneDuplicatePassenger;
 
+  /// No description provided for @loginErrorVerificationServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification service unavailable. Please try again later.'**
+  String get loginErrorVerificationServiceUnavailable;
+
   /// No description provided for @serviceTypeNameStandard.
   ///
   /// In en, this message translates to:
@@ -488,6 +494,30 @@ abstract class AppLocalizations {
   /// **'Skip'**
   String get tripSkipRating;
 
+  /// No description provided for @tripRatingSheetHeaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip completed'**
+  String get tripRatingSheetHeaderTitle;
+
+  /// No description provided for @tripRatingYourRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rating'**
+  String get tripRatingYourRating;
+
+  /// No description provided for @tripRatingFeedbackPromptLow.
+  ///
+  /// In en, this message translates to:
+  /// **'What affected your experience? (multiple)'**
+  String get tripRatingFeedbackPromptLow;
+
+  /// No description provided for @tripRatingFeedbackPromptHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'What stood out about the service? (multiple)'**
+  String get tripRatingFeedbackPromptHigh;
+
   /// No description provided for @tripFinishedBackToHome.
   ///
   /// In en, this message translates to:
@@ -625,6 +655,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log out'**
   String get tripLogout;
+
+  /// No description provided for @profileLogoutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out from this account'**
+  String get profileLogoutSubtitle;
+
+  /// No description provided for @tripHistoryMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get tripHistoryMenu;
+
+  /// No description provided for @tripHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip history'**
+  String get tripHistoryTitle;
+
+  /// No description provided for @tripHistoryFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get tripHistoryFilterAll;
+
+  /// No description provided for @tripHistoryFilterCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get tripHistoryFilterCompleted;
+
+  /// No description provided for @tripHistoryFilterCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get tripHistoryFilterCancelled;
+
+  /// No description provided for @tripHistoryFilterInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get tripHistoryFilterInProgress;
+
+  /// No description provided for @tripHistoryDateAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get tripHistoryDateAll;
+
+  /// No description provided for @tripHistoryDateToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get tripHistoryDateToday;
+
+  /// No description provided for @tripHistoryDate7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get tripHistoryDate7d;
+
+  /// No description provided for @tripHistoryDate30d.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get tripHistoryDate30d;
+
+  /// No description provided for @tripHistoryStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get tripHistoryStatusCompleted;
+
+  /// No description provided for @tripHistoryStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get tripHistoryStatusCancelled;
+
+  /// No description provided for @tripHistoryStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get tripHistoryStatusInProgress;
+
+  /// No description provided for @tripHistoryDateCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get tripHistoryDateCustom;
+
+  /// No description provided for @tripHistoryActiveFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Active filters'**
+  String get tripHistoryActiveFilters;
+
+  /// No description provided for @tripHistoryCustomRangeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected range'**
+  String get tripHistoryCustomRangeLabel;
+
+  /// No description provided for @tripHistorySectionToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get tripHistorySectionToday;
+
+  /// No description provided for @tripHistorySectionYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get tripHistorySectionYesterday;
+
+  /// No description provided for @tripHistorySectionOlder.
+  ///
+  /// In en, this message translates to:
+  /// **'Older'**
+  String get tripHistorySectionOlder;
+
+  /// No description provided for @tripHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no trips for this filter yet.'**
+  String get tripHistoryEmpty;
+
+  /// No description provided for @tripHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load your history. Please try again.'**
+  String get tripHistoryLoadError;
+
+  /// No description provided for @tripHistoryNoSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Please sign in again.'**
+  String get tripHistoryNoSession;
+
+  /// No description provided for @tripHistoryPrevPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get tripHistoryPrevPage;
+
+  /// No description provided for @tripHistoryNextPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get tripHistoryNextPage;
+
+  /// No description provided for @tripHistoryPricePending.
+  ///
+  /// In en, this message translates to:
+  /// **'No amount'**
+  String get tripHistoryPricePending;
 
   /// No description provided for @profileSetupTitle.
   ///
@@ -1217,7 +1403,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileStatSavingsValue.
   ///
   /// In en, this message translates to:
-  /// **'Bs 340'**
+  /// **'BOB 340'**
   String get profileStatSavingsValue;
 
   /// No description provided for @profileSectionPersonalData.
