@@ -21,6 +21,7 @@ import '../../core/network/trips_api.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import '../../core/maps/trip_route_tracking_policy.dart';
 import '../../core/network/geocoding_service.dart';
 import '../../core/network/directions_service.dart';
 import '../../core/network/passenger_map_telemetry_service.dart';
@@ -132,6 +133,13 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   /// Se incrementa al cancelar ruta / fin de viaje y al iniciar cada [_fetchRoute]; evita aplicar polilínea y pines viejos.
   int _routeRequestToken = 0;
+
+  /// Ruta dinámica conductor → destino cuando el viaje ya inició (`started` / `in_trip`).
+  List<LatLng>? _passengerEnRouteToDestPoints;
+  Timer? _passengerEnRouteRouteDebounce;
+  int _passengerEnRouteRouteRequestToken = 0;
+  DateTime? _lastPassengerEnRouteCameraFitAt;
+
   bool _recenterInProgress = false;
   String? _ratingSheetShownForTripId;
   String? _ratingDoneTripId;
@@ -472,6 +480,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   /// Limpia sesión de viaje en memoria y almacenamiento; mismo resultado que cerrar el sheet de calificación.
   Future<void> _resetHomeAfterTripEnded(String tripId) async {
     _routeRequestToken++;
+    _passengerEnRouteRouteDebounce?.cancel();
     ref.read(passengerRealtimeProvider.notifier).disconnect();
     clearTripRecoverySnackTracking(ref);
     ref.read(tripRequestProvider.notifier).reset();
@@ -489,6 +498,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         _destination = null;
         _destinationDisplayLabel = null;
         _routePoints = null;
+        _passengerEnRouteToDestPoints = null;
         _loadingRoute = false;
         _originConfirmed = false;
         _pickingOrigin = false;
@@ -510,6 +520,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   /// los providers ya están limpios; esto alinea pines, polilínea y flags que viven solo en este State.
   void _resetLocalMapAfterExternalTripSessionClear() {
     _routeRequestToken++;
+    _passengerEnRouteRouteDebounce?.cancel();
     _completedStaleAutoResetTripId = null;
     if (!mounted) return;
     setState(() {
@@ -519,6 +530,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       _destination = null;
       _destinationDisplayLabel = null;
       _routePoints = null;
+      _passengerEnRouteToDestPoints = null;
       _loadingRoute = false;
       _originConfirmed = false;
       _pickingOrigin = false;
@@ -1089,6 +1101,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
             .read(passengerRealtimeProvider.notifier)
             .syncTripStatusFromApi(tripId: storedTripId, force: true);
 
+        if (mounted &&
+            _destination != null &&
+            _isPassengerEnRouteToDestination(
+              ref.read(passengerRealtimeProvider).status,
+            )) {
+          _schedulePassengerEnRouteRouteRefresh(immediate: true);
+        }
+
         final cached = await TripSessionStorage.getCachedDriverInfo(
           storedTripId,
         );
@@ -1336,6 +1356,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   @override
   void dispose() {
+    _passengerEnRouteRouteDebounce?.cancel();
     _driverMotionTimer?.cancel();
     _driverPulseController.dispose();
     _originSearchDebounce?.cancel();
@@ -1364,6 +1385,95 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         s == 'arrived' ||
         s == 'started' ||
         s == 'in_trip';
+  }
+
+  /// Viaje en marcha hacia el destino (pasajero a bordo).
+  bool _isPassengerEnRouteToDestination(String? status) {
+    final s = status?.toLowerCase();
+    return s == 'started' || s == 'in_trip';
+  }
+
+  void _schedulePassengerEnRouteRouteRefresh({bool immediate = false}) {
+    _passengerEnRouteRouteDebounce?.cancel();
+    if (immediate) {
+      unawaited(_fetchPassengerEnRouteRouteToDestination());
+      return;
+    }
+    _passengerEnRouteRouteDebounce =
+        Timer(TripRouteTrackingPolicy.mapRouteRefreshDebounce, () {
+      if (!mounted) return;
+      unawaited(_fetchPassengerEnRouteRouteToDestination());
+    });
+  }
+
+  Future<void> _fetchPassengerEnRouteRouteToDestination() async {
+    if (!mounted) return;
+    final rt = ref.read(passengerRealtimeProvider);
+    if (!_isPassengerEnRouteToDestination(rt.status)) return;
+    final dest = _destination;
+    if (dest == null) return;
+    final driver = _animatedDriverLatLng ??
+        (rt.driverLat != null && rt.driverLng != null
+            ? LatLng(rt.driverLat!, rt.driverLng!)
+            : null);
+    if (driver == null) return;
+
+    final token = ++_passengerEnRouteRouteRequestToken;
+    try {
+      final route = await _directions
+          .getRouteWithOverview(
+            originLat: driver.latitude,
+            originLng: driver.longitude,
+            destinationLat: dest.latitude,
+            destinationLng: dest.longitude,
+          )
+          .timeout(TripRouteTrackingPolicy.directionsRequestTimeout);
+      if (!mounted || token != _passengerEnRouteRouteRequestToken) return;
+      final pts = route?.points;
+      final next =
+          pts != null && pts.length >= 2 ? pts : <LatLng>[driver, dest];
+      setState(() => _passengerEnRouteToDestPoints = next);
+      _maybeFitPassengerEnRouteCamera(driver, dest);
+    } catch (_) {
+      if (!mounted || token != _passengerEnRouteRouteRequestToken) return;
+      setState(() => _passengerEnRouteToDestPoints = <LatLng>[driver, dest]);
+    }
+  }
+
+  void _maybeFitPassengerEnRouteCamera(LatLng from, LatLng to) {
+    final c = _controller;
+    if (c == null || !_appInForeground) return;
+    final now = DateTime.now();
+    if (_lastPassengerEnRouteCameraFitAt != null &&
+        now.difference(_lastPassengerEnRouteCameraFitAt!) <
+            TripRouteTrackingPolicy.navigationCameraMinGap) {
+      return;
+    }
+    _lastPassengerEnRouteCameraFitAt = now;
+
+    final minLat = from.latitude < to.latitude ? from.latitude : to.latitude;
+    final maxLat = from.latitude > to.latitude ? from.latitude : to.latitude;
+    final minLng =
+        from.longitude < to.longitude ? from.longitude : to.longitude;
+    final maxLng =
+        from.longitude > to.longitude ? from.longitude : to.longitude;
+    final latSpan = (maxLat - minLat).abs();
+    final lngSpan = (maxLng - minLng).abs();
+    if (latSpan < 0.00035 && lngSpan < 0.00035) {
+      unawaited(
+        c.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: from, zoom: 16.2),
+          ),
+        ),
+      );
+      return;
+    }
+    final bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+    unawaited(c.animateCamera(CameraUpdate.newLatLngBounds(bounds, 88)));
   }
 
   bool get _lowBatteryModeActive =>
@@ -1488,6 +1598,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       await ref
           .read(passengerRealtimeProvider.notifier)
           .syncTripStatusFromApi(tripId: tripId, force: true);
+
+      if (mounted &&
+          _destination != null &&
+          _isPassengerEnRouteToDestination(
+            ref.read(passengerRealtimeProvider).status,
+          )) {
+        _schedulePassengerEnRouteRouteRefresh(immediate: true);
+      }
 
       final cached = await TripSessionStorage.getCachedDriverInfo(tripId);
       if (cached != null && mounted) {
@@ -2507,6 +2625,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _lastDriverRawLat = rawDriverLat;
     _lastDriverRawLng = rawDriverLng;
     final target = LatLng(rawDriverLat, rawDriverLng);
+    if (_isPassengerEnRouteToDestination(status)) {
+      _schedulePassengerEnRouteRouteRefresh();
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _animateDriverMarkerTo(target);
@@ -3378,6 +3499,17 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       previous,
       next,
     ) {
+      final wasEn = _isPassengerEnRouteToDestination(previous?.status);
+      final nowEn = _isPassengerEnRouteToDestination(next.status);
+      if (!wasEn && nowEn) {
+        _schedulePassengerEnRouteRouteRefresh(immediate: true);
+      } else if (wasEn && !nowEn) {
+        _passengerEnRouteRouteDebounce?.cancel();
+        if (mounted) {
+          setState(() => _passengerEnRouteToDestPoints = null);
+        }
+      }
+
       final was = passengerTripChatPhaseActive(previous?.status);
       final now = passengerTripChatPhaseActive(next.status);
       if (was && !now && _tripChatSheetDisplayed && mounted) {
@@ -3403,10 +3535,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
       if (id == null) {
         schedule(() {
+          _passengerEnRouteRouteDebounce?.cancel();
           setState(() {
             _ratingDoneTripId = null;
             _ratingDone = false;
             _ratingSheetShownForTripId = null;
+            _passengerEnRouteToDestPoints = null;
           });
         });
         return;
@@ -3539,10 +3673,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         unawaited(() async {
           await TripSessionStorage.clearActiveTripId();
         }());
+        _passengerEnRouteRouteDebounce?.cancel();
         setState(() {
           _destination = null;
           _destinationDisplayLabel = null;
           _routePoints = null;
+          _passengerEnRouteToDestPoints = null;
           _loadingRoute = false;
           _originConfirmed = false;
           _pickingOrigin = false;
@@ -3564,6 +3700,31 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     final LatLng? destMarkerPos = (_destination != null && !_pickingDestination)
         ? _destination
         : null;
+
+    final passengerEnRouteToDestination =
+        tripId != null && _isPassengerEnRouteToDestination(rtState.status);
+    final List<LatLng> mapRoutePolylinePoints;
+    if (_destination != null) {
+      if (passengerEnRouteToDestination) {
+        if (_passengerEnRouteToDestPoints != null &&
+            _passengerEnRouteToDestPoints!.length >= 2) {
+          mapRoutePolylinePoints = _passengerEnRouteToDestPoints!;
+        } else if (animatedDriver != null) {
+          mapRoutePolylinePoints = <LatLng>[animatedDriver, _destination!];
+        } else if (_routePoints != null && _routePoints!.length >= 2) {
+          mapRoutePolylinePoints = _routePoints!;
+        } else {
+          mapRoutePolylinePoints = <LatLng>[origin, _destination!];
+        }
+      } else {
+        mapRoutePolylinePoints =
+            (_routePoints != null && _routePoints!.isNotEmpty)
+            ? _routePoints!
+            : <LatLng>[origin, _destination!];
+      }
+    } else {
+      mapRoutePolylinePoints = <LatLng>[origin];
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -3651,14 +3812,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                         ),
                       }
                     : const {},
-                polylines: _destination != null
+                polylines:
+                    _destination != null && mapRoutePolylinePoints.length >= 2
                     ? {
                         Polyline(
                           polylineId: const PolylineId('route_casing'),
-                          points:
-                              (_routePoints != null && _routePoints!.isNotEmpty)
-                              ? _routePoints!
-                              : [origin, _destination!],
+                          points: mapRoutePolylinePoints,
                           color: brightness == Brightness.dark
                               ? Colors.white.withValues(alpha: 0.18)
                               : Colors.black.withValues(alpha: 0.12),
@@ -3668,10 +3827,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                         ),
                         Polyline(
                           polylineId: const PolylineId('route'),
-                          points:
-                              (_routePoints != null && _routePoints!.isNotEmpty)
-                              ? _routePoints!
-                              : [origin, _destination!],
+                          points: mapRoutePolylinePoints,
                           color: activeRouteColor,
                           width: 6,
                           geodesic: true,

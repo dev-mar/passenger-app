@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../config/app_config.dart';
+import '../maps/trip_route_tracking_policy.dart';
 import 'request_policy_cache.dart';
 
 /// Decodifica una polyline codificada (formato Google).
@@ -60,7 +61,7 @@ class DirectionsService {
       'https://maps.googleapis.com/maps/api/directions/json';
   static final RequestPolicyCache<DirectionsRouteResult?> _cache =
       RequestPolicyCache<DirectionsRouteResult?>(
-        defaultTtl: const Duration(seconds: 20),
+        defaultTtl: TripRouteTrackingPolicy.directionsHttpCacheTtl,
       );
 
   /// Misma ruta que dibuja el mapa + string para almacenar y reutilizar en el conductor.
@@ -70,9 +71,10 @@ class DirectionsService {
     required double destinationLat,
     required double destinationLng,
   }) async {
+    final d = TripRouteTrackingPolicy.directionsCacheCoordinateDecimals;
     final key =
-        'd:${originLat.toStringAsFixed(4)},${originLng.toStringAsFixed(4)}'
-        '>${destinationLat.toStringAsFixed(4)},${destinationLng.toStringAsFixed(4)}';
+        'd:${originLat.toStringAsFixed(d)},${originLng.toStringAsFixed(d)}'
+        '>${destinationLat.toStringAsFixed(d)},${destinationLng.toStringAsFixed(d)}';
     return _cache.run(
       key: key,
       fetcher: () async {

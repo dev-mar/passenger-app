@@ -2,6 +2,15 @@
 
 A new Flutter project.
 
+> Documento en depuración controlada (Fase A de consolidación).
+>
+> La documentación funcional canónica relacionada a esta app está en:
+>
+> - `../.cursor/functional-modules/passenger-onboarding/README.md`
+> - `../.cursor/functional-modules/auth-access/README.md`
+>
+> Este README debe mantenerse técnico (setup, build, ejecución local), sin duplicar contratos o definición funcional del ecosistema.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
