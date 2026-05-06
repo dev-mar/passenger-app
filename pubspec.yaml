@@ -36,6 +36,7 @@ dependencies:
 
   # Foto de perfil (cámara/galería) para el flujo de registro.
   image_picker: ^1.2.1
+  image_cropper: ^9.1.0
 
   # Navegación
   go_router: ^14.6.2
@@ -47,6 +48,11 @@ dependencies:
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.2
   flutter_local_notifications: ^18.0.1
+
+  # Telemetría de cliente (misma heurística que app conductor → auth / auditoría)
+  connectivity_plus: ^6.0.5
+  device_info_plus: ^10.1.2
+  package_info_plus: ^9.0.0
 
   # Tiempo real (Socket.IO) para pasajero
   socket_io_client: ^3.1.4

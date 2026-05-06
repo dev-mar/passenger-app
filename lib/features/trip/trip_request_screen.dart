@@ -4937,22 +4937,42 @@ class _QuoteBottomSheetState extends ConsumerState<_QuoteBottomSheet> {
         return;
       }
 
-      final result = await api.createTrip(
-        originLat: origin.lat,
-        originLng: origin.lng,
-        destinationLat: destination.lat,
-        destinationLng: destination.lng,
-        originAddress:
-            widget.originAddress ??
-            '${origin.lat.toStringAsFixed(6)},${origin.lng.toStringAsFixed(6)}',
-        destinationAddress:
-            widget.destinationAddress ??
-            '${destination.lat.toStringAsFixed(6)},${destination.lng.toStringAsFixed(6)}',
-        cityId: quote.city.id,
-        serviceTypeId: option.serviceTypeId,
-        estimatedPrice: option.estimatedPrice,
-        routeOverviewEncoded: widget.routeOverviewEncoded,
-      );
+      CreateTripResponse result;
+      int createAttempt = 0;
+      while (true) {
+        createAttempt += 1;
+        try {
+          result = await api.createTrip(
+            originLat: origin.lat,
+            originLng: origin.lng,
+            destinationLat: destination.lat,
+            destinationLng: destination.lng,
+            originAddress:
+                widget.originAddress ??
+                '${origin.lat.toStringAsFixed(6)},${origin.lng.toStringAsFixed(6)}',
+            destinationAddress:
+                widget.destinationAddress ??
+                '${destination.lat.toStringAsFixed(6)},${destination.lng.toStringAsFixed(6)}',
+            cityId: quote.city.id,
+            serviceTypeId: option.serviceTypeId,
+            estimatedPrice: option.estimatedPrice,
+            routeOverviewEncoded: widget.routeOverviewEncoded,
+          );
+          break;
+        } on DioException catch (e) {
+          final data = e.response?.data;
+          final code = TexiBackendError.codeFromResponse(data);
+          if (code == 'TRIP_CREATE_RATE_LIMITED' && createAttempt < 2) {
+            final waitMs = TripsApi.retryAfterMsForCreateTrip(e)
+                .clamp(300, 5000)
+                .toInt();
+            await Future<void>.delayed(Duration(milliseconds: waitMs));
+            if (!mounted) return;
+            continue;
+          }
+          rethrow;
+        }
+      }
       ref.read(tripRequestProvider.notifier).selectOption(option);
       ref.read(tripRequestProvider.notifier).setTripId(result.tripId);
       await TripSessionStorage.saveActiveTripId(result.tripId);

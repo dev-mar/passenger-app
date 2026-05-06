@@ -41,15 +41,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginErrorPhoneRegisteredAsDriver =>
-      'Este número ya está registrado como conductor. Para la app pasajero usá otro número, o iniciá sesión en la app de conductor con este mismo número.';
+      'Este número ya está registrado como conductor. Para la app de pasajero, usa otro número o inicia sesión en la app de conductor con el mismo número.';
 
   @override
   String get loginErrorPhoneOtherAccountType =>
-      'Este número ya está asociado a otro tipo de cuenta en Texi. Usá otro número o la aplicación que corresponda a esa cuenta.';
+      'Este número ya está asociado a otro tipo de cuenta en Texi. Usa otro número o la aplicación que corresponda a esa cuenta.';
 
   @override
   String get loginErrorPhoneDuplicatePassenger =>
-      'No pudimos iniciar el registro pasajero con este número. Si ya lo usás como conductor, usá la app de conductor u otro número aquí.';
+      'No pudimos iniciar el registro como pasajero con este número. Si ya lo usas como conductor, usa la app de conductor u otro número aquí.';
 
   @override
   String get loginErrorVerificationServiceUnavailable =>
@@ -201,19 +201,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get tripRbacForbidden =>
-      'Tu cuenta no tiene permiso para esta acción en viajes. Si sigue pasando, cerrá sesión y volvé a entrar o contactá soporte.';
+      'Tu cuenta no tiene permiso para esta acción en viajes. Si sigue ocurriendo, cierra sesión y vuelve a entrar, o contacta a soporte.';
 
   @override
   String get tripRbacSession =>
-      'No pudimos validar tu sesión. Cerrá sesión y volvé a iniciar sesión.';
+      'No pudimos validar tu sesión. Cierra sesión y vuelve a iniciar sesión.';
 
   @override
   String get tripRbacTechnical =>
-      'Hubo un problema al verificar permisos. Intentá de nuevo en unos segundos.';
+      'Hubo un problema al verificar permisos. Intenta de nuevo en unos segundos.';
 
   @override
   String get tripRealtimeNoToken =>
-      'Sesión inválida o vencida. Volvé a iniciar sesión para seguir el viaje.';
+      'Sesión inválida o vencida. Vuelve a iniciar sesión para seguir el viaje.';
 
   @override
   String get tripRateDriver => 'Califica a tu conductor';
@@ -499,7 +499,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String verifyCodeSubtitle(String phone) {
-    return 'Te enviamos un codigo de 4 digitos por SMS a $phone. Ingresalo para continuar.';
+    return 'Te enviamos un codigo de 4 digitos a $phone. Ingresalo para continuar.';
   }
 
   @override
@@ -513,7 +513,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get verifyCodeRetryHint =>
-      'Si no recibiste el SMS, revisa el numero y vuelve a intentar en unos minutos.';
+      'Si no recibiste el codigo, revisa el numero y vuelve a intentar en unos minutos.';
 
   @override
   String get verifyCodeErrorActivateAccount =>
@@ -577,6 +577,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profilePhotoGallery => 'Elegir de galeria';
 
   @override
+  String get profilePhotoCropTitle => 'Ajustar selfie';
+
+  @override
   String get profileReviewInfoTitle => 'Revisa tu informacion';
 
   @override
@@ -613,18 +616,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileNoServerPhoto =>
-      'No hay foto de perfil guardada. Podés agregarla al editar tu perfil.';
+      'No hay foto de perfil guardada. Puedes agregarla al editar tu perfil.';
 
   @override
-  String get profileErrorNoSession => 'Sesión vencida. Iniciá sesión de nuevo.';
+  String get profileErrorNoSession => 'Sesión vencida. Inicia sesión de nuevo.';
 
   @override
   String get profileErrorForbidden =>
-      'Esta acción requiere sesión de pasajero. Cerrá sesión e ingresá de nuevo con tu número.';
+      'Esta acción requiere sesión de pasajero. Cierra sesión e ingresa de nuevo con tu número.';
 
   @override
   String get profileErrorNotFound =>
-      'No encontramos tu perfil de pasajero. Si sigue pasando, contactá soporte.';
+      'No encontramos tu perfil de pasajero. Si sigue ocurriendo, contacta a soporte.';
 
   @override
   String get profileTaglinePassenger => 'Pasajero Texi';

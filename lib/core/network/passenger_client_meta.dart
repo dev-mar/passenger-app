@@ -1,26 +1,6 @@
-import 'dart:io' show Platform;
+import '../device/passenger_device_telemetry.dart';
 
-/// Metadatos opcionales que `app_texi_WebSocket` acepta en auth pasajero (telemetría / rate-limit).
-Map<String, dynamic> passengerAuthClientMeta({String brand = 'Texi App'}) {
-  return <String, dynamic>{
-    'brand': brand,
-    'ip': '0.0.0.0',
-    'model': _safeDeviceModel(),
-    'os': Platform.operatingSystem,
-    'platform': _apiPlatform(),
-  };
-}
-
-String _apiPlatform() {
-  if (Platform.isIOS) return 'ios';
-  if (Platform.isAndroid) return 'android';
-  return 'unknown';
-}
-
-String _safeDeviceModel() {
-  try {
-    return Platform.localHostname;
-  } catch (_) {
-    return 'unknown';
-  }
-}
+/// Metadatos de dispositivo/red alineados con `buildClientMeta` del backend
+/// (mismas claves que la app conductor). La IP la resuelve el servidor.
+Future<Map<String, dynamic>> passengerAuthClientMeta() =>
+    PassengerDeviceTelemetry.toApiPayload();

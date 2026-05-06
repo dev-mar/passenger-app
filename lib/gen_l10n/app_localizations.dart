@@ -1001,7 +1001,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'We sent a 4-digit SMS code to {phone}. Enter it to continue.'**
+  /// **'We sent a 4-digit code to {phone}. Enter it to continue.'**
   String verifyCodeSubtitle(String phone);
 
   /// No description provided for @verifyCodeFieldLabel.
@@ -1025,7 +1025,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeRetryHint.
   ///
   /// In en, this message translates to:
-  /// **'If you did not receive the SMS, check the number and try again in a few minutes.'**
+  /// **'If you did not receive the code, check the number and try again in a few minutes.'**
   String get verifyCodeRetryHint;
 
   /// No description provided for @verifyCodeErrorActivateAccount.
@@ -1123,6 +1123,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose from gallery'**
   String get profilePhotoGallery;
+
+  /// No description provided for @profilePhotoCropTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust selfie'**
+  String get profilePhotoCropTitle;
 
   /// No description provided for @profileReviewInfoTitle.
   ///

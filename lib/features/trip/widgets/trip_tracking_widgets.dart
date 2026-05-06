@@ -21,7 +21,8 @@ class TripSearchingDriverOverlay extends StatefulWidget {
   final String cancelLabel;
 
   @override
-  State<TripSearchingDriverOverlay> createState() => _TripSearchingDriverOverlayState();
+  State<TripSearchingDriverOverlay> createState() =>
+      _TripSearchingDriverOverlayState();
 }
 
 class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
@@ -89,7 +90,9 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: opacity),
+                                color: AppColors.primary.withValues(
+                                  alpha: opacity,
+                                ),
                                 width: AppBorders.radarRing,
                               ),
                             ),
@@ -124,18 +127,18 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
             Text(
               widget.searchingTitle,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
-                  ),
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                letterSpacing: -0.2,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               widget.searchingSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.section),
@@ -146,7 +149,9 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
                 child: TextButton(
                   onPressed: widget.onCancel,
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xxl,
+                    ),
                   ),
                   child: Text(widget.cancelLabel),
                 ),
@@ -207,9 +212,9 @@ class TripConnectionErrorOverlay extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxx),
             Text(
               message,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: AppColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sheetV),
@@ -290,6 +295,7 @@ class TripStatusCard extends StatelessWidget {
   final String driverAssignedLabel;
   final String Function(int) statusMinutesLabel;
   final String Function(String) statusKmLabel;
+
   /// Al completar el viaje: permite salir del panel y volver a pedir otro viaje.
   final VoidCallback? onFinishedClose;
   final String? finishedCloseLabel;
@@ -377,7 +383,8 @@ class TripStatusCard extends StatelessWidget {
     final accent = _statusAccent();
     final progress = _statusProgressValue();
     final currentStep = _statusStepIndex();
-    final hasDriverInfo = (driverName != null && driverName!.isNotEmpty) ||
+    final hasDriverInfo =
+        (driverName != null && driverName!.isNotEmpty) ||
         (driverPhotoUrl != null && driverPhotoUrl!.isNotEmpty) ||
         (carModel != null && carModel!.isNotEmpty) ||
         (carPlate != null && carPlate!.isNotEmpty) ||
@@ -427,10 +434,10 @@ class TripStatusCard extends StatelessWidget {
                   child: Text(
                     statusLabel,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.2,
-                        ),
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
                 Container(
@@ -469,8 +476,8 @@ class TripStatusCard extends StatelessWidget {
                     alignment: index == 0
                         ? Alignment.centerLeft
                         : index == 3
-                            ? Alignment.centerRight
-                            : Alignment.center,
+                        ? Alignment.centerRight
+                        : Alignment.center,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
                       width: isActive ? 11 : 8,
@@ -509,112 +516,173 @@ class TripStatusCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(AppRadii.sm),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.22),
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.22)),
               ),
               child: hasDriverInfo
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if ((driverName != null && driverName!.isNotEmpty) ||
-                            (driverPhotoUrl != null && driverPhotoUrl!.isNotEmpty))
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              DriverAvatarPremium(
-                                displayName: driverName ?? '',
-                                photoUrl: driverPhotoUrl,
-                                showRefreshingRing: showAvatarRefreshingRing,
-                                size: AppSizes.avatarTripStatus,
-                              ),
-                              const SizedBox(width: AppSpacing.xxl),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      (driverName != null && driverName!.isNotEmpty)
-                                          ? driverName!
-                                          : driverAssignedLabel,
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                    ),
-                                    if (driverRating != null) ...[
-                                      const SizedBox(height: AppSpacing.xs),
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.star_rounded,
-                                            size: AppIconSizes.sm,
-                                            color: AppColors.primary,
-                                          ),
-                                          const SizedBox(width: AppSpacing.xs),
-                                          Text(
-                                            driverRating!.toStringAsFixed(1),
-                                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                  color: AppColors.textSecondary,
-                                                  fontWeight: FontWeight.w700,
+                        Builder(
+                          builder: (context) {
+                            final hasDriverBlock =
+                                (driverName != null &&
+                                    driverName!.isNotEmpty) ||
+                                (driverPhotoUrl != null &&
+                                    driverPhotoUrl!.isNotEmpty);
+                            final hasVehicleBlock =
+                                (carModel != null && carModel!.isNotEmpty) ||
+                                (carColor != null && carColor!.isNotEmpty) ||
+                                (carPlate != null && carPlate!.isNotEmpty);
+                            if (hasDriverBlock && hasVehicleBlock) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 118,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        DriverAvatarPremium(
+                                          displayName: driverName ?? '',
+                                          photoUrl: driverPhotoUrl,
+                                          showRefreshingRing:
+                                              showAvatarRefreshingRing,
+                                          size: AppSizes.avatarTripStatus,
+                                        ),
+                                        const SizedBox(height: AppSpacing.sm),
+                                        Text(
+                                          (driverName != null &&
+                                                  driverName!.isNotEmpty)
+                                              ? driverName!
+                                              : driverAssignedLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (driverRating != null) ...[
+                                          const SizedBox(height: AppSpacing.xs),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.star_rounded,
+                                                size: AppIconSizes.sm,
+                                                color: AppColors.primary,
+                                              ),
+                                              const SizedBox(
+                                                width: AppSpacing.xs,
+                                              ),
+                                              Text(
+                                                driverRating!.toStringAsFixed(
+                                                  1,
                                                 ),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                              ),
+                                            ],
                                           ),
                                         ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (carModel != null || carColor != null || carPlate != null) ...[
-                          if ((driverName != null && driverName!.isNotEmpty) ||
-                              (driverPhotoUrl != null && driverPhotoUrl!.isNotEmpty))
-                            const SizedBox(height: AppSpacing.md),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.directions_car_rounded,
-                                size: AppIconSizes.md,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              if (_carColorDotColor(carColor) != null) ...[
-                                Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    color: _carColorDotColor(carColor),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.border.withValues(alpha: 0.9),
+                                      ],
                                     ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.12),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
                                   ),
-                                ),
-                                const SizedBox(width: AppSpacing.md),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  [
-                                    if (carColor != null && carColor!.isNotEmpty) carColor,
-                                    if (carModel != null && carModel!.isNotEmpty) carModel,
-                                    if (carPlate != null && carPlate!.isNotEmpty) carPlate,
-                                  ].join(' · '),
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: AppColors.textPrimary,
-                                      ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                  const SizedBox(width: AppSpacing.xl),
+                                  Expanded(
+                                    child: _VehicleInfoBlock(
+                                      carModel: carModel,
+                                      carColor: carColor,
+                                      carPlate: carPlate,
+                                      colorDot: _carColorDotColor(carColor),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            if (hasDriverBlock) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  DriverAvatarPremium(
+                                    displayName: driverName ?? '',
+                                    photoUrl: driverPhotoUrl,
+                                    showRefreshingRing:
+                                        showAvatarRefreshingRing,
+                                    size: AppSizes.avatarTripStatus,
+                                  ),
+                                  const SizedBox(width: AppSpacing.xxl),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          (driverName != null &&
+                                                  driverName!.isNotEmpty)
+                                              ? driverName!
+                                              : driverAssignedLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                        ),
+                                        if (driverRating != null) ...[
+                                          const SizedBox(height: AppSpacing.xs),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.star_rounded,
+                                                size: AppIconSizes.sm,
+                                                color: AppColors.primary,
+                                              ),
+                                              const SizedBox(
+                                                width: AppSpacing.xs,
+                                              ),
+                                              Text(
+                                                driverRating!.toStringAsFixed(
+                                                  1,
+                                                ),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return _VehicleInfoBlock(
+                              carModel: carModel,
+                              carColor: carColor,
+                              carPlate: carPlate,
+                              colorDot: _carColorDotColor(carColor),
+                            );
+                          },
+                        ),
                       ],
                     )
                   : Row(
@@ -627,9 +695,8 @@ class TripStatusCard extends StatelessWidget {
                         const SizedBox(width: AppSpacing.lg),
                         Text(
                           driverAssignedLabel,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -672,9 +739,9 @@ class TripStatusCard extends StatelessWidget {
                       Text(
                         statusMinutesLabel(durationMinutes),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.xl),
                       Icon(
@@ -686,9 +753,9 @@ class TripStatusCard extends StatelessWidget {
                       Text(
                         statusKmLabel(distanceKm.toStringAsFixed(1)),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const Spacer(),
                       Text(
@@ -698,9 +765,9 @@ class TripStatusCard extends StatelessWidget {
                           decimals: 1,
                         ),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: accent,
-                            ),
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                        ),
                       ),
                     ],
                   ),
@@ -720,7 +787,8 @@ class TripStatusCard extends StatelessWidget {
             ],
             if (status == 'completed' &&
                 onFinishedClose != null &&
-                (finishedCloseLabel != null && finishedCloseLabel!.isNotEmpty)) ...[
+                (finishedCloseLabel != null &&
+                    finishedCloseLabel!.isNotEmpty)) ...[
               const SizedBox(height: AppSpacing.xl),
               TexiScalePress(
                 child: SizedBox(
@@ -735,6 +803,95 @@ class TripStatusCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VehicleInfoBlock extends StatelessWidget {
+  const _VehicleInfoBlock({
+    required this.carModel,
+    required this.carColor,
+    required this.carPlate,
+    required this.colorDot,
+  });
+
+  final String? carModel;
+  final String? carColor;
+  final String? carPlate;
+  final Color? colorDot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.directions_car_rounded,
+              size: AppIconSizes.md,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                (carModel != null && carModel!.isNotEmpty) ? carModel! : '-',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.fade,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (carColor != null && carColor!.isNotEmpty)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (colorDot != null) ...[
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: colorDot,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                  ],
+                  Text(
+                    carColor!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            if (carPlate != null && carPlate!.isNotEmpty)
+              Text(
+                carPlate!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -764,17 +921,17 @@ class _TripDetailRow extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
                 value,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

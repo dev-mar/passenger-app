@@ -499,7 +499,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String verifyCodeSubtitle(String phone) {
-    return 'We sent a 4-digit SMS code to $phone. Enter it to continue.';
+    return 'We sent a 4-digit code to $phone. Enter it to continue.';
   }
 
   @override
@@ -513,7 +513,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyCodeRetryHint =>
-      'If you did not receive the SMS, check the number and try again in a few minutes.';
+      'If you did not receive the code, check the number and try again in a few minutes.';
 
   @override
   String get verifyCodeErrorActivateAccount =>
@@ -574,6 +574,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profilePhotoGallery => 'Choose from gallery';
+
+  @override
+  String get profilePhotoCropTitle => 'Adjust selfie';
 
   @override
   String get profileReviewInfoTitle => 'Review your information';

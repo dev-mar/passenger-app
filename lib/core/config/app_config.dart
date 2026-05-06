@@ -29,7 +29,7 @@ class AppConfig {
   /// `POST` cuerpo: `country_code`, `phone_number` (sin `password`) o `user_name` E.164.
   static const String loginPath = '/auth/login';
 
-  /// `POST` tras SMS OTP — ventana para [authUsersPath].
+  /// `POST` tras código de verificación — ventana para [authUsersPath].
   static const String authVerifyCodePath = '/auth/verify-code';
 
   /// `POST` completar nombre + foto opcional; devuelve `token` + `refresh_token` + `expires_in`.

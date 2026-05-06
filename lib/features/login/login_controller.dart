@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
@@ -46,7 +48,7 @@ class LoginController extends StateNotifier<LoginState> {
 
   /// Login según contrato:
   /// - Si el usuario ya existe y está activo, devuelve token.
-  /// - Si el usuario es nuevo o no verificado, devuelve status=pending y se envía código SMS.
+  /// - Si el usuario es nuevo o no verificado, devuelve status=pending y se solicita código de verificación.
   Future<LoginNextStep> login({
     required String countryCode,
     required String phoneNumber,
@@ -55,12 +57,24 @@ class LoginController extends StateNotifier<LoginState> {
     state = LoginState();
 
     try {
+      final clientMeta = await passengerAuthClientMeta();
+      String? pushToken;
+      try {
+        if (Firebase.apps.isNotEmpty) {
+          final t = await FirebaseMessaging.instance.getToken();
+          if (t != null && t.trim().isNotEmpty) pushToken = t.trim();
+        }
+      } catch (_) {
+        // Fallback silencioso: el backend mantiene canal "code".
+      }
       final response = await _dio.post(
         AppConfig.loginPath,
         data: <String, dynamic>{
-          ...passengerAuthClientMeta(),
+          ...clientMeta,
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
+          if (pushToken != null) 'otp_channel': 'push',
+          if (pushToken != null) 'push_token': pushToken,
         },
       );
 

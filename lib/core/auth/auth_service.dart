@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
+import '../network/passenger_client_meta.dart';
 import '../storage/trip_session_storage.dart';
 
 /// Claves de almacenamiento seguro.
@@ -152,9 +153,13 @@ class AuthService {
   static Future<String?> _refresh(String refreshToken) async {
     try {
       final path = AppConfig.refreshPath;
+      final meta = await passengerAuthClientMeta();
       final response = await _dio.post(
         path,
-        data: {'refresh_token': refreshToken},
+        data: <String, dynamic>{
+          ...meta,
+          'refresh_token': refreshToken,
+        },
       );
       final data = response.data;
       if (data is! Map) return null;

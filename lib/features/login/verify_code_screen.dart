@@ -15,7 +15,7 @@ import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
 
-/// Pantalla para ingresar el código de 4 dígitos enviado por SMS y activar al pasajero.
+/// Pantalla para ingresar el código de 4 dígitos y activar al pasajero.
 class VerifyCodeScreen extends ConsumerStatefulWidget {
   const VerifyCodeScreen({
     super.key,
@@ -66,10 +66,11 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     final fullPhone = '$cc$phoneDigits';
 
     try {
+      final clientMeta = await passengerAuthClientMeta();
       final response = await _dio.post(
         AppConfig.authUsersPath,
         data: <String, dynamic>{
-          ...passengerAuthClientMeta(),
+          ...clientMeta,
           'phone_number': fullPhone,
           'alias_name': '',
           'profile_picture': null,
@@ -171,10 +172,11 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
 
     try {
+      final clientMeta = await passengerAuthClientMeta();
       final response = await _dio.post(
         AppConfig.authVerifyCodePath,
         data: <String, dynamic>{
-          ...passengerAuthClientMeta(),
+          ...clientMeta,
           'country_code': widget.countryCode,
           'phone_number': phoneOnlyDigits,
           'verification_code': codeText,

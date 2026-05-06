@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 import '../config/app_config.dart';
 import '../auth/auth_service.dart';
+import 'passenger_resilience_telemetry_service.dart';
 import '../../data/models/nearby_driver.dart';
 import '../../data/models/quote_response.dart';
 import '../../data/models/passenger_trip_sync_response.dart';
@@ -10,6 +13,8 @@ import '../../data/models/passenger_trip_sync_response.dart';
 /// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired].
 class TripsApi {
   TripsApi({required String token}) : _dio = _createDio(token);
+  static const int _defaultCreateRetryAfterMs = 1200;
+  static final Random _retryJitterRandom = Random();
 
   static Dio _createDio(String token) {
     final dio = Dio(
@@ -52,6 +57,161 @@ class TripsApi {
 
   final Dio _dio;
 
+  static int? retryAfterMsFromResponse(
+    dynamic data,
+    Headers? headers,
+  ) {
+    int? fromPayload(dynamic body) {
+      if (body is! Map) return null;
+      final map = Map<String, dynamic>.from(body);
+      final errorObj = map['error'];
+      if (errorObj is Map) {
+        final err = Map<String, dynamic>.from(errorObj);
+        final msRaw = err['retry_after_ms'];
+        if (msRaw is num) return msRaw.toInt();
+        final secRaw = err['retry_after_sec'];
+        if (secRaw is num) return secRaw.toInt() * 1000;
+      }
+      final msTop = map['retry_after_ms'];
+      if (msTop is num) return msTop.toInt();
+      final secTop = map['retry_after_sec'];
+      if (secTop is num) return secTop.toInt() * 1000;
+      return null;
+    }
+
+    final payloadMs = fromPayload(data);
+    if (payloadMs != null && payloadMs > 0) return payloadMs;
+    final rawRetryAfter = headers?.value('retry-after');
+    if (rawRetryAfter != null) {
+      final sec = int.tryParse(rawRetryAfter.trim());
+      if (sec != null && sec > 0) return sec * 1000;
+    }
+    return null;
+  }
+
+  static int retryAfterMsForCreateTrip(DioException e) {
+    final fromResp = retryAfterMsFromResponse(e.response?.data, e.response?.headers);
+    if (fromResp != null && fromResp > 0) return fromResp;
+    return _defaultCreateRetryAfterMs;
+  }
+
+  static bool _isRetryableDioFailure(DioException e) {
+    final status = e.response?.statusCode ?? 0;
+    final isRetryableStatus = status == 429 || status >= 500;
+    final isTransientNetwork =
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.unknown;
+    return isRetryableStatus || isTransientNetwork;
+  }
+
+  Future<Response<T>> _requestWithRetry<T>({
+    required Future<Response<T>> Function() operation,
+    required String flow,
+    required String endpoint,
+    int maxAttempts = 3,
+    int baseDelayMs = 320,
+    int maxDelayMs = 4500,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      attempt += 1;
+      try {
+        return await operation();
+      } on DioException catch (e) {
+        final shouldRetry = attempt < maxAttempts && _isRetryableDioFailure(e);
+        if (!shouldRetry) {
+          unawaited(
+            PassengerResilienceTelemetryService.sendEvent(
+              flow: flow,
+              endpoint: endpoint,
+              event: 'retry_exhausted',
+              attempt: attempt,
+              statusCode: e.response?.statusCode,
+            ),
+          );
+          rethrow;
+        }
+        final retryAfterMs = retryAfterMsFromResponse(e.response?.data, e.response?.headers);
+        final expDelay = baseDelayMs * (1 << (attempt - 1).clamp(0, 5));
+        final jitter = _retryJitterRandom.nextInt(260);
+        final waitMs = max(retryAfterMs ?? 0, expDelay + jitter)
+            .clamp(250, maxDelayMs)
+            .toInt();
+        final statusCode = e.response?.statusCode;
+        unawaited(
+          PassengerResilienceTelemetryService.sendEvent(
+            flow: flow,
+            endpoint: endpoint,
+            event: statusCode == 429 ? 'rate_limited' : 'retry_attempt',
+            attempt: attempt,
+            waitMs: waitMs,
+            statusCode: statusCode,
+          ),
+        );
+        await Future<void>.delayed(Duration(milliseconds: waitMs));
+      }
+    }
+  }
+
+  Future<Response<dynamic>> _postQuoteWithRetry({
+    required Map<String, dynamic> payload,
+  }) async {
+    const maxAttempts = 3;
+    int attempt = 0;
+    while (true) {
+      attempt += 1;
+      try {
+        return await _dio.post('/passengers/trips/quote', data: payload);
+      } on DioException catch (e) {
+        final status = e.response?.statusCode ?? 0;
+        final isRetryableStatus = status == 429 || status >= 500;
+        final isTransientNetwork =
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.unknown;
+        final shouldRetry =
+            attempt < maxAttempts && (isRetryableStatus || isTransientNetwork);
+        if (!shouldRetry) {
+          unawaited(
+            PassengerResilienceTelemetryService.sendEvent(
+              flow: 'trip_quote',
+              endpoint: '/passengers/trips/quote',
+              event: 'retry_exhausted',
+              attempt: attempt,
+              statusCode: e.response?.statusCode,
+            ),
+          );
+          rethrow;
+        }
+
+        final retryAfterMs = retryAfterMsFromResponse(e.response?.data, e.response?.headers);
+        final backoffBase = 350 * (1 << (attempt - 1));
+        final jitter = Random().nextInt(220);
+        final waitMs = max(
+          retryAfterMs ?? 0,
+          backoffBase + jitter,
+        ).clamp(300, 4000).toInt();
+        final statusCode = e.response?.statusCode;
+        unawaited(
+          PassengerResilienceTelemetryService.sendEvent(
+            flow: 'trip_quote',
+            endpoint: '/passengers/trips/quote',
+            event: statusCode == 429 ? 'rate_limited' : 'retry_attempt',
+            attempt: attempt,
+            waitMs: waitMs,
+            statusCode: statusCode,
+          ),
+        );
+        await Future<void>.delayed(Duration(milliseconds: waitMs));
+      }
+    }
+  }
+
   /// GET /passengers/nearby-drivers
   Future<NearbyDriversResponse> getNearbyDrivers({
     required double lat,
@@ -59,24 +219,32 @@ class TripsApi {
     double radiusKm = 5,
     int limit = 20,
   }) async {
-    final response = await _dio.get(
-      '/passengers/nearby-drivers',
-      queryParameters: {
-        'lat': lat,
-        'lng': lng,
-        'radiusKm': radiusKm,
-        'limit': limit,
-      },
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_discovery',
+      endpoint: '/passengers/nearby-drivers',
+      operation: () => _dio.get(
+        '/passengers/nearby-drivers',
+        queryParameters: {
+          'lat': lat,
+          'lng': lng,
+          'radiusKm': radiusKm,
+          'limit': limit,
+        },
+      ),
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return NearbyDriversResponse.fromJson(data);
   }
 
   /// GET /passengers/trips/:tripId — sincroniza estado actual del viaje.
   Future<PassengerTripSyncResponse?> syncPassengerTrip(String tripId) async {
-    final response = await _dio.get('/passengers/trips/$tripId');
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_sync',
+      endpoint: '/passengers/trips/:tripId',
+      operation: () => _dio.get('/passengers/trips/$tripId'),
+    );
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     if (data.isEmpty) return null;
     return PassengerTripSyncResponse.fromJson(data);
@@ -89,14 +257,13 @@ class TripsApi {
     required double destinationLat,
     required double destinationLng,
   }) async {
-    final response = await _dio.post(
-      '/passengers/trips/quote',
-      data: {
+    final response = await _postQuoteWithRetry(
+      payload: {
         'origin': {'lat': originLat, 'lng': originLng},
         'destination': {'lat': destinationLat, 'lng': destinationLng},
       },
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return QuoteResponse.fromJson(data);
   }
@@ -129,7 +296,7 @@ class TripsApi {
         'routeOverviewEncoded': routeOverviewEncoded.trim(),
     };
     final response = await _dio.post('/passengers/trips', data: payload);
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return CreateTripResponse.fromJson(data);
   }
@@ -138,8 +305,12 @@ class TripsApi {
   Future<TripStatusResponse> getPassengerTripStatus({
     required String tripId,
   }) async {
-    final response = await _dio.get('/passengers/trips/$tripId');
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_sync',
+      endpoint: '/passengers/trips/:tripId',
+      operation: () => _dio.get('/passengers/trips/$tripId'),
+    );
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return TripStatusResponse.fromJson(data);
   }
@@ -169,11 +340,15 @@ class TripsApi {
   Future<List<TripRatingFeedbackItem>> getPassengerRatingFeedbackCatalog({
     required int stars,
   }) async {
-    final response = await _dio.get(
-      '/passengers/trips/rating-feedback-catalog',
-      queryParameters: {'stars': stars},
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_rating',
+      endpoint: '/passengers/trips/rating-feedback-catalog',
+      operation: () => _dio.get(
+        '/passengers/trips/rating-feedback-catalog',
+        queryParameters: {'stars': stars},
+      ),
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     final itemsRaw = data['items'] as List<dynamic>? ?? const [];
     return itemsRaw
@@ -188,11 +363,15 @@ class TripsApi {
   Future<List<PassengerRecentPlace>> getPassengerRecentPlaces({
     int limit = 5,
   }) async {
-    final response = await _dio.get(
-      '/passengers/trips/recent-places',
-      queryParameters: {'limit': limit},
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'saved_places',
+      endpoint: '/passengers/trips/recent-places',
+      operation: () => _dio.get(
+        '/passengers/trips/recent-places',
+        queryParameters: {'limit': limit},
+      ),
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     final placesRaw = data['places'] as List<dynamic>? ?? const [];
     return placesRaw
@@ -208,17 +387,21 @@ class TripsApi {
     int limit = 20,
     int offset = 0,
   }) async {
-    final response = await _dio.get(
-      '/passengers/trips/history',
-      queryParameters: {
-        if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
-        if (from != null) 'from': from.toIso8601String(),
-        if (to != null) 'to': to.toIso8601String(),
-        'limit': limit,
-        'offset': offset,
-      },
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_history',
+      endpoint: '/passengers/trips/history',
+      operation: () => _dio.get(
+        '/passengers/trips/history',
+        queryParameters: {
+          if (status != null && status.trim().isNotEmpty) 'status': status.trim(),
+          if (from != null) 'from': from.toIso8601String(),
+          if (to != null) 'to': to.toIso8601String(),
+          'limit': limit,
+          'offset': offset,
+        },
+      ),
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     return PassengerTripHistoryResponse.fromJson(data);
   }
@@ -226,11 +409,15 @@ class TripsApi {
   Future<List<PassengerSavedPlace>> getPassengerSavedPlaces({
     int limit = 12,
   }) async {
-    final response = await _dio.get(
-      '/passengers/places/saved',
-      queryParameters: {'limit': limit},
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'saved_places',
+      endpoint: '/passengers/places/saved',
+      operation: () => _dio.get(
+        '/passengers/places/saved',
+        queryParameters: {'limit': limit},
+      ),
     );
-    final body = response.data as Map<String, dynamic>? ?? const {};
+    final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
     final placesRaw = data['places'] as List<dynamic>? ?? const [];
     return placesRaw

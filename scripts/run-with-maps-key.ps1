@@ -6,6 +6,8 @@ param(
 
   [string]$BackendBaseUrl,
 
+  [bool]$PassengerSelfieCropEnabled = $true,
+
   [string]$Flavor,
 
   [string]$Target = "lib/main.dart"
@@ -121,6 +123,9 @@ if (-not [string]::IsNullOrWhiteSpace($Target)) {
 
 # runtime defines consumidos por AppConfig (no solo Gradle).
 $flutterArgs += @("--dart-define", "GOOGLE_MAPS_API_KEY=$resolvedKey")
+$flutterArgs += @("--dart-define", "PASSENGER_SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
+# Compat temporal con builds viejos.
+$flutterArgs += @("--dart-define", "SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
 if (-not [string]::IsNullOrWhiteSpace($resolvedBackend)) {
   $flutterArgs += @("--dart-define", "TEXI_BACKEND_BASE_URL=$resolvedBackend")
 }

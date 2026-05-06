@@ -200,7 +200,7 @@
     "description": "Shown while syncing trip state after reopening the app"
   },
   "verifyCodeTitle": "Verify your number",
-  "verifyCodeSubtitle": "We sent a 4-digit SMS code to {phone}. Enter it to continue.",
+  "verifyCodeSubtitle": "We sent a 4-digit code to {phone}. Enter it to continue.",
   "@verifyCodeSubtitle": {
     "placeholders": {
       "phone": {"type": "String"}
@@ -209,7 +209,7 @@
   "verifyCodeFieldLabel": "4-digit verification code",
   "verifyCodeMaskHint": "••••",
   "verifyCodeConfirm": "Confirm code",
-  "verifyCodeRetryHint": "If you did not receive the SMS, check the number and try again in a few minutes.",
+  "verifyCodeRetryHint": "If you did not receive the code, check the number and try again in a few minutes.",
   "verifyCodeErrorActivateAccount": "Could not activate the passenger account.",
   "verifyCodeErrorIncompleteResponse": "Incomplete server response.",
   "verifyCodeErrorTokenMissing": "Token not received.",
@@ -231,6 +231,7 @@
   "profilePhotoPickFailed": "Could not select the photo. Please try again.",
   "profilePhotoTake": "Take photo",
   "profilePhotoGallery": "Choose from gallery",
+  "profilePhotoCropTitle": "Adjust selfie",
   "profileReviewInfoTitle": "Review your information",
   "profileAcknowledge": "Got it",
   "homeTooltipLanguage": "Change language",
