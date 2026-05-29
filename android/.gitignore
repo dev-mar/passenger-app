@@ -12,3 +12,7 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Volcados de memoria JVM (Android Studio); pueden superar 700 MB
+*.hprof
+java_pid*.hprof
