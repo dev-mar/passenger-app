@@ -11,6 +11,7 @@ class TripQuickPickRow extends StatelessWidget {
     required this.onSearch,
     required this.onMap,
     this.onSavedPlaces,
+    this.showSearch = true,
     this.gpsLabel,
     this.searchLabel,
     this.mapLabel,
@@ -20,6 +21,8 @@ class TripQuickPickRow extends StatelessWidget {
   final VoidCallback onGps;
   final VoidCallback onSearch;
   final VoidCallback onMap;
+  /// Si es false, la búsqueda por texto vive fuera (barra superior).
+  final bool showSearch;
   final VoidCallback? onSavedPlaces;
   final String? gpsLabel;
   final String? searchLabel;
@@ -41,12 +44,13 @@ class TripQuickPickRow extends StatelessWidget {
         onTap: onGps,
         textStyle: textStyle,
       ),
-      TripQuickActionChip(
-        icon: Icons.search_rounded,
-        label: searchLabel ?? l10n.quickSearch,
-        onTap: onSearch,
-        textStyle: textStyle,
-      ),
+      if (showSearch)
+        TripQuickActionChip(
+          icon: Icons.search_rounded,
+          label: searchLabel ?? l10n.quickSearch,
+          onTap: onSearch,
+          textStyle: textStyle,
+        ),
       TripQuickActionChip(
         icon: Icons.map_rounded,
         label: mapLabel ?? l10n.quickMap,

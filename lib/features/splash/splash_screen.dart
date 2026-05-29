@@ -43,14 +43,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
+  /// Mínimo amortiguador para que la animación de marca no parpadee si la
+  /// resolución de sesión termina en pocos ms. Antes: 1800 ms secuenciales fijos.
+  static const Duration _minBrandDwell = Duration(milliseconds: 400);
+
   Future<void> _navigateAfterDelay() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
+    // Token y trip_id activo se piden en paralelo: ambos viven en SecureStorage y
+    // no compiten por red. Cuando no hay token, el storedId simplemente se ignora.
+    final results = await Future.wait<Object?>([
+      AuthService.getValidToken(),
+      TripSessionStorage.getActiveTripId(),
+      Future<void>.delayed(_minBrandDwell),
+    ]);
     if (!mounted) return;
-    final token = await AuthService.getValidToken();
-    if (!mounted) return;
+    final token = results[0] as String?;
+    final storedId = results[1] as String?;
     if (token != null && token.isNotEmpty) {
-      final storedId = await TripSessionStorage.getActiveTripId();
-      if (!mounted) return;
       if (storedId != null && storedId.isNotEmpty) {
         ref.read(tripRequestProvider.notifier).setTripId(storedId);
       }

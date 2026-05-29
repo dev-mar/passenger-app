@@ -137,5 +137,9 @@ if ($Mode -eq "run") {
 }
 
 Write-Host "Ejecutando: flutter build apk (dart-defines cargados)" -ForegroundColor Cyan
+$prepareScript = Join-Path $PSScriptRoot "prepare-android-build.ps1"
+if (Test-Path $prepareScript) {
+  & $prepareScript
+}
 & flutter build apk @flutterArgs
 exit $LASTEXITCODE

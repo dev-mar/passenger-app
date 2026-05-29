@@ -6,6 +6,9 @@ abstract final class AppMotion {
 
   static const Duration sheetEntrance = Duration(milliseconds: 600);
 
+  /// Colapso / expansión del buscador borrador (cabecera viaje).
+  static const Duration draftSearchChromeReveal = Duration(milliseconds: 280);
+
   static const double slideDySubtle = 0.045;
 
   static const Curve standard = Curves.easeOutCubic;

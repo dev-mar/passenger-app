@@ -57,6 +57,13 @@
   "tripWhereTo": "Where to?",
   "tripSearchError": "Address not found",
   "tripSearchingAddress": "Searching...",
+  "tripDraftSearchHint": "Search street, area or place",
+  "tripDraftNoRecentPlaces": "No recent places yet for this stop",
+  "tripDraftQuoting": "Getting prices…",
+  "tripDraftCloseMapPicker": "Close and search or adjust on the map",
+  "tripDraftCalculatingRoute": "Calculating the route on the map…",
+  "tripDraftEditStop": "Edit",
+  "tripSecureChat": "Secure chat",
   "tripNoCoverageInZone": "We don't have service coverage in this area at the moment. Try another location or move to a service zone.",
   "tripNoDriversAvailable": "No drivers available at the moment. Please try again in a few moments.",
   "tripNext": "Next",
@@ -70,6 +77,19 @@
   "confirmRequestRide": "Request ride",
   "searchingTitle": "Looking for a driver",
   "searchingSubtitle": "We are finding the best option for you",
+  "tripSearchingPatienceHint": "Still no nearby driver; we're still searching.",
+  "@tripSearchingPatienceHint": {
+    "description": "Non-blocking hint after ~60s on driver-search overlay."
+  },
+  "tripSearchingLongWaitTitle": "Still waiting?",
+  "tripSearchingLongWaitBody": "Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.",
+  "@tripSearchingLongWaitBody": {
+    "description": "Optional card after ~90s; does not block the map."
+  },
+  "tripSearchingKeepWaitingCta": "Keep searching",
+  "@tripSearchingKeepWaitingCta": {
+    "description": "Dismisses long-wait card and runs soft refresh (REST sync / socket)."
+  },
   "tripConnectionError": "Could not connect to receive trip updates. Check your connection.",
   "tripRbacForbidden": "Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.",
   "tripRbacSession": "We couldn’t validate your session. Sign out and sign in again.",
@@ -136,6 +156,11 @@
   "tripSavedPlaceDeleteCta": "Delete",
   "tripMapAdjustPickupHint": "Adjust the map to set your pickup point",
   "tripMapAdjustDestinationHint": "Adjust the map to set your destination",
+  "tripMapPinHintOriginShort": "Pickup — move map, then confirm",
+  "tripMapPinHintDestShort": "Destination — move map, then confirm",
+  "tripMapPinSearchInstead": "Search",
+  "tripDraftSaveOriginShortcut": "Save pickup to favorites",
+  "tripDraftSaveDestinationShortcut": "Save destination to favorites",
   "tripRequireGpsForRequest": "We need your real location (GPS on and permission granted) to request a ride. Check GPS and location permissions.",
   "tripConfirmOriginFirst": "Please confirm your pickup point first.",
   "tripConfirmOrigin": "Confirm origin",

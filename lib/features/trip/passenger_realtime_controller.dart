@@ -307,6 +307,7 @@ class PassengerRealtimeController
     try {
       final token = await AuthService.getValidToken();
       if (token == null || token.isEmpty) return;
+      final previousStatus = state.status;
       final api = TripsApi(token: token);
       final res = await api.getPassengerTripStatus(tripId: tripId);
       final mergedPhoto =
@@ -338,6 +339,22 @@ class PassengerRealtimeController
         chatMessages: chatOk ? state.chatMessages : const [],
         tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
       );
+      if (res.status == 'arrived' && previousStatus != 'arrived') {
+        final fg = PassengerAppVisibility.isInForeground.value;
+        if (fg) {
+          SystemSound.play(SystemSoundType.alert);
+          HapticFeedback.mediumImpact();
+        }
+        unawaited(
+          PassengerNotificationService.instance.showDriverArrivedIfBackground(
+            isAppInForeground: fg,
+            tripId: tripId,
+            driverName: mergedDriverName == driverNameFallbackDefault
+                ? null
+                : mergedDriverName,
+          ),
+        );
+      }
       _lastTripSyncApiAt = DateTime.now();
     } catch (e) {
       if (kDebugMode) {
@@ -375,7 +392,49 @@ class PassengerRealtimeController
   }
 
   Future<void> connect({required String tripId, QuoteResponse? quote}) async {
-    if (state.connected) return;
+    // Los listeners de socket capturan [tripId] al registrarse. Si el cliente
+    // queda "connected" pero el viaje activo cambió, un `connect` temprano
+    // dejaría eventos filtrados mal y el backend no vería sala/presencia del
+    // viaje correcto hasta forzar desconexión manual.
+    if (state.connected &&
+        _socket != null &&
+        state.activeTripId == tripId) {
+      state = state.copyWith(
+        errorCode: null,
+        quote: quote ?? state.quote,
+      );
+      if (kDebugMode) {
+        debugPrint(
+          '[PASSENGER_RT] Socket ya activo tripId=$tripId; sync REST',
+        );
+      }
+      unawaited(syncTripStatusFromApi(tripId: tripId, force: true));
+      return;
+    }
+
+    // Conexión en curso para el mismo viaje: no abrir un segundo socket.
+    if (state.connecting &&
+        state.activeTripId == tripId &&
+        _socket != null) {
+      state = state.copyWith(quote: quote ?? state.quote);
+      if (kDebugMode) {
+        debugPrint(
+          '[PASSENGER_RT] Conexión en curso tripId=$tripId; esperando',
+        );
+      }
+      return;
+    }
+
+    if (_socket != null || state.connecting) {
+      if (kDebugMode) {
+        debugPrint(
+          '[PASSENGER_RT] Reiniciando socket '
+          '(trip estado=${state.activeTripId}, nuevo=$tripId)',
+        );
+      }
+      disconnect();
+    }
+
     if (state.connecting) {
       final start = _connectStartedAt;
       if (start != null &&
@@ -391,7 +450,16 @@ class PassengerRealtimeController
     }
     _tearDown = false;
     _connectStartedAt = DateTime.now();
-    state = state.copyWith(connecting: true, errorCode: null);
+    state = state.copyWith(
+      connecting: true,
+      errorCode: null,
+      activeTripId: tripId,
+      // El viaje ya fue creado por REST; aunque el socket tarde o falle
+      // transitoriamente, la UI debe permanecer en "buscando conductor" y la
+      // sincronización REST puede seguir recuperando cambios de estado.
+      status: state.status ?? 'searching',
+      quote: quote ?? state.quote,
+    );
     if (kDebugMode) {
       debugPrint('[PASSENGER_RT] Conectando Socket.IO para tripId=$tripId');
     }

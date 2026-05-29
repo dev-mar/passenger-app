@@ -1,6 +1,6 @@
 /// Configuración centralizada: un solo host `app_texi_WebSocket` (mismo que conductor).
 ///
-/// Override: `--dart-define=TEXI_BACKEND_BASE_URL=https://bk-websockets-pre-prod.taxitexi.com`
+/// Override: `--dart-define=TEXI_BACKEND_BASE_URL=https://api.dev.taxitexi.com`
 class AppConfig {
   AppConfig._();
 
@@ -14,7 +14,7 @@ class AppConfig {
   /// Origen HTTPS del backend (sin path de API).
   static const String backendBaseUrl = String.fromEnvironment(
     'TEXI_BACKEND_BASE_URL',
-    defaultValue: 'https://bk-websockets-pre-prod.taxitexi.com',
+    defaultValue: 'https://api.dev.taxitexi.com',
   );
 
   /// REST de autenticación pasajero bajo `/api/v2`.

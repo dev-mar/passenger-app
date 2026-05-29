@@ -129,6 +129,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
     this.cancelQuoteDraftLabel,
     this.onCancelQuoteDraft,
     this.showSeePricesButton = true,
+    this.showQuickPickSearch = true,
   });
 
   final ScrollController? scrollController;
@@ -177,6 +178,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
   final String? cancelQuoteDraftLabel;
   final VoidCallback? onCancelQuoteDraft;
   final bool showSeePricesButton;
+  final bool showQuickPickSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +264,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 onSearch: onOriginSearch,
                 onMap: onOriginPickOnMap,
                 onSavedPlaces: onManageSavedOrigin,
+                showSearch: showQuickPickSearch,
                 gpsLabel: 'Tu ubicación',
               ),
               ...[
@@ -323,6 +326,7 @@ class TripBottomRequestCardContent extends StatelessWidget {
                 onSearch: onDestinationSearch,
                 onMap: onDestinationPickOnMap,
                 onSavedPlaces: onManageSavedDestination,
+                showSearch: showQuickPickSearch,
                 gpsLabel: 'Tu ubicación',
               ),
               ...[

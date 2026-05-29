@@ -1,14 +1,13 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_service.dart';
+import 'passenger_profile_photo_helper.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/theme/app_colors.dart';
@@ -19,15 +18,6 @@ import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
-
-const bool kPassengerSelfieCropEnabled = bool.fromEnvironment(
-  'PASSENGER_SELFIE_CROP_ENABLED',
-  // Backward compatibility con builds que ya usan SELFIE_CROP_ENABLED.
-  defaultValue: bool.fromEnvironment(
-    'SELFIE_CROP_ENABLED',
-    defaultValue: true,
-  ),
-);
 
 /// Tercera pantalla del onboarding:
 /// - Nombre obligatorio
@@ -67,38 +57,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     ),
   );
 
-  final ImagePicker _picker = ImagePicker();
-
-  Future<String> _maybeCropSelfiePath(BuildContext context, String sourcePath) async {
-    final l10n = AppLocalizations.of(context)!;
-    try {
-      final cropped = await ImageCropper().cropImage(
-        sourcePath: sourcePath,
-        compressFormat: ImageCompressFormat.jpg,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: l10n.profilePhotoCropTitle,
-            hideBottomControls: true,
-            lockAspectRatio: true,
-            initAspectRatio: CropAspectRatioPreset.square,
-            aspectRatioPresets: const [CropAspectRatioPreset.square],
-          ),
-          IOSUiSettings(
-            title: l10n.profilePhotoCropTitle,
-            aspectRatioLockEnabled: true,
-            aspectRatioPickerButtonHidden: true,
-            resetAspectRatioEnabled: false,
-          ),
-        ],
-      );
-      if (cropped == null) return sourcePath;
-      return cropped.path;
-    } catch (_) {
-      // No-breaking: si crop falla/cancela, se mantiene foto original.
-      return sourcePath;
-    }
-  }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -108,31 +66,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
   Future<void> _pickProfilePhoto(ImageSource source) async {
     try {
-      final xfile = await _picker.pickImage(
-        source: source,
-        imageQuality: 40,
-        maxWidth: 256,
-      );
-      if (xfile == null) return;
+      final outcome = await pickPassengerProfilePhoto(context, source);
       if (!mounted) return;
-
-      final selfiePath = kPassengerSelfieCropEnabled
-          ? await _maybeCropSelfiePath(context, xfile.path)
-          : xfile.path;
-      final bytes = await XFile(selfiePath).readAsBytes();
-      // Limitar tamaño para evitar 502 por payload muy grande (Base64).
-      // 350KB binario aprox → ~470KB base64.
-      if (bytes.lengthInBytes > 350 * 1024) {
-        if (!mounted) return;
+      if (outcome.tooLarge) {
         setState(() {
           _errorMessage = AppLocalizations.of(context)!.profilePhotoTooLarge;
         });
         return;
       }
-      final base64 = base64Encode(bytes);
+      final picked = outcome.result;
+      if (picked == null) return;
       setState(() {
-        _profileImageBytes = bytes;
-        _profileImageBase64 = base64;
+        _profileImageBytes = picked.bytes;
+        _profileImageBase64 = picked.base64;
         _errorMessage = null;
       });
     } catch (_) {

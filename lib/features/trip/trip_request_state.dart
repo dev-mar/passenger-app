@@ -75,6 +75,15 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
     state = state.copyWith(quote: quote, selectedOption: null).clearError();
   }
 
+  /// Limpia cotización y opción (p. ej. al recalcular ruta en el borrador).
+  void clearQuote() {
+    state = TripRequestState(
+      origin: state.origin,
+      destination: state.destination,
+      tripId: state.tripId,
+    );
+  }
+
   void selectOption(QuoteOption option) {
     state = state.copyWith(selectedOption: option);
   }

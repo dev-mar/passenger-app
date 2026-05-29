@@ -37,6 +37,7 @@ dependencies:
   # Foto de perfil (cámara/galería) para el flujo de registro.
   image_picker: ^1.2.1
   image_cropper: ^9.1.0
+  flutter_image_compress: ^2.3.0
 
   # Navegación
   go_router: ^14.6.2

@@ -154,6 +154,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripSearchingAddress => 'Searching...';
 
   @override
+  String get tripDraftSearchHint => 'Search street, area or place';
+
+  @override
+  String get tripDraftNoRecentPlaces => 'No recent places yet for this stop';
+
+  @override
+  String get tripDraftQuoting => 'Getting prices…';
+
+  @override
+  String get tripDraftCloseMapPicker => 'Close and search or adjust on the map';
+
+  @override
+  String get tripDraftCalculatingRoute => 'Calculating the route on the map…';
+
+  @override
+  String get tripDraftEditStop => 'Edit';
+
+  @override
+  String get tripSecureChat => 'Secure chat';
+
+  @override
   String get tripNoCoverageInZone =>
       'We don\'t have service coverage in this area at the moment. Try another location or move to a service zone.';
 
@@ -193,6 +214,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchingSubtitle => 'We are finding the best option for you';
+
+  @override
+  String get tripSearchingPatienceHint =>
+      'Still no nearby driver; we\'re still searching.';
+
+  @override
+  String get tripSearchingLongWaitTitle => 'Still waiting?';
+
+  @override
+  String get tripSearchingLongWaitBody =>
+      'Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.';
+
+  @override
+  String get tripSearchingKeepWaitingCta => 'Keep searching';
 
   @override
   String get tripConnectionError =>
@@ -340,6 +375,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tripMapAdjustDestinationHint =>
       'Adjust the map to set your destination';
+
+  @override
+  String get tripMapPinHintOriginShort => 'Pickup — move map, then confirm';
+
+  @override
+  String get tripMapPinHintDestShort => 'Destination — move map, then confirm';
+
+  @override
+  String get tripMapPinSearchInstead => 'Search';
+
+  @override
+  String get tripDraftSaveOriginShortcut => 'Save pickup to favorites';
+
+  @override
+  String get tripDraftSaveDestinationShortcut =>
+      'Save destination to favorites';
 
   @override
   String get tripRequireGpsForRequest =>

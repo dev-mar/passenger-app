@@ -57,6 +57,13 @@
   "tripWhereTo": "¿A dónde vas?",
   "tripSearchError": "No se encontró la dirección",
   "tripSearchingAddress": "Buscando...",
+  "tripDraftSearchHint": "Buscar calle, barrio o lugar",
+  "tripDraftNoRecentPlaces": "Aún no hay lugares recientes para este punto",
+  "tripDraftQuoting": "Obteniendo precios…",
+  "tripDraftCloseMapPicker": "Cerrar y buscar o ajustar en el mapa",
+  "tripDraftCalculatingRoute": "Calculando la ruta en el mapa…",
+  "tripDraftEditStop": "Editar",
+  "tripSecureChat": "Chat seguro",
   "tripNoCoverageInZone": "No tenemos cobertura del servicio en esta zona por el momento. Prueba en otra ubicación o acércate a una zona de servicio.",
   "tripNoDriversAvailable": "No hay conductores disponibles en este momento. Intenta de nuevo en unos instantes.",
   "tripNext": "Siguiente",
@@ -70,6 +77,19 @@
   "confirmRequestRide": "Solicitar viaje",
   "searchingTitle": "Buscando conductor",
   "searchingSubtitle": "Estamos encontrando la mejor opción para ti",
+  "tripSearchingPatienceHint": "Aún no hay conductor cerca; seguimos buscando.",
+  "@tripSearchingPatienceHint": {
+    "description": "Mensaje no bloqueante tras ~60s en overlay de búsqueda de conductor."
+  },
+  "tripSearchingLongWaitTitle": "¿Sigues esperando?",
+  "tripSearchingLongWaitBody": "Encontrar conductor puede tardar un poco más. Puedes seguir esperando o cancelar esta solicitud abajo. «Seguir buscando» comprueba tu conexión con el servicio; el pedido sigue activo.",
+  "@tripSearchingLongWaitBody": {
+    "description": "Tarjeta opcional tras ~90s; no bloquea el mapa."
+  },
+  "tripSearchingKeepWaitingCta": "Seguir buscando",
+  "@tripSearchingKeepWaitingCta": {
+    "description": "Cierra el aviso largo y dispara refresco suave (sync REST / socket)."
+  },
   "tripConnectionError": "No se pudo conectar para recibir actualizaciones del viaje. Revisa tu conexión.",
   "tripRbacForbidden": "Tu cuenta no tiene permiso para esta acción en viajes. Si sigue ocurriendo, cierra sesión y vuelve a entrar, o contacta a soporte.",
   "tripRbacSession": "No pudimos validar tu sesión. Cierra sesión y vuelve a iniciar sesión.",
@@ -136,6 +156,11 @@
   "tripSavedPlaceDeleteCta": "Eliminar",
   "tripMapAdjustPickupHint": "Ajusta el mapa para definir tu punto de partida",
   "tripMapAdjustDestinationHint": "Ajusta el mapa para definir tu destino",
+  "tripMapPinHintOriginShort": "Partida: mueve el mapa y confirma",
+  "tripMapPinHintDestShort": "Destino: mueve el mapa y confirma",
+  "tripMapPinSearchInstead": "Buscar",
+  "tripDraftSaveOriginShortcut": "Guardar partida en favoritos",
+  "tripDraftSaveDestinationShortcut": "Guardar destino en favoritos",
   "tripRequireGpsForRequest": "Necesitamos tu ubicación real (GPS activo y permiso) para solicitar un viaje. Revisa el GPS y los permisos de ubicación.",
   "tripConfirmOriginFirst": "Primero confirma el origen.",
   "tripConfirmOrigin": "Confirmar origen",

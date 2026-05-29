@@ -12,10 +12,10 @@ abstract final class TripRouteTrackingPolicy {
   static const int directionsCacheCoordinateDecimals = 4;
 
   /// Anti-ráfaga: tiempo mínimo entre recálculos de ruta al mover el vehículo.
-  static const Duration mapRouteRefreshDebounce = Duration(milliseconds: 280);
+  static const Duration mapRouteRefreshDebounce = Duration(milliseconds: 420);
 
   /// Mínimo entre recentrados automáticos (bounds conductor–objetivo inmediato).
-  static const Duration navigationCameraMinGap = Duration(milliseconds: 700);
+  static const Duration navigationCameraMinGap = Duration(milliseconds: 1000);
 
   /// Timeout de una petición Directions en mapa de viaje; fallo → fallback local.
   static const Duration directionsRequestTimeout = Duration(seconds: 4);

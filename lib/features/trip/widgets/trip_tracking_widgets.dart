@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -13,12 +15,37 @@ class TripSearchingDriverOverlay extends StatefulWidget {
     required this.searchingTitle,
     required this.searchingSubtitle,
     required this.cancelLabel,
+    this.searchingPatienceHint,
+    this.searchingLongWaitTitle,
+    this.searchingLongWaitBody,
+    this.keepSearchingLabel,
+    this.onKeepSearching,
   });
+
+  /// Tras este tiempo se muestra un texto de calma adicional (no modal).
+  static const Duration patienceAt = Duration(seconds: 60);
+
+  /// Tras este tiempo se muestra tarjeta informativa con CTA «Seguir buscando».
+  static const Duration longWaitAt = Duration(seconds: 90);
 
   final VoidCallback onCancel;
   final String searchingTitle;
   final String searchingSubtitle;
   final String cancelLabel;
+
+  /// ~60 s: mensaje secundario bajo el subtítulo.
+  final String? searchingPatienceHint;
+
+  /// ~90 s: título de la tarjeta de espera prolongada.
+  final String? searchingLongWaitTitle;
+
+  /// ~90 s: cuerpo de la tarjeta (cancelar sigue disponible abajo).
+  final String? searchingLongWaitBody;
+
+  final String? keepSearchingLabel;
+
+  /// Refresco suave: sync REST y reconexión socket si hace falta (padre).
+  final VoidCallback? onKeepSearching;
 
   @override
   State<TripSearchingDriverOverlay> createState() =>
@@ -28,6 +55,11 @@ class TripSearchingDriverOverlay extends StatefulWidget {
 class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  Timer? _patienceTimer;
+  Timer? _longWaitTimer;
+  bool _showPatience = false;
+  bool _showLongWait = false;
+  bool _longWaitDismissed = false;
 
   @override
   void initState() {
@@ -36,10 +68,26 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
       vsync: this,
       duration: AppDurations.searchingPulse,
     )..repeat();
+    if (widget.searchingPatienceHint != null &&
+        widget.searchingPatienceHint!.trim().isNotEmpty) {
+      _patienceTimer = Timer(TripSearchingDriverOverlay.patienceAt, () {
+        if (!mounted) return;
+        setState(() => _showPatience = true);
+      });
+    }
+    if (widget.searchingLongWaitBody != null &&
+        widget.searchingLongWaitBody!.trim().isNotEmpty) {
+      _longWaitTimer = Timer(TripSearchingDriverOverlay.longWaitAt, () {
+        if (!mounted) return;
+        setState(() => _showLongWait = true);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _patienceTimer?.cancel();
+    _longWaitTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -141,6 +189,77 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
               ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
+            if (_showPatience &&
+                widget.searchingPatienceHint != null &&
+                widget.searchingPatienceHint!.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                widget.searchingPatienceHint!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            if (_showLongWait &&
+                !_longWaitDismissed &&
+                widget.searchingLongWaitBody != null &&
+                widget.searchingLongWaitBody!.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (widget.searchingLongWaitTitle != null &&
+                        widget.searchingLongWaitTitle!.trim().isNotEmpty)
+                      Text(
+                        widget.searchingLongWaitTitle!,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.2,
+                            ),
+                      ),
+                    if (widget.searchingLongWaitTitle != null &&
+                        widget.searchingLongWaitTitle!.trim().isNotEmpty)
+                      const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      widget.searchingLongWaitBody!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.35,
+                          ),
+                    ),
+                    if (widget.keepSearchingLabel != null &&
+                        widget.keepSearchingLabel!.trim().isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TexiScalePress(
+                          minScale: 0.98,
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() => _longWaitDismissed = true);
+                              widget.onKeepSearching?.call();
+                            },
+                            child: Text(widget.keepSearchingLabel!),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.section),
             SizedBox(
               width: double.infinity,
@@ -273,6 +392,7 @@ class TripStatusCard extends StatelessWidget {
     this.finishedCloseLabel,
     this.onOpenChat,
     this.chatLabel,
+    this.unreadChatCount = 0,
   });
 
   final String status;
@@ -301,6 +421,7 @@ class TripStatusCard extends StatelessWidget {
   final String? finishedCloseLabel;
   final VoidCallback? onOpenChat;
   final String? chatLabel;
+  final int unreadChatCount;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -519,171 +640,106 @@ class TripStatusCard extends StatelessWidget {
                 border: Border.all(color: accent.withValues(alpha: 0.22)),
               ),
               child: hasDriverInfo
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Builder(
-                          builder: (context) {
-                            final hasDriverBlock =
-                                (driverName != null &&
-                                    driverName!.isNotEmpty) ||
-                                (driverPhotoUrl != null &&
-                                    driverPhotoUrl!.isNotEmpty);
-                            final hasVehicleBlock =
-                                (carModel != null && carModel!.isNotEmpty) ||
-                                (carColor != null && carColor!.isNotEmpty) ||
-                                (carPlate != null && carPlate!.isNotEmpty);
-                            if (hasDriverBlock && hasVehicleBlock) {
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 118,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        DriverAvatarPremium(
-                                          displayName: driverName ?? '',
-                                          photoUrl: driverPhotoUrl,
-                                          showRefreshingRing:
-                                              showAvatarRefreshingRing,
-                                          size: AppSizes.avatarTripStatus,
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                        Text(
-                                          (driverName != null &&
-                                                  driverName!.isNotEmpty)
-                                              ? driverName!
-                                              : driverAssignedLabel,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (driverRating != null) ...[
-                                          const SizedBox(height: AppSpacing.xs),
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.star_rounded,
-                                                size: AppIconSizes.sm,
-                                                color: AppColors.primary,
-                                              ),
-                                              const SizedBox(
-                                                width: AppSpacing.xs,
-                                              ),
-                                              Text(
-                                                driverRating!.toStringAsFixed(
-                                                  1,
+                  ? Builder(
+                      builder: (context) {
+                        final resolvedDriverName =
+                            (driverName != null && driverName!.isNotEmpty)
+                            ? driverName!
+                            : driverAssignedLabel;
+                        final resolvedModel =
+                            (carModel != null && carModel!.trim().isNotEmpty)
+                            ? carModel!.trim()
+                            : '-';
+                        final resolvedPlate =
+                            (carPlate != null && carPlate!.trim().isNotEmpty)
+                            ? carPlate!.trim()
+                            : '-';
+                        final resolvedColor =
+                            (carColor != null && carColor!.trim().isNotEmpty)
+                            ? carColor!.trim()
+                            : '-';
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                DriverAvatarPremium(
+                                  displayName: resolvedDriverName,
+                                  photoUrl: driverPhotoUrl,
+                                  showRefreshingRing: showAvatarRefreshingRing,
+                                  size: 56,
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        resolvedDriverName,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.star_rounded,
+                                            size: AppIconSizes.md,
+                                            color: AppColors.primary,
+                                          ),
+                                          const SizedBox(width: AppSpacing.xs),
+                                          Text(
+                                            driverRating != null
+                                                ? driverRating!.toStringAsFixed(
+                                                    1,
+                                                  )
+                                                : '-',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                  fontWeight: FontWeight.w700,
                                                 ),
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                              ),
-                                            ],
                                           ),
                                         ],
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: AppSpacing.xl),
-                                  Expanded(
-                                    child: _VehicleInfoBlock(
-                                      carModel: carModel,
-                                      carColor: carColor,
-                                      carPlate: carPlate,
-                                      colorDot: _carColorDotColor(carColor),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }
-                            if (hasDriverBlock) {
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  DriverAvatarPremium(
-                                    displayName: driverName ?? '',
-                                    photoUrl: driverPhotoUrl,
-                                    showRefreshingRing:
-                                        showAvatarRefreshingRing,
-                                    size: AppSizes.avatarTripStatus,
-                                  ),
-                                  const SizedBox(width: AppSpacing.xxl),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          (driverName != null &&
-                                                  driverName!.isNotEmpty)
-                                              ? driverName!
-                                              : driverAssignedLabel,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                        ),
-                                        if (driverRating != null) ...[
-                                          const SizedBox(height: AppSpacing.xs),
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.star_rounded,
-                                                size: AppIconSizes.sm,
-                                                color: AppColors.primary,
-                                              ),
-                                              const SizedBox(
-                                                width: AppSpacing.xs,
-                                              ),
-                                              Text(
-                                                driverRating!.toStringAsFixed(
-                                                  1,
-                                                ),
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }
-                            return _VehicleInfoBlock(
-                              carModel: carModel,
-                              carColor: carColor,
-                              carPlate: carPlate,
-                              colorDot: _carColorDotColor(carColor),
-                            );
-                          },
-                        ),
-                      ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Wrap(
+                              spacing: AppSpacing.sm,
+                              runSpacing: AppSpacing.sm,
+                              children: [
+                                _VehiclePill(
+                                  icon: Icons.directions_car_rounded,
+                                  text: resolvedModel,
+                                ),
+                                _VehiclePill(
+                                  icon: Icons.style_rounded,
+                                  text: resolvedPlate,
+                                ),
+                                _VehiclePill(
+                                  icon: Icons.palette_rounded,
+                                  text: resolvedColor,
+                                  colorDot: _carColorDotColor(carColor),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
                     )
                   : Row(
                       children: [
@@ -780,7 +836,9 @@ class TripStatusCard extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: onOpenChat,
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  icon: unreadChatCount > 0
+                      ? _ChatUnreadBell(count: unreadChatCount)
+                      : const Icon(Icons.chat_bubble_outline_rounded),
                   label: Text(chatLabel ?? 'Chat de viaje'),
                 ),
               ),
@@ -807,89 +865,82 @@ class TripStatusCard extends StatelessWidget {
   }
 }
 
-class _VehicleInfoBlock extends StatelessWidget {
-  const _VehicleInfoBlock({
-    required this.carModel,
-    required this.carColor,
-    required this.carPlate,
-    required this.colorDot,
-  });
+class _VehiclePill extends StatelessWidget {
+  const _VehiclePill({required this.icon, required this.text, this.colorDot});
 
-  final String? carModel;
-  final String? carColor;
-  final String? carPlate;
+  final IconData icon;
+  final String text;
   final Color? colorDot;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: AppIconSizes.sm, color: AppColors.textSecondary),
+          const SizedBox(width: AppSpacing.xs),
+          if (colorDot != null) ...[
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                color: colorDot,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+          ],
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatUnreadBell extends StatelessWidget {
+  const _ChatUnreadBell({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.directions_car_rounded,
-              size: AppIconSizes.md,
-              color: AppColors.textSecondary,
+        const Icon(Icons.mark_chat_unread_rounded, size: AppIconSizes.lg),
+        Positioned(
+          right: -6,
+          top: -6,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: AppColors.error,
+              borderRadius: BorderRadius.circular(999),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                (carModel != null && carModel!.isNotEmpty) ? carModel! : '-',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.fade,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.xs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (carColor != null && carColor!.isNotEmpty)
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (colorDot != null) ...[
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: colorDot,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.border.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                  ],
-                  Text(
-                    carColor!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            if (carPlate != null && carPlate!.isNotEmpty)
-              Text(
-                carPlate!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-          ],
+          ),
         ),
       ],
     );

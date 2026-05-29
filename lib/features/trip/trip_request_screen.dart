@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:battery_plus/battery_plus.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/auth/auth_service.dart';
@@ -37,7 +37,6 @@ import '../../core/storage/trip_session_storage.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import 'trip_request_state.dart';
-import 'passenger_active_trip_guard.dart';
 import 'passenger_realtime_controller.dart'
     show
         PassengerRealtimeState,
@@ -45,6 +44,10 @@ import 'passenger_realtime_controller.dart'
         displayDriverName,
         passengerTripChatPhaseActive;
 import 'trip_recovery_feedback.dart';
+import 'passenger_trip_submit_helper.dart';
+import 'widgets/passenger_rating_sheet.dart';
+import 'widgets/passenger_trip_draft_bottom_bar.dart';
+import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/quote_bottom_sheet_widgets.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
@@ -52,8 +55,30 @@ import 'trip_driver_marker.dart';
 
 /// Ajustes GPS para recogida: alta precisión y sin filtro de distancia para
 /// acercar el pin amarillo al punto azul del sistema cuando el GPS ya tiene fix.
-LocationSettings _passengerPickupLocationSettings() =>
-    const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 0);
+///
+/// En Android, `timeLimit` nativo (como en la app conductor) evita que Fused
+/// Location se quede colgado sin callback cuando el fix tarda o el chip está
+/// inestable; el `Future.timeout` de Dart no siempre corta el lado nativo a tiempo.
+LocationSettings _passengerPickupLocationSettings() {
+  if (kIsWeb) {
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+    );
+  }
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return AndroidSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 0,
+      timeLimit: const Duration(seconds: 12),
+    );
+  }
+  return const LocationSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 0,
+    timeLimit: Duration(seconds: 12),
+  );
+}
 
 /// Pantalla unificada: Origen, destino y precios en la misma ventana.
 /// Si originLat/originLng son null, se obtiene la ubicación actual al abrir.
@@ -70,7 +95,7 @@ class TripRequestScreen extends ConsumerStatefulWidget {
 enum ActiveStop { none, origin, destination }
 
 class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   GoogleMapController? _controller;
   final GlobalKey _needleRenderKey = GlobalKey();
   final BitmapDescriptor _originFallbackIcon =
@@ -90,8 +115,6 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   /// Reinicio suave de la capa nativa del puntito azul (útil tras cold start con viaje restaurado).
   bool _mapMyLocationDotEnabled = true;
-  // Cuando el destino es null, forzamos una confirmación explícita del origen
-  // para que el flujo siga el comportamiento requerido (Uber/Lyft-style).
   bool _originConfirmed = false;
   bool _pickingOrigin = false;
   bool _pickingDestination = false;
@@ -119,6 +142,77 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   Timer? _destinationSearchDebounce;
   String _originPlacesSessionToken = '';
   String _destinationPlacesSessionToken = '';
+  final TextEditingController _draftSearchController = TextEditingController();
+  final FocusNode _draftSearchFocus = FocusNode();
+
+  /// Cache para filtrar el listener del FocusNode y rebuildear solo cuando el focus cambia.
+  bool _lastDraftSearchFocusState = false;
+  Timer? _draftSearchDebounce;
+
+  /// En borrador con origen y destino ya fijados, fuerza búsqueda/GPS/guardados hacia un punto al editar.
+  PassengerDraftEditTarget _draftEditTarget = PassengerDraftEditTarget.none;
+
+  /// Origen hasta `_originConfirmed`; después destino salvo que se esté editando un punto concreto.
+  PassengerDraftSearchRole get _draftSearchPhase {
+    if (_draftEditTarget == PassengerDraftEditTarget.origin) {
+      return PassengerDraftSearchRole.origin;
+    }
+    if (_draftEditTarget == PassengerDraftEditTarget.destination) {
+      return PassengerDraftSearchRole.destination;
+    }
+    return _originConfirmed
+        ? PassengerDraftSearchRole.destination
+        : PassengerDraftSearchRole.origin;
+  }
+
+  /// Oculta buscador + acciones cuando ya hay origen y destino (salvo modo edición).
+  bool get _draftLocationSearchChromeVisible {
+    if (!_originConfirmed) return true;
+    if (_destination == null) return true;
+    if (_draftEditTarget != PassengerDraftEditTarget.none) return true;
+    return false;
+  }
+
+  /// Texto del slot de origen en la cabecera. Si estamos moviendo el pin para
+  /// confirmar (`_pickingOrigin`), inyectamos la previsualización en vivo
+  /// (`_mapNeedleAddressPreview`) para que la dirección apuntada se vea ahí
+  /// mismo y, al confirmar, quede directamente persistida sin saltos visuales.
+  String _resolveDraftOriginDisplayLine(AppLocalizations l10n) {
+    if (_pickingOrigin || _draftEditTarget == PassengerDraftEditTarget.origin) {
+      final preview = _mapNeedleAddressPreview?.trim();
+      if (preview != null && preview.isNotEmpty) return preview;
+    }
+    return _originDisplayLabel ?? l10n.tripYourLocation;
+  }
+
+  /// Texto del slot de destino. Mientras se está apuntando con el pin, también
+  /// usamos `_mapNeedleAddressPreview` para mostrar la dirección en tiempo real.
+  String _resolveDraftDestinationDisplayLine(AppLocalizations l10n) {
+    final isPickingDest =
+        _pickingDestination ||
+        (_originConfirmed &&
+            _destination == null &&
+            _activeStop == ActiveStop.none) ||
+        _draftEditTarget == PassengerDraftEditTarget.destination;
+    if (isPickingDest) {
+      final preview = _mapNeedleAddressPreview?.trim();
+      if (preview != null && preview.isNotEmpty) return preview;
+    }
+    if (_destination != null) {
+      return _destinationDisplayLabel ??
+          '${_destination!.latitude.toStringAsFixed(4)}, ${_destination!.longitude.toStringAsFixed(4)}';
+    }
+    return l10n.tripTapMapDestination;
+  }
+
+  List<PlaceSuggestion> _draftSuggestions = const <PlaceSuggestion>[];
+  bool _loadingDraftSuggestions = false;
+  String _draftPlacesSessionToken = '';
+  Timer? _mapConfirmIdleTimer;
+  bool _mapConfirmInstructionHiddenWhileDragging = false;
+  String? _mapNeedleAddressPreview;
+  int _autoQuoteRouteGeneration = 0;
+  bool _submittingTrip = false;
   List<TripRecentPlaceItem> _recentOriginPlaces = const <TripRecentPlaceItem>[];
   List<TripRecentPlaceItem> _recentDestinationPlaces =
       const <TripRecentPlaceItem>[];
@@ -155,6 +249,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   /// `true` mientras el bottom sheet del chat está visible (para cerrarlo al cambiar fase del viaje).
   bool _tripChatSheetDisplayed = false;
   int _lastHandledTripChatOpenBump = 0;
+  int _tripChatUnreadCount = 0;
+  int _tripChatReadCursor = 0;
+  late final AnimationController _chatAttentionController;
 
   // Resiliencia: si falta el último evento por WebSocket (p. ej. driver finaliza offline),
   // refrescamos el status vía REST cada cierto tiempo.
@@ -202,13 +299,108 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 ''';
   static const int _lowBatteryThresholdPercent = 20;
 
-  void _requireOriginConfirmation() {
+  void _notifyDraftSearchCollapsedAfterBothStops() {
+    if (!_originConfirmed || _destination == null) return;
+    final hadExpandedChrome = _draftLocationSearchChromeVisible;
+    if (hadExpandedChrome) {
+      TexiUiFeedback.softImpact();
+    }
+    _draftSearchFocus.unfocus();
+    _draftSearchController.clear();
+    _afterDraftLocationPicked();
+    if (!mounted) return;
     setState(() {
-      _originConfirmed = false;
-      _activeStop = ActiveStop.none;
+      _draftEditTarget = PassengerDraftEditTarget.none;
+    });
+  }
+
+  void _onDraftEditOriginPressed() {
+    TexiUiFeedback.lightTap();
+    if (!mounted) return;
+    final o = _origin;
+    if (o == null) return;
+    _mapConfirmIdleTimer?.cancel();
+    _draftSearchFocus.unfocus();
+    setState(() {
+      _draftEditTarget = PassengerDraftEditTarget.origin;
       _pickingOrigin = true;
       _pickingDestination = false;
-      _mapCenter = _origin ?? _mapCenter;
+      _activeStop = ActiveStop.none;
+      _mapCenter = o;
+      _mapConfirmInstructionHiddenWhileDragging = false;
+      _mapNeedleAddressPreview = _originDisplayLabel;
+    });
+    _controller?.animateCamera(CameraUpdate.newLatLngZoom(o, 16));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_refreshNeedlePreviewFromMapCenter());
+    });
+  }
+
+  void _onDraftEditDestinationPressed() {
+    TexiUiFeedback.lightTap();
+    if (!mounted) return;
+    final d = _destination;
+    if (d == null) return;
+    _mapConfirmIdleTimer?.cancel();
+    _draftSearchFocus.unfocus();
+    setState(() {
+      _draftEditTarget = PassengerDraftEditTarget.destination;
+      _pickingDestination = true;
+      _pickingOrigin = false;
+      _activeStop = ActiveStop.none;
+      _mapCenter = d;
+      _mapConfirmInstructionHiddenWhileDragging = false;
+      _mapNeedleAddressPreview = _destinationDisplayLabel;
+    });
+    _controller?.animateCamera(CameraUpdate.newLatLngZoom(d, 16));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_refreshNeedlePreviewFromMapCenter());
+    });
+  }
+
+  bool _computeIsDraftMapConfirmMode() {
+    final tripId = ref.read(tripRequestProvider).tripId;
+    if (tripId != null) return false;
+    final needsOriginConfirm =
+        !_originConfirmed &&
+        _destination == null &&
+        !_pickingOrigin &&
+        !_pickingDestination;
+    final needsDestinationConfirm =
+        _originConfirmed &&
+        _destination == null &&
+        !_pickingOrigin &&
+        !_pickingDestination;
+    final needsAnyMapConfirm = needsOriginConfirm || needsDestinationConfirm;
+    return _activeStop == ActiveStop.none &&
+        (_pickingOrigin || _pickingDestination || needsAnyMapConfirm);
+  }
+
+  void _onCameraIdleForMapConfirm() {
+    if (!_computeIsDraftMapConfirmMode()) return;
+    _mapConfirmIdleTimer?.cancel();
+    _mapConfirmIdleTimer = Timer(const Duration(milliseconds: 260), () {
+      if (!mounted || !_computeIsDraftMapConfirmMode()) return;
+      setState(() {
+        _mapConfirmInstructionHiddenWhileDragging = false;
+      });
+      unawaited(_refreshNeedlePreviewFromMapCenter());
+    });
+  }
+
+  Future<void> _refreshNeedlePreviewFromMapCenter() async {
+    final center = _mapCenter;
+    if (center == null || !_computeIsDraftMapConfirmMode()) return;
+    final label = await _geocoding.reverseGeocodeStreet(
+      lat: center.latitude,
+      lng: center.longitude,
+    );
+    if (!mounted || !_computeIsDraftMapConfirmMode()) return;
+    setState(() {
+      final t = label?.trim();
+      _mapNeedleAddressPreview = (t != null && t.isNotEmpty) ? t : null;
     });
   }
 
@@ -292,6 +484,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       _routePoints = null;
       _loadingOrigin = false;
       _originError = null;
+      _draftEditTarget = PassengerDraftEditTarget.none;
     });
 
     ref
@@ -504,6 +697,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         _pickingOrigin = false;
         _pickingDestination = false;
         _error = null;
+        _draftEditTarget = PassengerDraftEditTarget.none;
         if (_origin != null) {
           // Para el siguiente viaje, empezamos forzando confirmación del origen.
           _pickingOrigin = true;
@@ -538,6 +732,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       _error = null;
       _loading = false;
       _activeStop = ActiveStop.none;
+      _draftEditTarget = PassengerDraftEditTarget.none;
       if (_origin != null) {
         _pickingOrigin = true;
       }
@@ -561,7 +756,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => _PassengerRatingSheetContent(
+      builder: (ctx) => PassengerRatingSheetContent(
         driverName: displayDriverName(driverName, l10n.tripDriverNameFallback),
         title: l10n.tripRateDriver,
         subtitle: l10n.tripRateDriverSubtitle,
@@ -630,6 +825,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     }
 
     _tripChatSheetDisplayed = true;
+    _markTripChatAsRead();
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -976,7 +1172,87 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       );
     } finally {
       _tripChatSheetDisplayed = false;
+      _markTripChatAsRead();
       textController.dispose();
+    }
+  }
+
+  void _markTripChatAsRead() {
+    final total = ref.read(passengerRealtimeProvider).chatMessages.length;
+    if (!mounted) {
+      _tripChatUnreadCount = 0;
+      _tripChatReadCursor = total;
+      return;
+    }
+    setState(() {
+      _tripChatUnreadCount = 0;
+      _tripChatReadCursor = total;
+    });
+    if (_chatAttentionController.isAnimating) {
+      _chatAttentionController.stop();
+      _chatAttentionController.value = 0;
+    }
+  }
+
+  void _syncTripUnreadCounter(PassengerRealtimeState previous, PassengerRealtimeState next) {
+    final prevTripId = previous.activeTripId;
+    final nextTripId = next.activeTripId;
+    final prevLen = previous.chatMessages.length;
+    final nextLen = next.chatMessages.length;
+
+    if (nextTripId == null || nextTripId.isEmpty || nextLen == 0) {
+      if (_tripChatUnreadCount != 0 || _tripChatReadCursor != 0) {
+        setState(() {
+          _tripChatUnreadCount = 0;
+          _tripChatReadCursor = 0;
+        });
+      }
+      if (_chatAttentionController.isAnimating) {
+        _chatAttentionController.stop();
+        _chatAttentionController.value = 0;
+      }
+      return;
+    }
+
+    // Cambio de viaje o limpieza del historial en provider: reiniciar contador.
+    if (prevTripId != nextTripId || nextLen < prevLen || _tripChatReadCursor > nextLen) {
+      setState(() {
+        _tripChatUnreadCount = 0;
+        _tripChatReadCursor = nextLen;
+      });
+      if (_chatAttentionController.isAnimating) {
+        _chatAttentionController.stop();
+        _chatAttentionController.value = 0;
+      }
+      return;
+    }
+
+    if (_tripChatSheetDisplayed) {
+      if (_tripChatUnreadCount != 0 || _tripChatReadCursor != nextLen) {
+        setState(() {
+          _tripChatUnreadCount = 0;
+          _tripChatReadCursor = nextLen;
+        });
+      }
+      return;
+    }
+
+    if (nextLen <= _tripChatReadCursor) return;
+    var incomingFromDriver = 0;
+    for (var i = _tripChatReadCursor; i < nextLen; i++) {
+      final msg = next.chatMessages[i];
+      if (msg.senderRole != 'passenger') incomingFromDriver++;
+    }
+    if (incomingFromDriver <= 0) {
+      setState(() => _tripChatReadCursor = nextLen);
+      return;
+    }
+    setState(() {
+      _tripChatUnreadCount += incomingFromDriver;
+      _tripChatReadCursor = nextLen;
+    });
+    if (!_chatAttentionController.isAnimating) {
+      _chatAttentionController.repeat(reverse: true);
     }
   }
 
@@ -1006,27 +1282,48 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   void initState() {
     super.initState();
     _appInForeground = true;
+    // Pulse del marcador del conductor: NO arrancamos el repeat aquí. Se enciende
+    // cuando aparece `_animatedDriverLatLng` (viaje aceptado/arrived/started/in_trip)
+    // y se detiene al limpiarlo. Evita ~60fps de setState durante el borrador.
     _driverPulseController =
         AnimationController(
-            vsync: this,
-            duration: const Duration(milliseconds: 1150),
-          )
-          ..addListener(() {
-            if (!mounted) return;
-            if (_animatedDriverLatLng == null) return;
-            setState(() {});
-          })
-          ..repeat(reverse: true);
+          vsync: this,
+          duration: const Duration(milliseconds: 1150),
+        )..addListener(() {
+          if (!mounted) return;
+          if (_animatedDriverLatLng == null) return;
+          setState(() {});
+        });
+    _chatAttentionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1350),
+    )..addListener(() {
+      if (!mounted) return;
+      if (_tripChatUnreadCount <= 0) return;
+      setState(() {});
+    });
     _originPlacesSessionToken = _newPlacesSessionToken();
     _destinationPlacesSessionToken = _newPlacesSessionToken();
-    unawaited(_loadRecentPlaces());
-    unawaited(_loadSavedPlaces());
-    unawaited(_refreshBatteryLevel());
+    _draftPlacesSessionToken = _newPlacesSessionToken();
+    // Filtramos cambios efectivos del focus para no rebuildear todo el árbol en cada
+    // notificación interna del FocusNode; el panel de sugerencias depende solo de hasFocus.
+    _draftSearchFocus.addListener(() {
+      if (!mounted) return;
+      final hasFocus = _draftSearchFocus.hasFocus;
+      if (_lastDraftSearchFocusState == hasFocus) return;
+      _lastDraftSearchFocusState = hasFocus;
+      setState(() {});
+    });
     WidgetsBinding.instance.addObserver(this);
     passengerTripChatOpenBump.addListener(_onPassengerTripChatOpenBump);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_loadDriverTripIcon());
       _onPassengerTripChatOpenBump();
+      // Cargas accesorias (recientes/guardados/batería) tras el primer frame para
+      // que el primer paint del mapa no compita con I/O ni HTTP del catálogo.
+      unawaited(_loadRecentPlaces());
+      unawaited(_loadSavedPlaces());
+      unawaited(_refreshBatteryLevel());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -1135,7 +1432,11 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             final tid = ref.read(tripRequestProvider).tripId;
-            if (tid != null && tid.isNotEmpty) {
+            if (tid == null || tid.isEmpty) return;
+            final rtStatus = ref.read(passengerRealtimeProvider).status;
+            // En búsqueda u ofertas el mensaje "recuperado" confunde; solo
+            // cuando ya hay progreso real (conductor / viaje activo).
+            if (!_isPassengerAwaitingDriverMatch(rtStatus)) {
               showTripRecoveredSnackBarOncePerTrip(ref, context, tid);
             }
           });
@@ -1295,6 +1596,39 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       }
       return;
     }
+
+    // Última posición conocida primero: desbloquea el mapa (loader global) sin esperar
+    // solo al primer `getCurrentPosition`, que en algunos Android se retrasa o falla
+    // si no hay `timeLimit` nativo en los settings (véase conductor / AndroidSettings).
+    LatLng? bootstrapLatLng;
+    if (_destination == null) {
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          bootstrapLatLng = LatLng(last.latitude, last.longitude);
+        }
+      } catch (_) {}
+      final bootstrap = bootstrapLatLng;
+      if (mounted && bootstrap != null) {
+        setState(() {
+          _origin = bootstrap;
+          _mapCenter = bootstrap;
+          _loadingOrigin = false;
+          _originError = null;
+          _deviceGpsFixOk = true;
+          _originConfirmed = false;
+          _pickingOrigin = true;
+          _pickingDestination = false;
+          _activeStop = ActiveStop.none;
+        });
+        ref.read(tripRequestProvider.notifier).setOrigin(
+              bootstrap.latitude,
+              bootstrap.longitude,
+            );
+        unawaited(_loadPinIcons());
+      }
+    }
+
     try {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: _passengerPickupLocationSettings(),
@@ -1320,6 +1654,15 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       unawaited(_refinePassengerOriginOnce(refineGen));
     } catch (e) {
       if (!mounted) return;
+      // Ya habíamos mostrado mapa con bootstrap: no pisar `_origin` con null.
+      if (_origin != null) {
+        setState(() {
+          _loadingOrigin = false;
+          _originError = null;
+        });
+        unawaited(_refinePassengerOriginOnce(refineGen));
+        return;
+      }
       LatLng? lastKnownLatLng;
       try {
         final last = await Geolocator.getLastKnownPosition();
@@ -1359,8 +1702,13 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _passengerEnRouteRouteDebounce?.cancel();
     _driverMotionTimer?.cancel();
     _driverPulseController.dispose();
+    _chatAttentionController.dispose();
     _originSearchDebounce?.cancel();
     _destinationSearchDebounce?.cancel();
+    _draftSearchDebounce?.cancel();
+    _mapConfirmIdleTimer?.cancel();
+    _draftSearchController.dispose();
+    _draftSearchFocus.dispose();
     _tripStatusSyncTimer?.cancel();
     _tripStatusSyncTimer = null;
     _tripStatusSyncTimerTripId = null;
@@ -1387,6 +1735,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         s == 'in_trip';
   }
 
+  /// Fases previas a aceptación donde el pasajero sigue esperando match.
+  /// El REST puede reportar `offered` cuando ya hay ofertas a conductores
+  /// (ver OpenAPI pasajero); debe comportarse como "buscando" en UI.
+  bool _isPassengerAwaitingDriverMatch(String? status) {
+    final s = status?.toLowerCase();
+    return s == 'requested' || s == 'searching' || s == 'offered';
+  }
+
   /// Viaje en marcha hacia el destino (pasajero a bordo).
   bool _isPassengerEnRouteToDestination(String? status) {
     final s = status?.toLowerCase();
@@ -1399,11 +1755,13 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       unawaited(_fetchPassengerEnRouteRouteToDestination());
       return;
     }
-    _passengerEnRouteRouteDebounce =
-        Timer(TripRouteTrackingPolicy.mapRouteRefreshDebounce, () {
-      if (!mounted) return;
-      unawaited(_fetchPassengerEnRouteRouteToDestination());
-    });
+    _passengerEnRouteRouteDebounce = Timer(
+      TripRouteTrackingPolicy.mapRouteRefreshDebounce,
+      () {
+        if (!mounted) return;
+        unawaited(_fetchPassengerEnRouteRouteToDestination());
+      },
+    );
   }
 
   Future<void> _fetchPassengerEnRouteRouteToDestination() async {
@@ -1412,7 +1770,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     if (!_isPassengerEnRouteToDestination(rt.status)) return;
     final dest = _destination;
     if (dest == null) return;
-    final driver = _animatedDriverLatLng ??
+    final driver =
+        _animatedDriverLatLng ??
         (rt.driverLat != null && rt.driverLng != null
             ? LatLng(rt.driverLat!, rt.driverLng!)
             : null);
@@ -1430,8 +1789,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           .timeout(TripRouteTrackingPolicy.directionsRequestTimeout);
       if (!mounted || token != _passengerEnRouteRouteRequestToken) return;
       final pts = route?.points;
-      final next =
-          pts != null && pts.length >= 2 ? pts : <LatLng>[driver, dest];
+      final next = pts != null && pts.length >= 2
+          ? pts
+          : <LatLng>[driver, dest];
       setState(() => _passengerEnRouteToDestPoints = next);
       _maybeFitPassengerEnRouteCamera(driver, dest);
     } catch (_) {
@@ -1453,10 +1813,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
     final minLat = from.latitude < to.latitude ? from.latitude : to.latitude;
     final maxLat = from.latitude > to.latitude ? from.latitude : to.latitude;
-    final minLng =
-        from.longitude < to.longitude ? from.longitude : to.longitude;
-    final maxLng =
-        from.longitude > to.longitude ? from.longitude : to.longitude;
+    final minLng = from.longitude < to.longitude
+        ? from.longitude
+        : to.longitude;
+    final maxLng = from.longitude > to.longitude
+        ? from.longitude
+        : to.longitude;
     final latSpan = (maxLat - minLat).abs();
     final lngSpan = (maxLng - minLng).abs();
     if (latSpan < 0.00035 && lngSpan < 0.00035) {
@@ -1652,6 +2014,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     if (mounted) setState(() {});
   }
 
+  // ignore: unused_element
   void _startPickOriginOnMap() {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
@@ -1668,6 +2031,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _showSubtleSnack(l10n.tripMoveMapSetPickup);
   }
 
+  // ignore: unused_element
   void _startPickDestinationOnMap() {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
@@ -1695,13 +2059,65 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     messenger.clearSnackBars();
+    // Elevar el SnackBar para que no quede tapado por PassengerTripDraftBottomBar.
+    final bottomMargin = _snackBarBottomMarginForOverlay();
     messenger.showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.surface.withValues(alpha: 0.96),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.24)),
+        ),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
+        margin: EdgeInsets.fromLTRB(16, 0, 16, bottomMargin),
+        duration: const Duration(milliseconds: 2200),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
       ),
     );
+  }
+
+  /// Margen inferior cuando hay barra de borrador fija (~25–30% de la pantalla).
+  double _snackBarBottomMarginForOverlay() {
+    if (!mounted) return 24;
+    final h = MediaQuery.sizeOf(context).height;
+    final draftBarLikely = ref.read(tripRequestProvider).tripId == null;
+    if (!draftBarLikely) return 24;
+    return (h * 0.30).clamp(130.0, 280.0);
   }
 
   /// Backend exige label 2–60 y address 3–180 caracteres.
@@ -1792,17 +2208,19 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       _origin = p;
       _originDisplayLabel = place.label;
       _routePoints = null;
+      _originConfirmed = true;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _activeStop = ActiveStop.none;
+      _draftEditTarget = PassengerDraftEditTarget.none;
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     _controller?.animateCamera(CameraUpdate.newLatLng(p));
     if (_destination != null) {
-      _originConfirmed = true;
-      _pickingOrigin = false;
-      _pickingDestination = false;
-      _collapseStops();
       unawaited(_fetchRoute());
+      _notifyDraftSearchCollapsedAfterBothStops();
     } else {
-      _requireOriginConfirmation();
+      unawaited(_updateOriginStreetLabel(p));
     }
   }
 
@@ -1820,6 +2238,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _fetchRoute();
     _fitCameraToOriginDestination();
     _collapseStops();
+    _notifyDraftSearchCollapsedAfterBothStops();
   }
 
   void _pickOriginSavedPlace(TripSavedPlaceItem place) {
@@ -1830,17 +2249,18 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           ? place.address
           : place.label;
       _routePoints = null;
+      _originConfirmed = true;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _activeStop = ActiveStop.none;
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     _controller?.animateCamera(CameraUpdate.newLatLng(p));
     if (_destination != null) {
-      _originConfirmed = true;
-      _pickingOrigin = false;
-      _pickingDestination = false;
-      _collapseStops();
       unawaited(_fetchRoute());
+      _notifyDraftSearchCollapsedAfterBothStops();
     } else {
-      _requireOriginConfirmation();
+      unawaited(_updateOriginStreetLabel(p));
     }
   }
 
@@ -1860,6 +2280,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _fetchRoute();
     _fitCameraToOriginDestination();
     _collapseStops();
+    _notifyDraftSearchCollapsedAfterBothStops();
   }
 
   Future<void> _saveCurrentOriginPlace() async {
@@ -1890,7 +2311,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       );
       await _loadSavedPlaces();
       if (!mounted) return;
-      _showSubtleSnack(l10n.profileSavedPlaces);
+      _showSubtleSnack(l10n.tripSavedPlaceSaved);
     } catch (_) {
       if (!mounted) return;
       _showSubtleSnack(l10n.commonError);
@@ -1925,7 +2346,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       );
       await _loadSavedPlaces();
       if (!mounted) return;
-      _showSubtleSnack(l10n.profileSavedPlaces);
+      _showSubtleSnack(l10n.tripSavedPlaceSaved);
     } catch (_) {
       if (!mounted) return;
       _showSubtleSnack(l10n.commonError);
@@ -2160,6 +2581,128 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     return '$now$random';
   }
 
+  void _afterDraftLocationPicked() {
+    _draftSearchFocus.unfocus();
+    _draftSearchController.clear();
+    if (!mounted) return;
+    setState(() {
+      _draftSuggestions = const <PlaceSuggestion>[];
+      _loadingDraftSuggestions = false;
+    });
+    _draftPlacesSessionToken = _newPlacesSessionToken();
+  }
+
+  void _onDraftSearchChanged(String query) {
+    if (mounted) setState(() {});
+    _draftSearchDebounce?.cancel();
+    final trimmed = query.trim();
+    if (trimmed.length < 2) {
+      if (!mounted) return;
+      setState(() {
+        _draftSuggestions = const <PlaceSuggestion>[];
+        _loadingDraftSuggestions = false;
+      });
+      return;
+    }
+    _draftSearchDebounce = Timer(const Duration(milliseconds: 320), () async {
+      if (!mounted) return;
+      setState(() => _loadingDraftSuggestions = true);
+      final center = _draftSearchPhase == PassengerDraftSearchRole.origin
+          ? (_mapCenter ?? _origin)
+          : (_mapCenter ?? _destination ?? _origin);
+      final result = await _places.fetchSuggestions(
+        query: trimmed,
+        sessionToken: _draftPlacesSessionToken,
+        nearLat: center?.latitude,
+        nearLng: center?.longitude,
+      );
+      if (!mounted) return;
+      setState(() {
+        _draftSuggestions = result;
+        _loadingDraftSuggestions = false;
+      });
+    });
+  }
+
+  Future<void> _pickDraftSuggestion(PlaceSuggestion s) async {
+    if (_draftSearchPhase == PassengerDraftSearchRole.origin) {
+      await _selectOriginSuggestion(s, null);
+    } else {
+      await _selectDestinationSuggestion(s, null);
+    }
+    _afterDraftLocationPicked();
+  }
+
+  void _pickDraftRecent(TripRecentPlaceItem place) {
+    if (_draftSearchPhase == PassengerDraftSearchRole.origin) {
+      _pickOriginRecentPlace(place);
+    } else {
+      _pickDestinationRecentPlace(place);
+    }
+    _afterDraftLocationPicked();
+  }
+
+  void _onDraftMyLocationIconTap() {
+    if (_draftSearchPhase == PassengerDraftSearchRole.origin) {
+      unawaited(_setOriginFromCurrentLocation());
+    } else {
+      unawaited(_setDestinationFromCurrentLocation());
+    }
+  }
+
+  void _onDraftSavedIconTap() {
+    unawaited(
+      _openSavedPlacesManager(
+        forOrigin: _draftSearchPhase == PassengerDraftSearchRole.origin,
+      ),
+    );
+  }
+
+  Future<void> _submitInlineTripRequest() async {
+    final tripState = ref.read(tripRequestProvider);
+    final q = tripState.quote;
+    final opt = tripState.selectedOption;
+    if (q == null || opt == null || _origin == null || _destination == null) {
+      return;
+    }
+
+    setState(() => _submittingTrip = true);
+    final l10n = AppLocalizations.of(context)!;
+    final originAddress =
+        (_originDisplayLabel != null && _originDisplayLabel!.trim().isNotEmpty)
+        ? _originDisplayLabel!.trim()
+        : '${_origin!.latitude.toStringAsFixed(6)},${_origin!.longitude.toStringAsFixed(6)}';
+    final destinationAddress =
+        (_destinationDisplayLabel != null &&
+            _destinationDisplayLabel!.trim().isNotEmpty)
+        ? _destinationDisplayLabel!.trim()
+        : '${_destination!.latitude.toStringAsFixed(6)},${_destination!.longitude.toStringAsFixed(6)}';
+
+    final result = await submitPassengerTripFromQuote(
+      ref: ref,
+      context: context,
+      quote: q,
+      option: opt,
+      originLat: _origin!.latitude,
+      originLng: _origin!.longitude,
+      destinationLat: _destination!.latitude,
+      destinationLng: _destination!.longitude,
+      originAddress: originAddress,
+      destinationAddress: destinationAddress,
+      routeOverviewEncoded: _routeOverviewEncoded,
+      ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
+    );
+    if (!mounted) return;
+    setState(() => _submittingTrip = false);
+    if (result.kind == PassengerTripSubmitResultKind.success ||
+        result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
+      return;
+    }
+    setState(() {
+      _error = result.message ?? l10n.commonError;
+    });
+  }
+
   void _onOriginSearchChanged(
     String query, [
     void Function(void Function())? setModalState,
@@ -2233,9 +2776,28 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     );
   }
 
+  /// Une el nombre del lugar (POI) con la dirección formateada cuando ambos
+  /// existen y el `mainText` no es ya el comienzo de la dirección.
+  ///
+  /// Casos típicos:
+  /// - Calle: `mainText="Av. Arce 2631"` y `formatted="Av. Arce 2631, La Paz, Bolivia"`
+  ///   → devuelve `formatted` (no se duplica).
+  /// - POI: `mainText="Cinemark Megacenter"` y `formatted="Av. Arce 2631, La Paz"`
+  ///   → devuelve `"Cinemark Megacenter · Av. Arce 2631, La Paz"`.
+  String _composePlaceLabel(PlaceSuggestion suggestion, String formatted) {
+    final main = suggestion.mainText.trim();
+    final addr = formatted.trim();
+    if (main.isEmpty) return addr;
+    if (addr.isEmpty) return main;
+    final mainLower = main.toLowerCase();
+    final addrLower = addr.toLowerCase();
+    if (addrLower.startsWith(mainLower)) return addr;
+    return '$main · $addr';
+  }
+
   Future<void> _selectOriginSuggestion(
     PlaceSuggestion suggestion,
-    BuildContext sheetContext,
+    BuildContext? sheetContext,
   ) async {
     setState(() => _searchingOriginAddress = true);
     final details = await _places.fetchPlaceDetails(
@@ -2244,39 +2806,50 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     );
     _originPlacesSessionToken = _newPlacesSessionToken();
     if (!mounted) return;
-    if (!sheetContext.mounted) return;
+    if (sheetContext != null && !sheetContext.mounted) return;
     if (details == null) {
       setState(() => _searchingOriginAddress = false);
       await _searchAndSetOrigin(suggestion.fullText, sheetContext);
       return;
     }
+    final composedLabel = details.formattedAddress.isNotEmpty
+        ? _composePlaceLabel(suggestion, details.formattedAddress)
+        : suggestion.fullText;
+    // Si el label compuesto incluye nombre de POI (formato "Nombre · Dirección"),
+    // ya tenemos el dato más rico desde Places y NO disparamos reverse-geocode
+    // (que sobrescribiría el nombre del POI con la calle).
+    final hasPoiName = composedLabel.contains(' · ');
     setState(() {
       _origin = LatLng(details.lat, details.lng);
-      _originDisplayLabel = details.formattedAddress.isNotEmpty
-          ? details.formattedAddress
-          : suggestion.fullText;
+      _originDisplayLabel = composedLabel;
       _mapCenter = _origin;
       _routePoints = null;
       _searchingOriginAddress = false;
       _originSuggestions = const <PlaceSuggestion>[];
+      _originConfirmed = true;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _activeStop = ActiveStop.none;
     });
     ref.read(tripRequestProvider.notifier).setOrigin(details.lat, details.lng);
     _controller?.animateCamera(
       CameraUpdate.newLatLng(LatLng(details.lat, details.lng)),
     );
     if (_destination != null) _fetchRoute();
-    if (sheetContext.mounted) Navigator.pop(sheetContext);
-    if (_destination == null) {
-      _requireOriginConfirmation();
-    } else {
-      _originConfirmed = true;
-      _collapseStops();
+    if (sheetContext != null && sheetContext.mounted) {
+      Navigator.pop(sheetContext);
+    }
+    if (!hasPoiName) {
+      unawaited(_updateOriginStreetLabel(LatLng(details.lat, details.lng)));
+    }
+    if (_destination != null) {
+      _notifyDraftSearchCollapsedAfterBothStops();
     }
   }
 
   Future<void> _selectDestinationSuggestion(
     PlaceSuggestion suggestion,
-    BuildContext sheetContext,
+    BuildContext? sheetContext,
   ) async {
     setState(() => _searchingDestinationAddress = true);
     final details = await _places.fetchPlaceDetails(
@@ -2285,7 +2858,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     );
     _destinationPlacesSessionToken = _newPlacesSessionToken();
     if (!mounted) return;
-    if (!sheetContext.mounted) return;
+    if (sheetContext != null && !sheetContext.mounted) return;
     if (details == null) {
       setState(() => _searchingDestinationAddress = false);
       await _searchAndSetDestination(suggestion.fullText, sheetContext);
@@ -2294,7 +2867,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     setState(() {
       _destination = LatLng(details.lat, details.lng);
       _destinationDisplayLabel = details.formattedAddress.isNotEmpty
-          ? details.formattedAddress
+          ? _composePlaceLabel(suggestion, details.formattedAddress)
           : suggestion.fullText;
       _routePoints = null;
       _searchingDestinationAddress = false;
@@ -2307,11 +2880,16 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       CameraUpdate.newLatLng(LatLng(details.lat, details.lng)),
     );
     _fetchRoute();
-    if (sheetContext.mounted) Navigator.pop(sheetContext);
+    if (sheetContext != null && sheetContext.mounted) {
+      Navigator.pop(sheetContext);
+    }
     _fitCameraToOriginDestination();
     _collapseStops();
+    _notifyDraftSearchCollapsedAfterBothStops();
   }
 
+  // Respaldo: búsqueda en sheet modal (el flujo principal usa la barra superior).
+  // ignore: unused_element
   void _showOriginSearchSheet() {
     final l10n = AppLocalizations.of(context)!;
     _originPlacesSessionToken = _newPlacesSessionToken();
@@ -2431,7 +3009,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   Future<void> _searchAndSetOrigin(
     String query,
-    BuildContext sheetContext,
+    BuildContext? sheetContext,
   ) async {
     if (query.isEmpty) return;
     setState(() => _searchingOriginAddress = true);
@@ -2443,7 +3021,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           _searchingOriginAddress = false;
           _error = AppLocalizations.of(context)!.tripSearchError;
         });
-        if (sheetContext.mounted) Navigator.pop(sheetContext);
+        if (sheetContext != null && sheetContext.mounted) {
+          Navigator.pop(sheetContext);
+        }
         return;
       }
       setState(() {
@@ -2453,18 +3033,22 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         _searchingOriginAddress = false;
         _routePoints = null;
         _originSuggestions = const <PlaceSuggestion>[];
+        _originConfirmed = true;
+        _pickingOrigin = false;
+        _pickingDestination = false;
+        _activeStop = ActiveStop.none;
       });
       ref.read(tripRequestProvider.notifier).setOrigin(result.lat, result.lng);
       _controller?.animateCamera(
         CameraUpdate.newLatLng(LatLng(result.lat, result.lng)),
       );
       if (_destination != null) _fetchRoute();
-      if (sheetContext.mounted) Navigator.pop(sheetContext);
-      if (_destination == null) {
-        _requireOriginConfirmation();
-      } else {
-        _originConfirmed = true;
-        _collapseStops();
+      if (sheetContext != null && sheetContext.mounted) {
+        Navigator.pop(sheetContext);
+      }
+      unawaited(_updateOriginStreetLabel(LatLng(result.lat, result.lng)));
+      if (_destination != null) {
+        _notifyDraftSearchCollapsedAfterBothStops();
       }
     } catch (_) {
       if (mounted) {
@@ -2473,48 +3057,64 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           _error = AppLocalizations.of(context)!.tripSearchError;
           _originSuggestions = const <PlaceSuggestion>[];
         });
-        if (sheetContext.mounted) Navigator.pop(sheetContext);
+        if (sheetContext != null && sheetContext.mounted) {
+          Navigator.pop(sheetContext);
+        }
       }
     }
   }
 
   Future<void> _setOriginFromCurrentLocation() async {
     setState(() => _loadingOrigin = true);
+    // Estrategia de fix: 1) lectura precisa con timeout corto; 2) fallback a la
+    // última posición conocida del SO. Esto evita el banner rojo cuando el GPS
+    // del sistema sí tiene fix (pin azul visible) pero `getCurrentPosition` con
+    // `LocationAccuracy.high` no logra cerrar una nueva muestra a tiempo.
+    Position? position;
     try {
-      final position = await Geolocator.getCurrentPosition(
+      position = await Geolocator.getCurrentPosition(
         locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
-      if (!mounted) return;
-      setState(() {
-        _error = null;
-        _origin = LatLng(position.latitude, position.longitude);
-        _originDisplayLabel = null;
-        _mapCenter = _origin;
-        _loadingOrigin = false;
-        _routePoints = null;
-        _deviceGpsFixOk = true;
-      });
-      ref
-          .read(tripRequestProvider.notifier)
-          .setOrigin(position.latitude, position.longitude);
-      _controller?.animateCamera(CameraUpdate.newLatLng(_origin!));
-      if (_destination != null) _fetchRoute();
-      if (_destination == null) {
-        _requireOriginConfirmation();
-      } else {
-        _originConfirmed = true;
-        _collapseStops();
-      }
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _loadingOrigin = false;
-          _error = AppLocalizations.of(context)!.homeLocationErrorGps;
-        });
+      try {
+        position = await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        position = null;
       }
+    }
+    if (!mounted) return;
+    if (position == null) {
+      setState(() {
+        _loadingOrigin = false;
+        _error = AppLocalizations.of(context)!.homeLocationErrorGps;
+      });
+      return;
+    }
+    setState(() {
+      _error = null;
+      _origin = LatLng(position!.latitude, position.longitude);
+      _originDisplayLabel = null;
+      _mapCenter = _origin;
+      _loadingOrigin = false;
+      _routePoints = null;
+      _deviceGpsFixOk = true;
+      _originConfirmed = true;
+      _pickingOrigin = false;
+      _pickingDestination = false;
+      _activeStop = ActiveStop.none;
+    });
+    ref
+        .read(tripRequestProvider.notifier)
+        .setOrigin(position.latitude, position.longitude);
+    _controller?.animateCamera(CameraUpdate.newLatLng(_origin!));
+    if (_destination != null) _fetchRoute();
+    unawaited(_updateOriginStreetLabel(_origin!));
+    if (_destination != null) {
+      _notifyDraftSearchCollapsedAfterBothStops();
     }
   }
 
+  // ignore: unused_element
   void _setOriginFromMapCenter() {
     final center = _mapCenter ?? _origin ?? const LatLng(-16.5, -68.1);
     setState(() {
@@ -2565,6 +3165,20 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     }
   }
 
+  /// Enciende/apaga el pulse del marcador del conductor según haya o no
+  /// `_animatedDriverLatLng`. Mantiene la animación dormida en borrador.
+  void _syncDriverPulseAnimation() {
+    if (_animatedDriverLatLng != null) {
+      if (!_driverPulseController.isAnimating) {
+        _driverPulseController.repeat(reverse: true);
+      }
+    } else {
+      if (_driverPulseController.isAnimating) {
+        _driverPulseController.stop();
+      }
+    }
+  }
+
   void _syncAnimatedDriverMarker({
     required String? tripId,
     required String? status,
@@ -2581,6 +3195,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           setState(() => _animatedDriverLatLng = null);
+          _syncDriverPulseAnimation();
         });
       }
       _driverMotionTimer?.cancel();
@@ -2612,6 +3227,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           setState(
             () => _animatedDriverLatLng = LatLng(rawDriverLat, rawDriverLng),
           );
+          _syncDriverPulseAnimation();
         });
       }
       _lastDriverRawLat = rawDriverLat;
@@ -2638,12 +3254,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _driverMotionTimer?.cancel();
     if (!_appInForeground) {
       setState(() => _animatedDriverLatLng = target);
+      _syncDriverPulseAnimation();
       return;
     }
     final from = _animatedDriverLatLng ?? target;
     if ((from.latitude - target.latitude).abs() < 0.000001 &&
         (from.longitude - target.longitude).abs() < 0.000001) {
       setState(() => _animatedDriverLatLng = target);
+      _syncDriverPulseAnimation();
       return;
     }
     final lowPowerVisual = _lowBatteryModeActive || _driverLikelyIdle;
@@ -2663,6 +3281,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       final lat = from.latitude + (target.latitude - from.latitude) * eased;
       final lng = from.longitude + (target.longitude - from.longitude) * eased;
       setState(() => _animatedDriverLatLng = LatLng(lat, lng));
+      if (step == 1) {
+        _syncDriverPulseAnimation();
+      }
       if (step >= totalSteps) {
         timer.cancel();
       }
@@ -2694,6 +3315,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   void _onCameraMove(CameraPosition position) {
     _mapCenter = position.target;
+    if (_computeIsDraftMapConfirmMode()) {
+      _mapConfirmIdleTimer?.cancel();
+      if (!_mapConfirmInstructionHiddenWhileDragging) {
+        setState(() => _mapConfirmInstructionHiddenWhileDragging = true);
+      }
+    }
     // Si solo falta confirmar destino (origen listo, destino nulo) y el usuario
     // está moviendo el mapa, ocultamos opciones expandidas para mantener
     // una experiencia tipo Uber/Lyft.
@@ -2748,29 +3375,44 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   Future<void> _setOriginFromNeedle() async {
     final p = await _getLatLngFromNeedle();
+    final preview = _mapNeedleAddressPreview?.trim();
+    _mapConfirmIdleTimer?.cancel();
     setState(() {
       _origin = p;
-      _originDisplayLabel =
-          '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+      _originDisplayLabel = preview != null && preview.isNotEmpty
+          ? preview
+          : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
       _originConfirmed = true;
       _pickingOrigin = false;
       _pickingDestination = false;
       _activeStop = ActiveStop.none;
       _routePoints = null;
+      _mapNeedleAddressPreview = null;
+      _mapConfirmInstructionHiddenWhileDragging = false;
+      _draftEditTarget = PassengerDraftEditTarget.none;
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     if (_destination != null) _fetchRoute();
     _updateOriginStreetLabel(p);
+    if (_destination != null) {
+      _notifyDraftSearchCollapsedAfterBothStops();
+    }
   }
 
   Future<void> _setDestinationFromNeedle() async {
     final p = await _getLatLngFromNeedle();
+    final preview = _mapNeedleAddressPreview?.trim();
+    _mapConfirmIdleTimer?.cancel();
     setState(() {
       _destination = p;
-      _destinationDisplayLabel =
-          '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+      _destinationDisplayLabel = preview != null && preview.isNotEmpty
+          ? preview
+          : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
       _pickingDestination = false;
       _routePoints = null;
+      _mapNeedleAddressPreview = null;
+      _mapConfirmInstructionHiddenWhileDragging = false;
+      _draftEditTarget = PassengerDraftEditTarget.none;
     });
     ref
         .read(tripRequestProvider.notifier)
@@ -2779,8 +3421,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _fitCameraToOriginDestination();
     _collapseStops();
     _updateDestinationStreetLabel(p);
+    _notifyDraftSearchCollapsedAfterBothStops();
   }
 
+  // ignore: unused_element
   void _useMapCenterAsDestination() {
     final center = _mapCenter ?? _origin ?? const LatLng(-16.5, -68.1);
     setState(() {
@@ -2930,6 +3574,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   Future<void> _fetchRoute() async {
     if (_destination == null || _origin == null) return;
     final token = ++_routeRequestToken;
+    if (ref.read(tripRequestProvider).tripId == null) {
+      ref.read(tripRequestProvider.notifier).clearQuote();
+    }
+    _autoQuoteRouteGeneration++;
     setState(() {
       _loadingRoute = true;
       _routePoints = null;
@@ -3019,6 +3667,15 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           await _updateDestinationStreetLabel(snappedDestination);
         }
       }());
+
+      final routeGen = _autoQuoteRouteGeneration;
+      Future<void>.delayed(const Duration(milliseconds: 420), () async {
+        if (!mounted) return;
+        if (routeGen != _autoQuoteRouteGeneration) return;
+        if (ref.read(tripRequestProvider).tripId != null) return;
+        if (_pickingOrigin || _pickingDestination) return;
+        await _fetchQuote(openQuoteSheet: false);
+      });
     } else {
       setState(() {
         _routePoints = null;
@@ -3028,6 +3685,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     }
   }
 
+  // ignore: unused_element
   void _showDestinationSearchSheet() {
     final l10n = AppLocalizations.of(context)!;
     _destinationPlacesSessionToken = _newPlacesSessionToken();
@@ -3149,7 +3807,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
   Future<void> _searchAndSetDestination(
     String query,
-    BuildContext sheetContext,
+    BuildContext? sheetContext,
   ) async {
     if (query.isEmpty) return;
     setState(() => _searchingDestinationAddress = true);
@@ -3161,7 +3819,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           _searchingDestinationAddress = false;
           _error = AppLocalizations.of(context)!.tripSearchError;
         });
-        if (sheetContext.mounted) Navigator.pop(sheetContext);
+        if (sheetContext != null && sheetContext.mounted) {
+          Navigator.pop(sheetContext);
+        }
         return;
       }
       setState(() {
@@ -3177,9 +3837,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         CameraUpdate.newLatLng(LatLng(result.lat, result.lng)),
       );
       _fetchRoute();
-      if (sheetContext.mounted) Navigator.pop(sheetContext);
+      if (sheetContext != null && sheetContext.mounted) {
+        Navigator.pop(sheetContext);
+      }
       _fitCameraToOriginDestination();
       _collapseStops();
+      _notifyDraftSearchCollapsedAfterBothStops();
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -3187,7 +3850,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
           _error = AppLocalizations.of(context)!.tripSearchError;
           _destinationSuggestions = const <PlaceSuggestion>[];
         });
-        if (sheetContext.mounted) Navigator.pop(sheetContext);
+        if (sheetContext != null && sheetContext.mounted) {
+          Navigator.pop(sheetContext);
+        }
       }
     } finally {
       if (mounted) setState(() => _searchingDestinationAddress = false);
@@ -3195,34 +3860,48 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   }
 
   Future<void> _setDestinationFromCurrentLocation() async {
+    // Misma estrategia que `_setOriginFromCurrentLocation`: si `getCurrentPosition`
+    // con alta precisión falla (timeout/ruido), usar `getLastKnownPosition` antes
+    // de renderizar el banner rojo.
+    Position? position;
     try {
-      final position = await Geolocator.getCurrentPosition(
+      position = await Geolocator.getCurrentPosition(
         locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 8));
-      if (!mounted) return;
-      setState(() {
-        _error = null;
-        _destination = LatLng(position.latitude, position.longitude);
-        _destinationDisplayLabel = null;
-        _routePoints = null;
-        _deviceGpsFixOk = true;
-      });
-      ref
-          .read(tripRequestProvider.notifier)
-          .setDestination(position.latitude, position.longitude);
-      _controller?.animateCamera(CameraUpdate.newLatLng(_destination!));
-      _fetchRoute();
-      _fitCameraToOriginDestination();
-      _collapseStops();
     } catch (_) {
-      if (mounted) {
-        setState(
-          () => _error = AppLocalizations.of(context)!.homeLocationErrorGps,
-        );
+      try {
+        position = await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        position = null;
       }
     }
+    if (!mounted) return;
+    if (position == null) {
+      setState(
+        () => _error = AppLocalizations.of(context)!.homeLocationErrorGps,
+      );
+      return;
+    }
+    setState(() {
+      _error = null;
+      _destination = LatLng(position!.latitude, position.longitude);
+      _destinationDisplayLabel = null;
+      _routePoints = null;
+      _deviceGpsFixOk = true;
+      _draftEditTarget = PassengerDraftEditTarget.none;
+    });
+    ref
+        .read(tripRequestProvider.notifier)
+        .setDestination(position.latitude, position.longitude);
+    _controller?.animateCamera(CameraUpdate.newLatLng(_destination!));
+    _fetchRoute();
+    _fitCameraToOriginDestination();
+    _collapseStops();
+    unawaited(_updateDestinationStreetLabel(_destination!));
+    _notifyDraftSearchCollapsedAfterBothStops();
   }
 
+  // ignore: unused_element
   void _setDestinationFromMapCenter() {
     final center =
         _mapCenter ?? _destination ?? _origin ?? const LatLng(-16.5, -68.1);
@@ -3257,19 +3936,18 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     }
   }
 
-  Future<void> _fetchQuote() async {
+  Future<void> _fetchQuote({bool openQuoteSheet = true}) async {
     if (_destination == null) return;
+    if (ref.read(tripRequestProvider).tripId != null) return;
 
-    if (ref.read(tripRequestProvider).tripId == null) {
-      final gpsOk = await _ensureDeviceGpsForNewTrip();
-      if (!gpsOk) {
-        if (mounted) {
-          setState(() {
-            _error = AppLocalizations.of(context)!.tripRequireGpsForRequest;
-          });
-        }
-        return;
+    final gpsOk = await _ensureDeviceGpsForNewTrip();
+    if (!gpsOk) {
+      if (mounted) {
+        setState(() {
+          _error = AppLocalizations.of(context)!.tripRequireGpsForRequest;
+        });
       }
+      return;
     }
 
     setState(() {
@@ -3302,7 +3980,16 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       );
       ref.read(tripRequestProvider.notifier).setQuote(quote);
       if (!mounted) return;
-      _showQuoteSheet(quote);
+      if (quote.options.isNotEmpty) {
+        ref
+            .read(tripRequestProvider.notifier)
+            .selectOption(quote.options.first);
+      }
+      if (openQuoteSheet) {
+        _showQuoteSheet(quote);
+      } else {
+        setState(() {});
+      }
     } catch (e, st) {
       if (!mounted) return;
       debugPrint('[Quote] Error: $e');
@@ -3394,6 +4081,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       _pickingDestination = false;
       _activeStop = ActiveStop.none;
       _error = null;
+      _draftEditTarget = PassengerDraftEditTarget.none;
     });
     if (_origin != null) {
       ref
@@ -3403,6 +4091,25 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     _controller?.animateCamera(
       CameraUpdate.newLatLng(_origin ?? const LatLng(-16.5, -68.1)),
     );
+  }
+
+  /// Refresco suave durante búsqueda larga: sync REST y socket si hace falta (sin cancelar el viaje).
+  void _onSearchingKeepWaitingSoftRetry() {
+    final tid = ref.read(tripRequestProvider).tripId;
+    if (tid == null || tid.isEmpty) return;
+    final quote = ref.read(tripRequestProvider).quote;
+    unawaited(() async {
+      await ref
+          .read(passengerRealtimeProvider.notifier)
+          .syncTripStatusFromApi(tripId: tid, force: true);
+      if (!mounted) return;
+      final rt = ref.read(passengerRealtimeProvider);
+      if (!rt.connected || rt.errorCode != null) {
+        ref
+            .read(passengerRealtimeProvider.notifier)
+            .connect(tripId: tid, quote: quote);
+      }
+    }());
   }
 
   /// Cancela la búsqueda: **POST /passengers/trips/:id/cancel** para invalidar ofertas en servidor
@@ -3499,6 +4206,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       previous,
       next,
     ) {
+      if (previous != null) {
+        _syncTripUnreadCounter(previous, next);
+      }
       final wasEn = _isPassengerEnRouteToDestination(previous?.status);
       final nowEn = _isPassengerEnRouteToDestination(next.status);
       if (!wasEn && nowEn) {
@@ -3537,6 +4247,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         schedule(() {
           _passengerEnRouteRouteDebounce?.cancel();
           setState(() {
+            _tripChatUnreadCount = 0;
+            _tripChatReadCursor = 0;
             _ratingDoneTripId = null;
             _ratingDone = false;
             _ratingSheetShownForTripId = null;
@@ -3562,12 +4274,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
 
     final isSearchingDriver =
         tripId != null &&
-        (rtState.status == 'requested' ||
-            rtState.status == 'searching' ||
+        (_isPassengerAwaitingDriverMatch(rtState.status) ||
             (rtState.connecting &&
-                (rtState.status == null ||
-                    rtState.status == 'requested' ||
-                    rtState.status == 'searching')));
+                _isPassengerAwaitingDriverMatch(rtState.status)));
     final isRecoveringActiveTrip = tripId != null && rtState.status == null;
     final isTripActive =
         tripId != null &&
@@ -3607,7 +4316,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     } else {
       _stopTripStatusPeriodicSync();
     }
-    final hasConnectionError = tripId != null && rtState.errorCode != null;
+    final hasConnectionError =
+        tripId != null && rtState.errorCode != null && !isSearchingDriver;
     final brightness = Theme.of(context).brightness;
     final activeRouteColor = _activeRouteColorForStatus(rtState.status);
     final needsOriginConfirm =
@@ -3627,7 +4337,29 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
         tripId == null &&
         _activeStop == ActiveStop.none &&
         (_pickingOrigin || _pickingDestination || needsAnyMapConfirm);
-    final confirmingOrigin = _pickingOrigin || needsOriginConfirm;
+
+    /// Borrador de ruta (sin viaje creado): cabecera + barra inferior fija.
+    /// El sheet deslizable del viaje activo solo aplica con [isTripActive].
+    final showDraftPlanningChrome =
+        tripId == null &&
+        !isSearchingDriver &&
+        !isRecoveringActiveTrip &&
+        !isTripActive &&
+        !hasConnectionError;
+    final confirmingOrigin =
+        _pickingOrigin ||
+        _draftEditTarget == PassengerDraftEditTarget.origin ||
+        needsOriginConfirm;
+    final draftSearchPriorityMode =
+        showDraftPlanningChrome &&
+        _draftLocationSearchChromeVisible &&
+        _draftSearchFocus.hasFocus &&
+        MediaQuery.of(context).viewInsets.bottom > 0;
+    final draftChromeHiddenWhileDragging =
+        showDraftPlanningChrome &&
+        isMapConfirmMode &&
+        _mapConfirmInstructionHiddenWhileDragging &&
+        !draftSearchPriorityMode;
 
     // Al completarse el viaje, mostrar una sola vez el sheet de calificación
     // únicamente si el pasajero todavía no lo resolvió (localmente).
@@ -3697,7 +4429,10 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     // Durante confirmación de ORIGEN, el marcador de origen sigue el centro.
     final originMarkerPos = confirmingOrigin ? (_mapCenter ?? origin) : origin;
     // Marcador de destino: solo cuando ya está confirmado (no mientras se está eligiendo).
-    final LatLng? destMarkerPos = (_destination != null && !_pickingDestination)
+    final LatLng? destMarkerPos =
+        (_destination != null &&
+            (!_pickingDestination ||
+                _draftEditTarget == PassengerDraftEditTarget.destination))
         ? _destination
         : null;
 
@@ -3757,6 +4492,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                         !_pickingDestination &&
                         !needsAnyMapConfirm)
                     ? (pos) {
+                        FocusManager.instance.primaryFocus?.unfocus();
                         setState(() {
                           _destination = pos;
                           _destinationDisplayLabel = null;
@@ -3769,6 +4505,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                       }
                     : null,
                 onCameraMove: _onCameraMove,
+                onCameraIdle: _onCameraIdleForMapConfirm,
                 markers: {
                   // Con aguja centrada no mostramos el pin amarillo duplicado (evita desalineación visual).
                   if (!(confirmingOrigin && isMapConfirmMode))
@@ -3837,7 +4574,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                     : {},
               ),
             ),
-            // Barra superior fija: idioma y perfil; «recentrar» siempre bajo perfil (mismo control con o sin viaje).
+            // Barra superior: en borrador, cabecera a ancho casi completo y menú/recentrar en esquina.
             Positioned(
               top: 0,
               left: 0,
@@ -3845,98 +4582,134 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          TripCircleButton(
-                            icon: Icons.menu_rounded,
-                            onPressed: () => _showProfileMenu(context),
-                          ),
-                          if (!hasConnectionError) ...[
-                            const SizedBox(height: AppSpacing.sm),
-                            Tooltip(
-                              message: l10n.tripMapRecenterShort,
-                              child: TripCircleButton(
-                                icon: Icons.my_location_rounded,
-                                isLoading: _recenterInProgress,
-                                onPressed: () => _recenterMapForPassenger(
-                                  driverLat: tripId != null ? driverLat : null,
-                                  driverLng: tripId != null ? driverLng : null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
+                  padding: EdgeInsets.fromLTRB(
+                    10,
+                    6,
+                    10,
+                    6 +
+                        (draftSearchPriorityMode
+                            ? 0
+                            : MediaQuery.of(context).viewInsets.bottom * 0.2),
                   ),
-                ),
-              ),
-            ),
-            if (isMapConfirmMode)
-              Positioned(
-                top: 0,
-                left: 10,
-                right: 72,
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.24),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            confirmingOrigin
-                                ? Icons.trip_origin_rounded
-                                : Icons.flag_rounded,
-                            size: 18,
-                            color: confirmingOrigin
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              confirmingOrigin
-                                  ? l10n.tripMapAdjustPickupHint
-                                  : l10n.tripMapAdjustDestinationHint,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textSecondary,
+                  child: IgnorePointer(
+                    ignoring: draftChromeHiddenWhileDragging,
+                    child: AnimatedSlide(
+                      duration: AppMotion.draftSearchChromeReveal,
+                      curve: AppMotion.standard,
+                      offset: draftChromeHiddenWhileDragging
+                          ? const Offset(0, -0.04)
+                          : Offset.zero,
+                      child: AnimatedOpacity(
+                        duration: AppMotion.draftSearchChromeReveal,
+                        curve: AppMotion.standard,
+                        opacity: draftChromeHiddenWhileDragging ? 0 : 1,
+                        child: showDraftPlanningChrome
+                            ? PassengerTripDraftHeader(
+                                originConfirmed: _originConfirmed,
+                                // Mientras el pin se está moviendo (modo aguja), inyectamos la
+                                // previsualización en vivo en la fila correspondiente para que el
+                                // usuario vea la dirección que apunta sin texto sobre el pin.
+                                originDisplayLine:
+                                    _resolveDraftOriginDisplayLine(l10n),
+                                destinationDisplayLine:
+                                    _resolveDraftDestinationDisplayLine(l10n),
+                                hasDestinationSet: _destination != null,
+                                searchController: _draftSearchController,
+                                searchFocusNode: _draftSearchFocus,
+                                onSearchChanged: _onDraftSearchChanged,
+                                searchFieldHint: !_originConfirmed
+                                    ? l10n.tripYourLocation
+                                    : l10n.tripDraftSearchHint,
+                                showSuggestionsPanel:
+                                    _draftLocationSearchChromeVisible &&
+                                    _draftSearchFocus.hasFocus &&
+                                    (_draftSearchController.text.trim().length <
+                                            2 ||
+                                        _loadingDraftSuggestions ||
+                                        _draftSuggestions.isNotEmpty),
+                                loadingSuggestions: _loadingDraftSuggestions,
+                                suggestions: _draftSuggestions,
+                                onPickSuggestion: (s) {
+                                  unawaited(_pickDraftSuggestion(s));
+                                },
+                                recentPlaces:
+                                    _draftSearchPhase ==
+                                        PassengerDraftSearchRole.origin
+                                    ? _recentOriginPlaces
+                                    : _recentDestinationPlaces,
+                                onPickRecent: _pickDraftRecent,
+                                recentSectionTitle: l10n.profileRecentPlaces,
+                                onMyLocationIconTap: _onDraftMyLocationIconTap,
+                                onSavedIconTap: _onDraftSavedIconTap,
+                                myLocationTooltip: l10n.tripUseMyLocation,
+                                savedPlacesTooltip: l10n.profileSavedPlaces,
+                                showLocationSearchChrome:
+                                    _draftLocationSearchChromeVisible,
+                                highlightOrigin:
+                                    isMapConfirmMode && confirmingOrigin,
+                                highlightDestination:
+                                    isMapConfirmMode && !confirmingOrigin,
+                                searchPriorityMode: draftSearchPriorityMode,
+                                onEditOrigin: _originConfirmed
+                                    ? _onDraftEditOriginPressed
+                                    : null,
+                                onEditDestination: _originConfirmed
+                                    ? _onDraftEditDestinationPressed
+                                    : null,
+                                editStopLabel: l10n.tripDraftEditStop,
+                                onSaveOriginToFavorites: _origin != null
+                                    ? () => unawaited(_saveCurrentOriginPlace())
+                                    : null,
+                                saveOriginFavoritesTooltip:
+                                    l10n.tripDraftSaveOriginShortcut,
+                                onSaveDestinationToFavorites:
+                                    _destination != null
+                                    ? () => unawaited(
+                                        _saveCurrentDestinationPlace(),
+                                      )
+                                    : null,
+                                saveDestinationFavoritesTooltip:
+                                    l10n.tripDraftSaveDestinationShortcut,
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Spacer(),
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      TripCircleButton(
+                                        icon: Icons.menu_rounded,
+                                        onPressed: () =>
+                                            _showProfileMenu(context),
+                                      ),
+                                      if (!hasConnectionError) ...[
+                                        const SizedBox(height: AppSpacing.sm),
+                                        Tooltip(
+                                          message: l10n.tripMapRecenterShort,
+                                          child: TripCircleButton(
+                                            icon: Icons.my_location_rounded,
+                                            isLoading: _recenterInProgress,
+                                            onPressed: () =>
+                                                _recenterMapForPassenger(
+                                                  driverLat: driverLat,
+                                                  driverLng: driverLng,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                            ),
-                          ),
-                        ],
+                                ],
+                              ),
                       ),
                     ),
                   ),
                 ),
               ),
+            ),
             if (isTripActive &&
                 !isSearchingDriver &&
                 rtState.status != null &&
@@ -3983,6 +4756,72 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                   ),
                 ),
               ),
+            if (isTripActive &&
+                passengerTripChatPhaseActive(rtState.status) &&
+                _tripChatUnreadCount > 0 &&
+                !isMapConfirmMode)
+              Positioned(
+                // Debajo de la columna de menú/GPS.
+                top: 112,
+                right: 14,
+                child: SafeArea(
+                  bottom: false,
+                  child: Transform.scale(
+                    scale: 1 + (_chatAttentionController.value * 0.06),
+                    child: Material(
+                      color: AppColors.surface,
+                      elevation: 4,
+                      shadowColor: AppColors.primary.withValues(
+                        alpha: 0.22 + (_chatAttentionController.value * 0.2),
+                      ),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => unawaited(_openTripChatSheet(tripId: tripId)),
+                        child: SizedBox(
+                          width: 52,
+                          height: 52,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.mark_chat_unread_rounded,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                              Positioned(
+                                right: 4,
+                                top: 5,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    _tripChatUnreadCount > 99
+                                        ? '99+'
+                                        : '$_tripChatUnreadCount',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Aguja: el centro del mapa (_mapCenter) debe coincidir con la *punta* del pin,
             // igual que los Marker por defecto (ancla inferior). Subimos el ícono para alinear.
             if (isMapConfirmMode)
@@ -4020,7 +4859,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                                   : Icons.location_on_rounded,
                               size: 52,
                               color: confirmingOrigin
-                                  ? AppColors.primary
+                                  ? const Color(0xFFF9AB00)
                                   : const Color(0xFF111111),
                             ),
                           ),
@@ -4040,6 +4879,11 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                   onCancel: () => unawaited(_cancelSearchingTrip()),
                   searchingTitle: l10n.searchingTitle,
                   searchingSubtitle: l10n.searchingSubtitle,
+                  searchingPatienceHint: l10n.tripSearchingPatienceHint,
+                  searchingLongWaitTitle: l10n.tripSearchingLongWaitTitle,
+                  searchingLongWaitBody: l10n.tripSearchingLongWaitBody,
+                  keepSearchingLabel: l10n.tripSearchingKeepWaitingCta,
+                  onKeepSearching: _onSearchingKeepWaitingSoftRetry,
                   cancelLabel: l10n.commonCancel,
                 ),
               ),
@@ -4179,7 +5023,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                               passengerTripChatPhaseActive(rtState.status)
                               ? () => _openTripChatSheet(tripId: tripId)
                               : null,
-                          chatLabel: 'Chat seguro',
+                          chatLabel: l10n.tripSecureChat,
+                          unreadChatCount: _tripChatUnreadCount,
                         ),
                       ],
                     ),
@@ -4208,293 +5053,68 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                   cancelLabel: l10n.commonCancel,
                 ),
               ),
-            // Card inferior: paradas + acciones (altura máxima para que el mapa siga visible)
-            if (!isSearchingDriver &&
-                !isRecoveringActiveTrip &&
-                !isTripActive &&
-                !hasConnectionError &&
-                !isMapConfirmMode)
+            // Borrador: barra inferior (confirmar en mapa / cotización / solicitar). GPS y guardados van en la cabecera.
+            if (showDraftPlanningChrome)
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                top: 0,
-                child: DraggableScrollableSheet(
-                  // Cuando se abren las opciones (origen/destino), permitimos
-                  // que la sección crezca por encima de la mitad de pantalla.
-                  initialChildSize:
-                      (_activeStop == ActiveStop.origin ||
-                          _activeStop == ActiveStop.destination)
-                      ? 0.32
-                      : 0.33,
-                  minChildSize:
-                      (_activeStop == ActiveStop.origin ||
-                          _activeStop == ActiveStop.destination)
-                      ? 0.18
-                      : 0.16,
-                  maxChildSize:
-                      (_activeStop == ActiveStop.origin ||
-                          _activeStop == ActiveStop.destination)
-                      ? 0.68
-                      : 0.55,
-                  builder: (context, scrollController) => Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
+                child: IgnorePointer(
+                  ignoring: draftChromeHiddenWhileDragging,
+                  child: AnimatedSlide(
+                    duration: AppMotion.draftSearchChromeReveal,
+                    curve: AppMotion.standard,
+                    offset: draftChromeHiddenWhileDragging
+                        ? const Offset(0, 0.08)
+                        : Offset.zero,
+                    child: AnimatedOpacity(
+                      duration: AppMotion.draftSearchChromeReveal,
+                      curve: AppMotion.standard,
+                      opacity: draftChromeHiddenWhileDragging ? 0 : 1,
+                      child: PassengerTripDraftBottomBar(
+                        isMapConfirmMode: isMapConfirmMode,
+                        confirmingOrigin: confirmingOrigin,
+                        onConfirmMapPick: () async {
+                          TexiUiFeedback.lightTap();
+                          if (confirmingOrigin) {
+                            await _setOriginFromNeedle();
+                          } else {
+                            await _setDestinationFromNeedle();
+                          }
+                        },
+                        quote: tripState.quote,
+                        selectedQuoteOption: tripState.selectedOption,
+                        onSelectQuoteOption: (o) {
+                          ref
+                              .read(tripRequestProvider.notifier)
+                              .selectOption(o);
+                          setState(() {});
+                        },
+                        quotePerTripLabel: l10n.quotePerTrip,
+                        quoteSummaryText: null,
+                        onRequestRide: _submitInlineTripRequest,
+                        requestRideEnabled:
+                            tripState.quote != null &&
+                            tripState.selectedOption != null &&
+                            !_submittingTrip &&
+                            !_loading &&
+                            !_loadingRoute,
+                        requestRideLoading: _submittingTrip,
+                        quotingInProgress: _loading && tripState.quote == null,
+                        loadingRoute: _loadingRoute,
+                        routeLoadingLabel: l10n.tripDraftCalculatingRoute,
+                        errorMessage: _error,
+                        showCancelDraft:
+                            tripId == null &&
+                            _origin != null &&
+                            _destination != null &&
+                            !isMapConfirmMode,
+                        onCancelDraft: _cancelQuoteDraft,
+                        cancelDraftLabel: l10n.tripCancelQuoteDraft,
+                        onMenuPressed: () => _showProfileMenu(context),
+                        menuTooltip: l10n.homeProfileQuickAccess,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 24,
-                          offset: const Offset(0, -6),
-                        ),
-                      ],
                     ),
-                    child: Stack(
-                      children: [
-                        ListView(
-                          controller: scrollController,
-                          padding: EdgeInsets.only(
-                            bottom:
-                                AppSafeScrolling.systemNavBottom(context) + 110,
-                          ),
-                          children: [
-                            TripBottomRequestCardContent(
-                              scrollController: scrollController,
-                              showSeePricesButton: false,
-                              originDisplayText:
-                                  _originDisplayLabel ?? l10n.tripYourLocation,
-                              originSubtitle: l10n.tripOrigin,
-                              onOriginTap: () {
-                                setState(() {
-                                  _activeStop = _activeStop == ActiveStop.origin
-                                      ? ActiveStop.none
-                                      : ActiveStop.origin;
-                                });
-                              },
-                              onOriginUseMyLocation:
-                                  _setOriginFromCurrentLocation,
-                              onOriginSearch: _showOriginSearchSheet,
-                              onOriginPickOnMap: _startPickOriginOnMap,
-                              onPickOriginSaved: _pickOriginSavedPlace,
-                              onPickOriginRecent: _pickOriginRecentPlace,
-                              recentOriginPlaces: _recentOriginPlaces,
-                              recentDestinationPlaces: _recentDestinationPlaces,
-                              savedOriginPlaces: _savedOriginPlaces,
-                              savedDestinationPlaces: _savedDestinationPlaces,
-                              onSaveCurrentOrigin: () =>
-                                  unawaited(_saveCurrentOriginPlace()),
-                              onSaveCurrentDestination: () =>
-                                  unawaited(_saveCurrentDestinationPlace()),
-                              onManageSavedOrigin: () => unawaited(
-                                _openSavedPlacesManager(forOrigin: true),
-                              ),
-                              onManageSavedDestination: () => unawaited(
-                                _openSavedPlacesManager(forOrigin: false),
-                              ),
-                              destinationLabel: l10n.tripWhereTo,
-                              destinationDisplayText: _destination != null
-                                  ? (_destinationDisplayLabel ??
-                                        '${_destination!.latitude.toStringAsFixed(4)}, ${_destination!.longitude.toStringAsFixed(4)}')
-                                  : null,
-                              destinationPlaceholder:
-                                  l10n.tripTapMapDestination,
-                              loadingRoute: _loadingRoute,
-                              loadingQuote: _loading,
-                              error: _error,
-                              routeHint: l10n.tripSearchingAddress,
-                              isPickingOrigin: _pickingOrigin,
-                              isPickingDestination: _pickingDestination,
-                              expandOrigin: _activeStop == ActiveStop.origin,
-                              expandDestination:
-                                  _activeStop == ActiveStop.destination,
-                              useMapCenterLabel: l10n.tripUseMapCenter,
-                              useAsPickupLabel: l10n.tripUseAsPickup,
-                              useAsDestinationLabel: l10n.tripUseAsDestination,
-                              seePricesLabel: l10n.tripSeePrices,
-                              onUseMapCenter: _useMapCenterAsDestination,
-                              onSetOriginFromMap: _setOriginFromMapCenter,
-                              onSetDestinationFromMap:
-                                  _setDestinationFromMapCenter,
-                              onDestinationTap: () {
-                                if (!_originConfirmed && _destination == null) {
-                                  _showSubtleSnack(l10n.tripConfirmOriginFirst);
-                                  return;
-                                }
-                                setState(() {
-                                  _activeStop =
-                                      _activeStop == ActiveStop.destination
-                                      ? ActiveStop.none
-                                      : ActiveStop.destination;
-                                });
-                              },
-                              onDestinationUseMyLocation:
-                                  _setDestinationFromCurrentLocation,
-                              onDestinationSearch: _showDestinationSearchSheet,
-                              onDestinationPickOnMap:
-                                  _startPickDestinationOnMap,
-                              onPickDestinationSaved:
-                                  _pickDestinationSavedPlace,
-                              onPickDestinationRecent:
-                                  _pickDestinationRecentPlace,
-                              onSeePrices:
-                                  (_destination != null &&
-                                      _origin != null &&
-                                      !_pickingOrigin &&
-                                      !_pickingDestination &&
-                                      !_loadingRoute)
-                                  ? _fetchQuote
-                                  : null,
-                              showCancelQuoteDraft:
-                                  tripId == null &&
-                                  _origin != null &&
-                                  _destination != null,
-                              cancelQuoteDraftLabel: l10n.tripCancelQuoteDraft,
-                              onCancelQuoteDraft: _cancelQuoteDraft,
-                            ),
-                          ],
-                        ),
-                        if (!_pickingOrigin && !_pickingDestination)
-                          Positioned(
-                            left: AppSpacing.xxx,
-                            right: AppSpacing.xxx,
-                            bottom:
-                                AppSafeScrolling.systemNavBottom(context) + 16,
-                            child: SizedBox(
-                              height: AppSizes.buttonHeight,
-                              child: TexiScalePress(
-                                child: FilledButton(
-                                  onPressed:
-                                      (_destination != null &&
-                                          _origin != null &&
-                                          !_loadingRoute &&
-                                          !_loading)
-                                      ? _fetchQuote
-                                      : null,
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: AppColors.onPrimary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        AppRadii.md,
-                                      ),
-                                    ),
-                                  ),
-                                  child: _loading
-                                      ? const SizedBox(
-                                          height: AppSizes.progressBtn,
-                                          width: AppSizes.progressBtn,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: AppColors.onPrimary,
-                                          ),
-                                        )
-                                      : Text(
-                                          l10n.tripSeePrices,
-                                          style: const TextStyle(
-                                            fontSize: AppTypography.title,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            // Botón flotante de confirmación cuando el usuario está eligiendo en el mapa.
-            if (isMapConfirmMode)
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 24,
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Expanded(
-                            child: TexiScalePress(
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: confirmingOrigin
-                                      ? AppColors.primary
-                                      : const Color(0xFF111111),
-                                  foregroundColor: confirmingOrigin
-                                      ? Colors.black87
-                                      : Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 14,
-                                  ),
-                                ),
-                                onPressed: () async {
-                                  TexiUiFeedback.lightTap();
-                                  if (confirmingOrigin) {
-                                    await _setOriginFromNeedle();
-                                  } else {
-                                    await _setDestinationFromNeedle();
-                                  }
-                                },
-                                icon: const Icon(
-                                  Icons.check_circle_rounded,
-                                  size: 20,
-                                ),
-                                label: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    confirmingOrigin
-                                        ? l10n.tripConfirmOrigin
-                                        : l10n.tripConfirmDestination,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Material(
-                            color: Colors.black87,
-                            shape: const CircleBorder(),
-                            clipBehavior: Clip.antiAlias,
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                setState(() {
-                                  _pickingOrigin = false;
-                                  _pickingDestination = false;
-                                  _activeStop = confirmingOrigin
-                                      ? ActiveStop.origin
-                                      : ActiveStop.destination;
-                                });
-                              },
-                              child: const SizedBox(
-                                width: 48,
-                                height: 48,
-                                child: Icon(
-                                  Icons.search_rounded,
-                                  color: Colors.white,
-                                  size: 22,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -4505,490 +5125,6 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Sheet de calificación con estrellas (pasajero califica al conductor).
-/// Layout y animación alineados con `driver_home_screen.dart` → [_RatingSheetContent].
-class _PassengerRatingSheetContent extends StatefulWidget {
-  const _PassengerRatingSheetContent({
-    this.driverName,
-    required this.title,
-    required this.subtitle,
-    required this.sendLabel,
-    required this.skipLabel,
-    required this.onSubmitted,
-    required this.onSkipped,
-  });
-
-  final String? driverName;
-  final String title;
-  final String subtitle;
-  final String sendLabel;
-  final String skipLabel;
-  final void Function(int stars, List<String> feedbackCodes) onSubmitted;
-  final VoidCallback onSkipped;
-
-  @override
-  State<_PassengerRatingSheetContent> createState() =>
-      _PassengerRatingSheetContentState();
-}
-
-class _PassengerRatingSheetContentState
-    extends State<_PassengerRatingSheetContent>
-    with SingleTickerProviderStateMixin {
-  int _rating = 5;
-  bool _loadingCatalog = true;
-  List<TripRatingFeedbackItem> _feedbackLow = const [];
-  List<TripRatingFeedbackItem> _feedbackHigh = const [];
-  final Set<String> _selectedFeedbackCodes = <String>{};
-  late final AnimationController _entrance;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-
-  List<TripRatingFeedbackItem> get _displayedOptions =>
-      _rating <= 3 ? _feedbackLow : _feedbackHigh;
-
-  @override
-  void initState() {
-    super.initState();
-    _entrance = AnimationController(
-      vsync: this,
-      duration: AppMotion.sheetEntrance,
-    );
-    _fade = CurvedAnimation(parent: _entrance, curve: AppMotion.standard);
-    _slide = Tween<Offset>(
-      begin: Offset(0, AppMotion.slideDySubtle),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entrance, curve: AppMotion.standard));
-    _entrance.forward();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_preloadFeedbackCatalogs());
-    });
-  }
-
-  @override
-  void dispose() {
-    _entrance.dispose();
-    super.dispose();
-  }
-
-  Future<void> _preloadFeedbackCatalogs() async {
-    setState(() => _loadingCatalog = true);
-    try {
-      final token = await AuthService.getValidToken();
-      if (token == null || token.isEmpty) {
-        _applyFallbackCatalogs();
-        return;
-      }
-      final api = TripsApi(token: token);
-      final results = await Future.wait([
-        api.getPassengerRatingFeedbackCatalog(stars: 3),
-        api.getPassengerRatingFeedbackCatalog(stars: 5),
-      ]);
-      if (!mounted) return;
-      final lowRaw = results[0];
-      final highRaw = results[1];
-      setState(() {
-        _feedbackLow = (lowRaw.isEmpty ? _fallbackFeedback(2) : lowRaw)
-            .take(5)
-            .toList(growable: false);
-        _feedbackHigh = (highRaw.isEmpty ? _fallbackFeedback(5) : highRaw)
-            .take(5)
-            .toList(growable: false);
-      });
-    } catch (_) {
-      if (!mounted) return;
-      _applyFallbackCatalogs();
-    } finally {
-      if (mounted) setState(() => _loadingCatalog = false);
-    }
-  }
-
-  void _applyFallbackCatalogs() {
-    if (!mounted) return;
-    setState(() {
-      _feedbackLow = _fallbackFeedback(2).take(5).toList(growable: false);
-      _feedbackHigh = _fallbackFeedback(5).take(5).toList(growable: false);
-    });
-  }
-
-  void _setRating(int stars) {
-    HapticFeedback.selectionClick();
-    final prevBucket = _rating <= 3;
-    final nextBucket = stars <= 3;
-    setState(() {
-      _rating = stars;
-      if (prevBucket != nextBucket) {
-        _selectedFeedbackCodes.removeWhere(
-          (code) => !_displayedOptions.any((item) => item.code == code),
-        );
-      }
-    });
-  }
-
-  List<TripRatingFeedbackItem> _fallbackFeedback(int stars) {
-    if (stars <= 3) {
-      return const [
-        TripRatingFeedbackItem(
-          code: 'fallback_delay',
-          label: 'Tardó en llegar',
-          minStars: 1,
-          maxStars: 3,
-        ),
-        TripRatingFeedbackItem(
-          code: 'fallback_route',
-          label: 'Ruta poco conveniente',
-          minStars: 1,
-          maxStars: 3,
-        ),
-        TripRatingFeedbackItem(
-          code: 'fallback_cleanliness',
-          label: 'Vehículo poco cómodo',
-          minStars: 1,
-          maxStars: 3,
-        ),
-        TripRatingFeedbackItem(
-          code: 'fallback_attitude',
-          label: 'Trato mejorable',
-          minStars: 1,
-          maxStars: 3,
-        ),
-        TripRatingFeedbackItem(
-          code: 'fallback_other',
-          label: 'Otro motivo',
-          minStars: 1,
-          maxStars: 3,
-        ),
-      ];
-    }
-    return const [
-      TripRatingFeedbackItem(
-        code: 'fallback_safe',
-        label: 'Conducción segura',
-        minStars: 4,
-        maxStars: 5,
-      ),
-      TripRatingFeedbackItem(
-        code: 'fallback_clean',
-        label: 'Vehículo limpio',
-        minStars: 4,
-        maxStars: 5,
-      ),
-      TripRatingFeedbackItem(
-        code: 'fallback_kind',
-        label: 'Muy amable',
-        minStars: 4,
-        maxStars: 5,
-      ),
-      TripRatingFeedbackItem(
-        code: 'fallback_punctual',
-        label: 'Llegó rápido',
-        minStars: 4,
-        maxStars: 5,
-      ),
-      TripRatingFeedbackItem(
-        code: 'fallback_excellent',
-        label: 'Excelente servicio',
-        minStars: 4,
-        maxStars: 5,
-      ),
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final driverChip =
-        widget.driverName != null && widget.driverName!.trim().isNotEmpty;
-
-    return Material(
-      color: Colors.transparent,
-      child: SafeArea(
-        child: FadeTransition(
-          opacity: _fade,
-          child: SlideTransition(
-            position: _slide,
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 8,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 12,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppColors.border.withValues(alpha: 0.55),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      blurRadius: 28,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.border.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppColors.primary,
-                                    AppColors.primary.withValues(alpha: 0.75),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.check_rounded,
-                                color: AppColors.onPrimary,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.tripRatingSheetHeaderTitle,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          widget.title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.subtitle,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.4,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.96,
-                            ),
-                          ),
-                        ),
-                        if (driverChip) ...[
-                          const SizedBox(height: 20),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  color: AppColors.background,
-                                  border: Border.all(
-                                    color: AppColors.border.withValues(
-                                      alpha: 0.62,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.person_rounded,
-                                      size: 17,
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.92,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      widget.driverName!,
-                                      style: const TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        Text(
-                          l10n.tripRatingYourRating,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            final filled = _rating >= index + 1;
-                            return IconButton(
-                              onPressed: () => _setRating(index + 1),
-                              icon: Icon(
-                                filled
-                                    ? Icons.star_rounded
-                                    : Icons.star_border_rounded,
-                                size: 38,
-                                color: filled
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                              ),
-                            );
-                          }),
-                        ),
-                        if (_rating > 0) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _rating <= 3
-                                ? l10n.tripRatingFeedbackPromptLow
-                                : l10n.tripRatingFeedbackPromptHigh,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (_loadingCatalog)
-                            const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          else if (_displayedOptions.isNotEmpty)
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _displayedOptions
-                                  .map((item) {
-                                    final selected = _selectedFeedbackCodes
-                                        .contains(item.code);
-                                    return FilterChip(
-                                      selected: selected,
-                                      onSelected: (value) {
-                                        setState(() {
-                                          if (value) {
-                                            _selectedFeedbackCodes.add(
-                                              item.code,
-                                            );
-                                          } else {
-                                            _selectedFeedbackCodes.remove(
-                                              item.code,
-                                            );
-                                          }
-                                        });
-                                      },
-                                      label: Text(item.label),
-                                    );
-                                  })
-                                  .toList(growable: false),
-                            ),
-                        ],
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _rating == 0 || _loadingCatalog
-                              ? null
-                              : () {
-                                  TexiUiFeedback.lightTap();
-                                  widget.onSubmitted(
-                                    _rating,
-                                    _selectedFeedbackCodes.toList(
-                                      growable: false,
-                                    ),
-                                  );
-                                },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: Text(
-                            widget.sendLabel,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            TexiUiFeedback.lightTap();
-                            widget.onSkipped();
-                          },
-                          child: Text(
-                            widget.skipLabel,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -5050,151 +5186,36 @@ class _QuoteBottomSheetState extends ConsumerState<_QuoteBottomSheet> {
       return;
     }
 
-    final gpsOk = await widget.ensureDeviceGpsForNewTrip();
-    if (!gpsOk) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = AppLocalizations.of(context)!.tripRequireGpsForRequest;
-      });
-      return;
-    }
-
     setState(() {
       _requesting = true;
       _errorMessage = null;
     });
 
-    final token = await AuthService.getValidToken();
-    if (token == null || token.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _requesting = false;
-        _errorMessage = AppLocalizations.of(context)!.commonError;
-      });
+    final result = await submitPassengerTripFromQuote(
+      ref: ref,
+      context: context,
+      quote: quote,
+      option: option,
+      originLat: origin.lat,
+      originLng: origin.lng,
+      destinationLat: destination.lat,
+      destinationLng: destination.lng,
+      originAddress: widget.originAddress,
+      destinationAddress: widget.destinationAddress,
+      routeOverviewEncoded: widget.routeOverviewEncoded,
+      ensureDeviceGpsForNewTrip: widget.ensureDeviceGpsForNewTrip,
+    );
+    if (!mounted) return;
+    setState(() => _requesting = false);
+    if (result.kind == PassengerTripSubmitResultKind.success ||
+        result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
+      widget.onSuccess();
       return;
     }
-
-    try {
-      final api = TripsApi(token: token);
-
-      final guard = await reconcileActiveTripBeforeCreateTrip(
-        ref: ref,
-        api: api,
-        quoteForSocket: quote,
-      );
-      if (guard == ActiveTripGuardResult.recoveredExisting) {
-        if (!mounted) return;
-        setState(() => _requesting = false);
-        final tid = ref.read(tripRequestProvider).tripId;
-        if (tid != null && tid.isNotEmpty) {
-          showTripRecoveredSnackBarOncePerTrip(ref, context, tid);
-        }
-        widget.onSuccess();
-        return;
-      }
-
-      CreateTripResponse result;
-      int createAttempt = 0;
-      while (true) {
-        createAttempt += 1;
-        try {
-          result = await api.createTrip(
-            originLat: origin.lat,
-            originLng: origin.lng,
-            destinationLat: destination.lat,
-            destinationLng: destination.lng,
-            originAddress:
-                widget.originAddress ??
-                '${origin.lat.toStringAsFixed(6)},${origin.lng.toStringAsFixed(6)}',
-            destinationAddress:
-                widget.destinationAddress ??
-                '${destination.lat.toStringAsFixed(6)},${destination.lng.toStringAsFixed(6)}',
-            cityId: quote.city.id,
-            serviceTypeId: option.serviceTypeId,
-            estimatedPrice: option.estimatedPrice,
-            routeOverviewEncoded: widget.routeOverviewEncoded,
-          );
-          break;
-        } on DioException catch (e) {
-          final data = e.response?.data;
-          final code = TexiBackendError.codeFromResponse(data);
-          if (code == 'TRIP_CREATE_RATE_LIMITED' && createAttempt < 2) {
-            final waitMs = TripsApi.retryAfterMsForCreateTrip(e)
-                .clamp(300, 5000)
-                .toInt();
-            await Future<void>.delayed(Duration(milliseconds: waitMs));
-            if (!mounted) return;
-            continue;
-          }
-          rethrow;
-        }
-      }
-      ref.read(tripRequestProvider.notifier).selectOption(option);
-      ref.read(tripRequestProvider.notifier).setTripId(result.tripId);
-      await TripSessionStorage.saveActiveTripId(result.tripId);
-      await TripSessionStorage.saveActiveTripUiSnapshot(
-        tripId: result.tripId,
-        originLat: origin.lat,
-        originLng: origin.lng,
-        destLat: destination.lat,
-        destLng: destination.lng,
-        originLabel: widget.originAddress,
-        destLabel: widget.destinationAddress,
-        quote: quote,
-        selectedOption: option,
-      );
-      // Conectar Socket.IO para recibir trip:accepted, trip:status y trip:driver_location
-      ref
-          .read(passengerRealtimeProvider.notifier)
-          .connect(tripId: result.tripId, quote: widget.quote);
-      if (!mounted) return;
-      widget.onSuccess();
-    } catch (e) {
-      if (!mounted) return;
-      final l10nErr = AppLocalizations.of(context)!;
-      if (e is DioException) {
-        final data = e.response?.data;
-        final code = TexiBackendError.codeFromResponse(data);
-        final rawMsg = TexiBackendError.messageFromResponse(data);
-        if (code == 'PASSENGER_ACTIVE_TRIP_EXISTS' && data is Map) {
-          final envelope = Map<String, dynamic>.from(data);
-          final errorObj = envelope['error'];
-          if (errorObj is Map) {
-            final errorMap = Map<String, dynamic>.from(errorObj);
-            final activeTripId = errorMap['active_trip_id']?.toString().trim();
-            if (activeTripId != null && activeTripId.isNotEmpty) {
-              ref.read(tripRequestProvider.notifier).setTripId(activeTripId);
-              await TripSessionStorage.saveActiveTripId(activeTripId);
-              ref
-                  .read(passengerRealtimeProvider.notifier)
-                  .connect(tripId: activeTripId, quote: widget.quote);
-              await ref
-                  .read(passengerRealtimeProvider.notifier)
-                  .syncTripStatusFromApi(tripId: activeTripId);
-              if (!mounted) return;
-              showTripRecoveredSnackBarOncePerTrip(ref, context, activeTripId);
-              setState(() => _requesting = false);
-              widget.onSuccess();
-              return;
-            }
-          }
-        }
-        final message = localizedTripApiError(
-          l10nErr,
-          code,
-          fallbackMessage: rawMsg,
-        );
-        setState(() {
-          _requesting = false;
-          _errorMessage = message;
-        });
-        return;
-      }
-      setState(() {
-        _requesting = false;
-        _errorMessage = l10nErr.commonError;
-      });
-    }
+    setState(() {
+      _errorMessage =
+          result.message ?? AppLocalizations.of(context)!.commonError;
+    });
   }
 
   @override

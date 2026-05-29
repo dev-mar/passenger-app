@@ -22,12 +22,13 @@ import 'gen_l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Firebase y el handler de background DEBEN quedar registrados antes de `runApp`
+  // (Firebase porque cualquier consumidor de FCM lo asume listo; el background handler
+  // porque corre en un isolate aparte y se ata por puntero estable).
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(
     passengerFirebaseMessagingBackgroundHandler,
   );
-  await PassengerNotificationService.instance.initialize();
-  await setupPassengerFirebaseMessaging();
   AuthService.onSessionEstablished = () => PassengerPushTokenService.instance.syncTokenIfPossible();
   // Cuando el backend devuelve 401 (token expirado), se cierra sesión y se redirige a login.
   AuthService.onSessionExpired = () {
@@ -36,6 +37,9 @@ Future<void> main() async {
       GoRouter.of(context).goNamed(AppRouter.login);
     }
   };
+
+  // Notification channel + permisos FCM se inicializan tras el primer frame
+  // (ver `_TexiAppState.initState`) para no demorar la primera renderización.
 
   runApp(
     const ProviderScope(
@@ -57,8 +61,24 @@ class _TexiAppState extends ConsumerState<TexiApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrapDeferredServices());
       unawaited(_consumeInitialPassengerFcmMessage());
     });
+  }
+
+  /// Inicialización diferida tras el primer frame: canal de notificaciones local,
+  /// permisos/listeners de FCM. No bloquea la primera renderización.
+  Future<void> _bootstrapDeferredServices() async {
+    try {
+      await PassengerNotificationService.instance.initialize();
+    } catch (_) {
+      // Falla silenciosa: la app sigue usable sin canal local; FCM puede reintentar más tarde.
+    }
+    try {
+      await setupPassengerFirebaseMessaging();
+    } catch (_) {
+      // Permisos o listeners pueden completarse en sesiones siguientes; no bloquea login.
+    }
   }
 
   /// App cerrada: el usuario abre desde el toque en la notificación (p. ej. conductor llegó).

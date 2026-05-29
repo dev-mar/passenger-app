@@ -37,8 +37,9 @@ class LoginController extends StateNotifier<LoginState> {
   final _dio = Dio(
     BaseOptions(
       baseUrl: AppConfig.baseUrlAuth,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
+      // Login puede incluir push OTP en servidor; 15s generaba timeout falso en redes lentas.
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -61,7 +62,11 @@ class LoginController extends StateNotifier<LoginState> {
       String? pushToken;
       try {
         if (Firebase.apps.isNotEmpty) {
-          final t = await FirebaseMessaging.instance.getToken();
+          // Timeout corto: si FCM aún no está listo (cold start o sin red), seguimos
+          // con canal "code" en vez de demorar el login esperando un push token.
+          final t = await FirebaseMessaging.instance
+              .getToken()
+              .timeout(const Duration(milliseconds: 1500));
           if (t != null && t.trim().isNotEmpty) pushToken = t.trim();
         }
       } catch (_) {
@@ -74,7 +79,7 @@ class LoginController extends StateNotifier<LoginState> {
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
           if (pushToken != null) 'otp_channel': 'push',
-          if (pushToken != null) 'push_token': pushToken,
+          'push_token': ?pushToken,
         },
       );
 
@@ -126,21 +131,21 @@ class LoginController extends StateNotifier<LoginState> {
       await AuthService.persistLoginPhoneE164(fullPhone);
       return LoginNextStep.tripRequest;
     } on DioException catch (e) {
-      String? code;
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.sendTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         return _fail(code: 'NETWORK_TIMEOUT');
       }
-      final data = e.response?.data;
-      if (data is Map) {
-        code = data['code']?.toString();
-        final msg = data['message']?.toString();
-        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
-      } else if (e.type == DioExceptionType.connectionError) {
+      if (e.type == DioExceptionType.connectionError) {
         return _fail(code: 'NETWORK_CONNECTION');
       }
-      return _fail(code: code ?? 'NETWORK_REQUEST_FAILED', message: e.message);
+      final data = e.response?.data;
+      if (data is Map) {
+        final code = data['code']?.toString();
+        final msg = data['message']?.toString();
+        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
+      }
+      return _fail(code: 'NETWORK_REQUEST_FAILED', message: e.message);
     } catch (_) {
       return _fail(code: 'CLIENT_UNEXPECTED');
     }

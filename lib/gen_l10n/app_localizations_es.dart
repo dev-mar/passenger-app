@@ -155,6 +155,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripSearchingAddress => 'Buscando...';
 
   @override
+  String get tripDraftSearchHint => 'Buscar calle, barrio o lugar';
+
+  @override
+  String get tripDraftNoRecentPlaces =>
+      'Aún no hay lugares recientes para este punto';
+
+  @override
+  String get tripDraftQuoting => 'Obteniendo precios…';
+
+  @override
+  String get tripDraftCloseMapPicker => 'Cerrar y buscar o ajustar en el mapa';
+
+  @override
+  String get tripDraftCalculatingRoute => 'Calculando la ruta en el mapa…';
+
+  @override
+  String get tripDraftEditStop => 'Editar';
+
+  @override
+  String get tripSecureChat => 'Chat seguro';
+
+  @override
   String get tripNoCoverageInZone =>
       'No tenemos cobertura del servicio en esta zona por el momento. Prueba en otra ubicación o acércate a una zona de servicio.';
 
@@ -194,6 +216,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get searchingSubtitle => 'Estamos encontrando la mejor opción para ti';
+
+  @override
+  String get tripSearchingPatienceHint =>
+      'Aún no hay conductor cerca; seguimos buscando.';
+
+  @override
+  String get tripSearchingLongWaitTitle => '¿Sigues esperando?';
+
+  @override
+  String get tripSearchingLongWaitBody =>
+      'Encontrar conductor puede tardar un poco más. Puedes seguir esperando o cancelar esta solicitud abajo. «Seguir buscando» comprueba tu conexión con el servicio; el pedido sigue activo.';
+
+  @override
+  String get tripSearchingKeepWaitingCta => 'Seguir buscando';
 
   @override
   String get tripConnectionError =>
@@ -341,6 +377,21 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get tripMapAdjustDestinationHint =>
       'Ajusta el mapa para definir tu destino';
+
+  @override
+  String get tripMapPinHintOriginShort => 'Partida: mueve el mapa y confirma';
+
+  @override
+  String get tripMapPinHintDestShort => 'Destino: mueve el mapa y confirma';
+
+  @override
+  String get tripMapPinSearchInstead => 'Buscar';
+
+  @override
+  String get tripDraftSaveOriginShortcut => 'Guardar partida en favoritos';
+
+  @override
+  String get tripDraftSaveDestinationShortcut => 'Guardar destino en favoritos';
 
   @override
   String get tripRequireGpsForRequest =>

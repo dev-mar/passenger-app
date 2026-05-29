@@ -362,6 +362,48 @@ abstract class AppLocalizations {
   /// **'Searching...'**
   String get tripSearchingAddress;
 
+  /// No description provided for @tripDraftSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search street, area or place'**
+  String get tripDraftSearchHint;
+
+  /// No description provided for @tripDraftNoRecentPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent places yet for this stop'**
+  String get tripDraftNoRecentPlaces;
+
+  /// No description provided for @tripDraftQuoting.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting prices…'**
+  String get tripDraftQuoting;
+
+  /// No description provided for @tripDraftCloseMapPicker.
+  ///
+  /// In en, this message translates to:
+  /// **'Close and search or adjust on the map'**
+  String get tripDraftCloseMapPicker;
+
+  /// No description provided for @tripDraftCalculatingRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating the route on the map…'**
+  String get tripDraftCalculatingRoute;
+
+  /// No description provided for @tripDraftEditStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get tripDraftEditStop;
+
+  /// No description provided for @tripSecureChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure chat'**
+  String get tripSecureChat;
+
   /// No description provided for @tripNoCoverageInZone.
   ///
   /// In en, this message translates to:
@@ -439,6 +481,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We are finding the best option for you'**
   String get searchingSubtitle;
+
+  /// Non-blocking hint after ~60s on driver-search overlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Still no nearby driver; we\'re still searching.'**
+  String get tripSearchingPatienceHint;
+
+  /// No description provided for @tripSearchingLongWaitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Still waiting?'**
+  String get tripSearchingLongWaitTitle;
+
+  /// Optional card after ~90s; does not block the map.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.'**
+  String get tripSearchingLongWaitBody;
+
+  /// Dismisses long-wait card and runs soft refresh (REST sync / socket).
+  ///
+  /// In en, this message translates to:
+  /// **'Keep searching'**
+  String get tripSearchingKeepWaitingCta;
 
   /// No description provided for @tripConnectionError.
   ///
@@ -697,6 +763,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adjust the map to set your destination'**
   String get tripMapAdjustDestinationHint;
+
+  /// No description provided for @tripMapPinHintOriginShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup — move map, then confirm'**
+  String get tripMapPinHintOriginShort;
+
+  /// No description provided for @tripMapPinHintDestShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination — move map, then confirm'**
+  String get tripMapPinHintDestShort;
+
+  /// No description provided for @tripMapPinSearchInstead.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get tripMapPinSearchInstead;
+
+  /// No description provided for @tripDraftSaveOriginShortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Save pickup to favorites'**
+  String get tripDraftSaveOriginShortcut;
+
+  /// No description provided for @tripDraftSaveDestinationShortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Save destination to favorites'**
+  String get tripDraftSaveDestinationShortcut;
 
   /// No description provided for @tripRequireGpsForRequest.
   ///
