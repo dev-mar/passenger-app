@@ -188,6 +188,24 @@ abstract class AppLocalizations {
   /// **'Standard'**
   String get serviceTypeNameStandard;
 
+  /// No description provided for @serviceTypeNameTwoWheels.
+  ///
+  /// In en, this message translates to:
+  /// **'Two wheels'**
+  String get serviceTypeNameTwoWheels;
+
+  /// No description provided for @serviceTypeNameComfort.
+  ///
+  /// In en, this message translates to:
+  /// **'Comfort'**
+  String get serviceTypeNameComfort;
+
+  /// No description provided for @serviceTypeNamePremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium'**
+  String get serviceTypeNamePremium;
+
   /// No description provided for @loginPhoneRequired.
   ///
   /// In en, this message translates to:
@@ -1700,6 +1718,402 @@ abstract class AppLocalizations {
   /// **'Support and help'**
   String get profileActionSupport;
 
+  /// No description provided for @profileQuickActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick actions'**
+  String get profileQuickActions;
+
+  /// No description provided for @profileEditDisplayNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get profileEditDisplayNameLabel;
+
+  /// No description provided for @profileEditNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid name'**
+  String get profileEditNameInvalid;
+
+  /// No description provided for @profileEditSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save'**
+  String get profileEditSaveFailed;
+
+  /// No description provided for @profileEditSaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get profileEditSaving;
+
+  /// No description provided for @profileEditSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get profileEditSaveChanges;
+
+  /// No description provided for @profileSupportCenterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support center'**
+  String get profileSupportCenterTitle;
+
+  /// No description provided for @profileSupportCategoryGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get profileSupportCategoryGeneral;
+
+  /// No description provided for @profileSupportCategoryTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip'**
+  String get profileSupportCategoryTrip;
+
+  /// No description provided for @profileSupportCategoryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get profileSupportCategoryPayment;
+
+  /// No description provided for @profileSupportCategoryAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get profileSupportCategoryAccount;
+
+  /// No description provided for @profileSupportCategorySafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get profileSupportCategorySafety;
+
+  /// No description provided for @profileSupportCategoryTechnical.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical'**
+  String get profileSupportCategoryTechnical;
+
+  /// No description provided for @profileSupportCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get profileSupportCategoryLabel;
+
+  /// No description provided for @profileSupportSubjectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get profileSupportSubjectLabel;
+
+  /// No description provided for @profileSupportDetailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get profileSupportDetailLabel;
+
+  /// No description provided for @profileSupportValidationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete subject and details (min. 3/10 characters).'**
+  String get profileSupportValidationError;
+
+  /// No description provided for @profileSupportCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create ticket'**
+  String get profileSupportCreateFailed;
+
+  /// No description provided for @profileSupportSentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket submitted successfully'**
+  String get profileSupportSentSuccess;
+
+  /// No description provided for @profileSupportSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get profileSupportSending;
+
+  /// No description provided for @profileSupportSendTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit ticket'**
+  String get profileSupportSendTicket;
+
+  /// No description provided for @profileSupportRecentTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'My recent tickets'**
+  String get profileSupportRecentTickets;
+
+  /// No description provided for @profileSupportNoTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no tickets yet.'**
+  String get profileSupportNoTickets;
+
+  /// No description provided for @profileSupportTicketsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load tickets'**
+  String get profileSupportTicketsLoadFailed;
+
+  /// No description provided for @profileSupportTicketStatusChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket {ticketNumber} changed to {status}'**
+  String profileSupportTicketStatusChanged(String ticketNumber, String status);
+
+  /// No description provided for @profileSupportDetailLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load details'**
+  String get profileSupportDetailLoadFailed;
+
+  /// No description provided for @profileSupportAttachUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get profileSupportAttachUploading;
+
+  /// No description provided for @profileSupportAttachImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach image'**
+  String get profileSupportAttachImage;
+
+  /// No description provided for @profileSupportAttachSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment uploaded successfully'**
+  String get profileSupportAttachSuccess;
+
+  /// No description provided for @profileSupportAttachPrepFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare attachment'**
+  String get profileSupportAttachPrepFailed;
+
+  /// No description provided for @profileSupportPresignInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid presign response'**
+  String get profileSupportPresignInvalid;
+
+  /// No description provided for @profileSupportAttachRegisterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not register attachment'**
+  String get profileSupportAttachRegisterFailed;
+
+  /// No description provided for @profileSupportTimeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline'**
+  String get profileSupportTimeline;
+
+  /// No description provided for @profileSupportAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get profileSupportAttachments;
+
+  /// No description provided for @profileSupportNoAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'No attachments'**
+  String get profileSupportNoAttachments;
+
+  /// No description provided for @passengerRatingFallbackDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Took too long to arrive'**
+  String get passengerRatingFallbackDelay;
+
+  /// No description provided for @passengerRatingFallbackRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Inconvenient route'**
+  String get passengerRatingFallbackRoute;
+
+  /// No description provided for @passengerRatingFallbackCleanliness.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncomfortable vehicle'**
+  String get passengerRatingFallbackCleanliness;
+
+  /// No description provided for @passengerRatingFallbackAttitude.
+  ///
+  /// In en, this message translates to:
+  /// **'Could improve attitude'**
+  String get passengerRatingFallbackAttitude;
+
+  /// No description provided for @passengerRatingFallbackOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other reason'**
+  String get passengerRatingFallbackOther;
+
+  /// No description provided for @passengerRatingFallbackSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe driving'**
+  String get passengerRatingFallbackSafe;
+
+  /// No description provided for @passengerRatingFallbackClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean vehicle'**
+  String get passengerRatingFallbackClean;
+
+  /// No description provided for @passengerRatingFallbackKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Very kind'**
+  String get passengerRatingFallbackKind;
+
+  /// No description provided for @passengerRatingFallbackPunctual.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrived quickly'**
+  String get passengerRatingFallbackPunctual;
+
+  /// No description provided for @passengerRatingFallbackExcellent.
+  ///
+  /// In en, this message translates to:
+  /// **'Excellent service'**
+  String get passengerRatingFallbackExcellent;
+
+  /// No description provided for @passengerNotifyArrivalReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Your driver is waiting at the pickup point.'**
+  String get passengerNotifyArrivalReminder;
+
+  /// No description provided for @passengerNotifyDriverArrivedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your driver has arrived'**
+  String get passengerNotifyDriverArrivedTitle;
+
+  /// No description provided for @passengerNotifyDriverArrivedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trip is ready to start. Check the details.'**
+  String get passengerNotifyDriverArrivedBody;
+
+  /// No description provided for @passengerNotifyDriverArrivedBodyNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has arrived at the pickup point.'**
+  String passengerNotifyDriverArrivedBodyNamed(String name);
+
+  /// No description provided for @passengerNotifyChatNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New chat message'**
+  String get passengerNotifyChatNewTitle;
+
+  /// No description provided for @passengerNotifyChatSenderDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver'**
+  String get passengerNotifyChatSenderDriver;
+
+  /// No description provided for @passengerNotifyChatSenderPassenger.
+  ///
+  /// In en, this message translates to:
+  /// **'Passenger'**
+  String get passengerNotifyChatSenderPassenger;
+
+  /// No description provided for @passengerNotificationChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip updates'**
+  String get passengerNotificationChannelName;
+
+  /// No description provided for @passengerNotificationChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip status notifications for passengers.'**
+  String get passengerNotificationChannelDescription;
+
+  /// No description provided for @passengerNotificationChannelFcmDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'FCM alerts and trip status.'**
+  String get passengerNotificationChannelFcmDescription;
+
+  /// No description provided for @passengerNotificationChannelDriverArrivedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts when the driver arrives at pickup.'**
+  String get passengerNotificationChannelDriverArrivedDescription;
+
+  /// No description provided for @passengerNotificationChannelChatDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages from the active trip chat.'**
+  String get passengerNotificationChannelChatDescription;
+
+  /// No description provided for @passengerLabsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Labs'**
+  String get passengerLabsTitle;
+
+  /// No description provided for @passengerLabsTitleBeta.
+  ///
+  /// In en, this message translates to:
+  /// **'Labs (beta)'**
+  String get passengerLabsTitleBeta;
+
+  /// No description provided for @passengerLabsNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available.'**
+  String get passengerLabsNotAvailable;
+
+  /// No description provided for @passengerLabsGateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error checking access.'**
+  String get passengerLabsGateError;
+
+  /// No description provided for @passengerLabsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved space for product testing (map, sockets, flags). The flask icon on Home only appears with a QA number or dart-define.'**
+  String get passengerLabsDescription;
+
+  /// No description provided for @tripHistoryDriverName.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver: {name}'**
+  String tripHistoryDriverName(String name);
+
+  /// No description provided for @tripHistoryVehicleDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle: {details}'**
+  String tripHistoryVehicleDetails(String details);
+
+  /// No description provided for @tripHistoryCreatedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time: {time}'**
+  String tripHistoryCreatedTime(String time);
+
+  /// No description provided for @tripHistoryTripId.
+  ///
+  /// In en, this message translates to:
+  /// **'ID: {id}'**
+  String tripHistoryTripId(String id);
+
   /// No description provided for @commonEnabled.
   ///
   /// In en, this message translates to:
@@ -1717,6 +2131,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{km} km'**
   String homeDriverDistanceKm(String km);
+
+  /// No description provided for @passengerLegalSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Legal & privacy'**
+  String get passengerLegalSectionTitle;
+
+  /// No description provided for @passengerLegalPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get passengerLegalPrivacyPolicy;
+
+  /// No description provided for @passengerLegalTermsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of service'**
+  String get passengerLegalTermsOfService;
+
+  /// No description provided for @passengerLegalDeleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get passengerLegalDeleteAccountTitle;
+
+  /// No description provided for @passengerLegalDeleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can delete your account in the app or open the official page with instructions to submit a request.'**
+  String get passengerLegalDeleteAccountBody;
+
+  /// No description provided for @passengerLegalDeleteAccountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'How to request'**
+  String get passengerLegalDeleteAccountAction;
+
+  /// No description provided for @passengerLegalDeleteAccountConfirmNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule deletion'**
+  String get passengerLegalDeleteAccountConfirmNow;
+
+  /// No description provided for @passengerLegalDeleteAccountDeleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduling deletion…'**
+  String get passengerLegalDeleteAccountDeleting;
+
+  /// No description provided for @passengerLegalDeleteAccountScheduledSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion scheduled. You can cancel it from your profile before the deadline.'**
+  String get passengerLegalDeleteAccountScheduledSuccess;
+
+  /// No description provided for @passengerPlayNotificationDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip notifications'**
+  String get passengerPlayNotificationDisclosureTitle;
+
+  /// No description provided for @passengerPlayNotificationDisclosureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Texi needs to send you notifications when a driver accepts your trip, trip status changes, or the driver sends a message during an active ride.'**
+  String get passengerPlayNotificationDisclosureBody;
+
+  /// No description provided for @passengerPlayLocationDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location for trip requests'**
+  String get passengerPlayLocationDisclosureTitle;
+
+  /// No description provided for @passengerPlayLocationDisclosureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Texi uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.'**
+  String get passengerPlayLocationDisclosureBody;
+
+  /// No description provided for @passengerPlayDisclosureContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get passengerPlayDisclosureContinue;
 }
 
 class _AppLocalizationsDelegate

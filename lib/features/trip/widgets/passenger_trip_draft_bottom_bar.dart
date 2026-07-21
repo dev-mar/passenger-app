@@ -59,17 +59,6 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
   final VoidCallback onMenuPressed;
   final String menuTooltip;
 
-  static IconData _serviceTypeIcon(String serviceName) {
-    final n = serviceName.toLowerCase();
-    if (n.contains('confort') || n.contains('comfort')) {
-      return Icons.airline_seat_recline_extra_rounded;
-    }
-    if (n.contains('exclus') || n.contains('vip') || n.contains('premium')) {
-      return Icons.workspace_premium_rounded;
-    }
-    return Icons.local_taxi_rounded;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -316,7 +305,7 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                                       ),
                                     ),
                                     child: Icon(
-                                      _serviceTypeIcon(option.serviceTypeName),
+                                      serviceTypeIconData(option.serviceTypeName),
                                       color: selected
                                           ? AppColors.primary
                                           : AppColors.textSecondary,

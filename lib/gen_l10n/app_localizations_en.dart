@@ -59,6 +59,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceTypeNameStandard => 'Standard';
 
   @override
+  String get serviceTypeNameTwoWheels => 'Two wheels';
+
+  @override
+  String get serviceTypeNameComfort => 'Comfort';
+
+  @override
+  String get serviceTypeNamePremium => 'Premium';
+
+  @override
   String get loginPhoneRequired => 'Enter your phone number';
 
   @override
@@ -875,6 +884,225 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileActionSupport => 'Support and help';
 
   @override
+  String get profileQuickActions => 'Quick actions';
+
+  @override
+  String get profileEditDisplayNameLabel => 'Display name';
+
+  @override
+  String get profileEditNameInvalid => 'Enter a valid name';
+
+  @override
+  String get profileEditSaveFailed => 'Could not save';
+
+  @override
+  String get profileEditSaving => 'Saving...';
+
+  @override
+  String get profileEditSaveChanges => 'Save changes';
+
+  @override
+  String get profileSupportCenterTitle => 'Support center';
+
+  @override
+  String get profileSupportCategoryGeneral => 'General';
+
+  @override
+  String get profileSupportCategoryTrip => 'Trip';
+
+  @override
+  String get profileSupportCategoryPayment => 'Payment';
+
+  @override
+  String get profileSupportCategoryAccount => 'Account';
+
+  @override
+  String get profileSupportCategorySafety => 'Safety';
+
+  @override
+  String get profileSupportCategoryTechnical => 'Technical';
+
+  @override
+  String get profileSupportCategoryLabel => 'Category';
+
+  @override
+  String get profileSupportSubjectLabel => 'Subject';
+
+  @override
+  String get profileSupportDetailLabel => 'Details';
+
+  @override
+  String get profileSupportValidationError =>
+      'Complete subject and details (min. 3/10 characters).';
+
+  @override
+  String get profileSupportCreateFailed => 'Could not create ticket';
+
+  @override
+  String get profileSupportSentSuccess => 'Ticket submitted successfully';
+
+  @override
+  String get profileSupportSending => 'Sending...';
+
+  @override
+  String get profileSupportSendTicket => 'Submit ticket';
+
+  @override
+  String get profileSupportRecentTickets => 'My recent tickets';
+
+  @override
+  String get profileSupportNoTickets => 'You have no tickets yet.';
+
+  @override
+  String get profileSupportTicketsLoadFailed => 'Could not load tickets';
+
+  @override
+  String profileSupportTicketStatusChanged(String ticketNumber, String status) {
+    return 'Ticket $ticketNumber changed to $status';
+  }
+
+  @override
+  String get profileSupportDetailLoadFailed => 'Could not load details';
+
+  @override
+  String get profileSupportAttachUploading => 'Uploading...';
+
+  @override
+  String get profileSupportAttachImage => 'Attach image';
+
+  @override
+  String get profileSupportAttachSuccess => 'Attachment uploaded successfully';
+
+  @override
+  String get profileSupportAttachPrepFailed => 'Could not prepare attachment';
+
+  @override
+  String get profileSupportPresignInvalid => 'Invalid presign response';
+
+  @override
+  String get profileSupportAttachRegisterFailed =>
+      'Could not register attachment';
+
+  @override
+  String get profileSupportTimeline => 'Timeline';
+
+  @override
+  String get profileSupportAttachments => 'Attachments';
+
+  @override
+  String get profileSupportNoAttachments => 'No attachments';
+
+  @override
+  String get passengerRatingFallbackDelay => 'Took too long to arrive';
+
+  @override
+  String get passengerRatingFallbackRoute => 'Inconvenient route';
+
+  @override
+  String get passengerRatingFallbackCleanliness => 'Uncomfortable vehicle';
+
+  @override
+  String get passengerRatingFallbackAttitude => 'Could improve attitude';
+
+  @override
+  String get passengerRatingFallbackOther => 'Other reason';
+
+  @override
+  String get passengerRatingFallbackSafe => 'Safe driving';
+
+  @override
+  String get passengerRatingFallbackClean => 'Clean vehicle';
+
+  @override
+  String get passengerRatingFallbackKind => 'Very kind';
+
+  @override
+  String get passengerRatingFallbackPunctual => 'Arrived quickly';
+
+  @override
+  String get passengerRatingFallbackExcellent => 'Excellent service';
+
+  @override
+  String get passengerNotifyArrivalReminder =>
+      'Your driver is waiting at the pickup point.';
+
+  @override
+  String get passengerNotifyDriverArrivedTitle => 'Your driver has arrived';
+
+  @override
+  String get passengerNotifyDriverArrivedBody =>
+      'Your trip is ready to start. Check the details.';
+
+  @override
+  String passengerNotifyDriverArrivedBodyNamed(String name) {
+    return '$name has arrived at the pickup point.';
+  }
+
+  @override
+  String get passengerNotifyChatNewTitle => 'New chat message';
+
+  @override
+  String get passengerNotifyChatSenderDriver => 'Driver';
+
+  @override
+  String get passengerNotifyChatSenderPassenger => 'Passenger';
+
+  @override
+  String get passengerNotificationChannelName => 'Trip updates';
+
+  @override
+  String get passengerNotificationChannelDescription =>
+      'Trip status notifications for passengers.';
+
+  @override
+  String get passengerNotificationChannelFcmDescription =>
+      'FCM alerts and trip status.';
+
+  @override
+  String get passengerNotificationChannelDriverArrivedDescription =>
+      'Alerts when the driver arrives at pickup.';
+
+  @override
+  String get passengerNotificationChannelChatDescription =>
+      'Messages from the active trip chat.';
+
+  @override
+  String get passengerLabsTitle => 'Labs';
+
+  @override
+  String get passengerLabsTitleBeta => 'Labs (beta)';
+
+  @override
+  String get passengerLabsNotAvailable => 'Not available.';
+
+  @override
+  String get passengerLabsGateError => 'Error checking access.';
+
+  @override
+  String get passengerLabsDescription =>
+      'Reserved space for product testing (map, sockets, flags). The flask icon on Home only appears with a QA number or dart-define.';
+
+  @override
+  String tripHistoryDriverName(String name) {
+    return 'Driver: $name';
+  }
+
+  @override
+  String tripHistoryVehicleDetails(String details) {
+    return 'Vehicle: $details';
+  }
+
+  @override
+  String tripHistoryCreatedTime(String time) {
+    return 'Time: $time';
+  }
+
+  @override
+  String tripHistoryTripId(String id) {
+    return 'ID: $id';
+  }
+
+  @override
   String get commonEnabled => 'enabled';
 
   @override
@@ -884,4 +1112,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeDriverDistanceKm(String km) {
     return '$km km';
   }
+
+  @override
+  String get passengerLegalSectionTitle => 'Legal & privacy';
+
+  @override
+  String get passengerLegalPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get passengerLegalTermsOfService => 'Terms of service';
+
+  @override
+  String get passengerLegalDeleteAccountTitle => 'Delete account';
+
+  @override
+  String get passengerLegalDeleteAccountBody =>
+      'You can delete your account in the app or open the official page with instructions to submit a request.';
+
+  @override
+  String get passengerLegalDeleteAccountAction => 'How to request';
+
+  @override
+  String get passengerLegalDeleteAccountConfirmNow => 'Schedule deletion';
+
+  @override
+  String get passengerLegalDeleteAccountDeleting => 'Scheduling deletion…';
+
+  @override
+  String get passengerLegalDeleteAccountScheduledSuccess =>
+      'Deletion scheduled. You can cancel it from your profile before the deadline.';
+
+  @override
+  String get passengerPlayNotificationDisclosureTitle => 'Trip notifications';
+
+  @override
+  String get passengerPlayNotificationDisclosureBody =>
+      'Texi needs to send you notifications when a driver accepts your trip, trip status changes, or the driver sends a message during an active ride.';
+
+  @override
+  String get passengerPlayLocationDisclosureTitle =>
+      'Location for trip requests';
+
+  @override
+  String get passengerPlayLocationDisclosureBody =>
+      'Texi uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.';
+
+  @override
+  String get passengerPlayDisclosureContinue => 'Continue';
 }

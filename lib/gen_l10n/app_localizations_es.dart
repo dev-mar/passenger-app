@@ -59,6 +59,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serviceTypeNameStandard => 'Estándar';
 
   @override
+  String get serviceTypeNameTwoWheels => 'Dos ruedas';
+
+  @override
+  String get serviceTypeNameComfort => 'Confort';
+
+  @override
+  String get serviceTypeNamePremium => 'Premium';
+
+  @override
   String get loginPhoneRequired => 'Ingresa tu número de teléfono';
 
   @override
@@ -876,6 +885,225 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileActionSupport => 'Soporte y ayuda';
 
   @override
+  String get profileQuickActions => 'Acciones rápidas';
+
+  @override
+  String get profileEditDisplayNameLabel => 'Nombre visible';
+
+  @override
+  String get profileEditNameInvalid => 'Ingresa un nombre válido';
+
+  @override
+  String get profileEditSaveFailed => 'No se pudo guardar';
+
+  @override
+  String get profileEditSaving => 'Guardando...';
+
+  @override
+  String get profileEditSaveChanges => 'Guardar cambios';
+
+  @override
+  String get profileSupportCenterTitle => 'Centro de soporte';
+
+  @override
+  String get profileSupportCategoryGeneral => 'General';
+
+  @override
+  String get profileSupportCategoryTrip => 'Viaje';
+
+  @override
+  String get profileSupportCategoryPayment => 'Pago';
+
+  @override
+  String get profileSupportCategoryAccount => 'Cuenta';
+
+  @override
+  String get profileSupportCategorySafety => 'Seguridad';
+
+  @override
+  String get profileSupportCategoryTechnical => 'Técnico';
+
+  @override
+  String get profileSupportCategoryLabel => 'Categoría';
+
+  @override
+  String get profileSupportSubjectLabel => 'Asunto';
+
+  @override
+  String get profileSupportDetailLabel => 'Detalle';
+
+  @override
+  String get profileSupportValidationError =>
+      'Completa asunto y detalle (mín. 3/10 caracteres).';
+
+  @override
+  String get profileSupportCreateFailed => 'No se pudo crear ticket';
+
+  @override
+  String get profileSupportSentSuccess => 'Ticket enviado correctamente';
+
+  @override
+  String get profileSupportSending => 'Enviando...';
+
+  @override
+  String get profileSupportSendTicket => 'Enviar ticket';
+
+  @override
+  String get profileSupportRecentTickets => 'Mis tickets recientes';
+
+  @override
+  String get profileSupportNoTickets => 'Aún no tienes tickets registrados.';
+
+  @override
+  String get profileSupportTicketsLoadFailed => 'No se pudo cargar tickets';
+
+  @override
+  String profileSupportTicketStatusChanged(String ticketNumber, String status) {
+    return 'Ticket $ticketNumber cambió a $status';
+  }
+
+  @override
+  String get profileSupportDetailLoadFailed => 'No se pudo cargar detalle';
+
+  @override
+  String get profileSupportAttachUploading => 'Subiendo...';
+
+  @override
+  String get profileSupportAttachImage => 'Adjuntar imagen';
+
+  @override
+  String get profileSupportAttachSuccess => 'Adjunto subido correctamente';
+
+  @override
+  String get profileSupportAttachPrepFailed => 'No se pudo preparar adjunto';
+
+  @override
+  String get profileSupportPresignInvalid => 'Respuesta de presign inválida';
+
+  @override
+  String get profileSupportAttachRegisterFailed =>
+      'No se pudo registrar adjunto';
+
+  @override
+  String get profileSupportTimeline => 'Timeline';
+
+  @override
+  String get profileSupportAttachments => 'Adjuntos';
+
+  @override
+  String get profileSupportNoAttachments => 'Sin adjuntos';
+
+  @override
+  String get passengerRatingFallbackDelay => 'Tardó en llegar';
+
+  @override
+  String get passengerRatingFallbackRoute => 'Ruta poco conveniente';
+
+  @override
+  String get passengerRatingFallbackCleanliness => 'Vehículo poco cómodo';
+
+  @override
+  String get passengerRatingFallbackAttitude => 'Trato mejorable';
+
+  @override
+  String get passengerRatingFallbackOther => 'Otro motivo';
+
+  @override
+  String get passengerRatingFallbackSafe => 'Conducción segura';
+
+  @override
+  String get passengerRatingFallbackClean => 'Vehículo limpio';
+
+  @override
+  String get passengerRatingFallbackKind => 'Muy amable';
+
+  @override
+  String get passengerRatingFallbackPunctual => 'Llegó rápido';
+
+  @override
+  String get passengerRatingFallbackExcellent => 'Excelente servicio';
+
+  @override
+  String get passengerNotifyArrivalReminder =>
+      'Tu conductor te está esperando en el punto de recogida.';
+
+  @override
+  String get passengerNotifyDriverArrivedTitle => 'Tu conductor ya llegó';
+
+  @override
+  String get passengerNotifyDriverArrivedBody =>
+      'Tu viaje está listo para iniciar. Revisa los detalles.';
+
+  @override
+  String passengerNotifyDriverArrivedBodyNamed(String name) {
+    return '$name ya llegó al punto de recogida.';
+  }
+
+  @override
+  String get passengerNotifyChatNewTitle => 'Nuevo mensaje de chat';
+
+  @override
+  String get passengerNotifyChatSenderDriver => 'Conductor';
+
+  @override
+  String get passengerNotifyChatSenderPassenger => 'Pasajero';
+
+  @override
+  String get passengerNotificationChannelName => 'Actualizaciones de viaje';
+
+  @override
+  String get passengerNotificationChannelDescription =>
+      'Notificaciones de estado de viaje para pasajero.';
+
+  @override
+  String get passengerNotificationChannelFcmDescription =>
+      'Avisos FCM y estado de viaje.';
+
+  @override
+  String get passengerNotificationChannelDriverArrivedDescription =>
+      'Avisos cuando el conductor llega al punto de recogida.';
+
+  @override
+  String get passengerNotificationChannelChatDescription =>
+      'Mensajes de chat del viaje activo.';
+
+  @override
+  String get passengerLabsTitle => 'Labs';
+
+  @override
+  String get passengerLabsTitleBeta => 'Labs (beta)';
+
+  @override
+  String get passengerLabsNotAvailable => 'No disponible.';
+
+  @override
+  String get passengerLabsGateError => 'Error al comprobar acceso.';
+
+  @override
+  String get passengerLabsDescription =>
+      'Espacio reservado para pruebas de producto (mapa, sockets, flags). El icono de matraz en Home solo aparece con número QA o dart-define.';
+
+  @override
+  String tripHistoryDriverName(String name) {
+    return 'Conductor: $name';
+  }
+
+  @override
+  String tripHistoryVehicleDetails(String details) {
+    return 'Vehículo: $details';
+  }
+
+  @override
+  String tripHistoryCreatedTime(String time) {
+    return 'Hora: $time';
+  }
+
+  @override
+  String tripHistoryTripId(String id) {
+    return 'ID: $id';
+  }
+
+  @override
   String get commonEnabled => 'activado';
 
   @override
@@ -885,4 +1113,52 @@ class AppLocalizationsEs extends AppLocalizations {
   String homeDriverDistanceKm(String km) {
     return '$km km';
   }
+
+  @override
+  String get passengerLegalSectionTitle => 'Legal y privacidad';
+
+  @override
+  String get passengerLegalPrivacyPolicy => 'Política de privacidad';
+
+  @override
+  String get passengerLegalTermsOfService => 'Términos de servicio';
+
+  @override
+  String get passengerLegalDeleteAccountTitle => 'Eliminar cuenta';
+
+  @override
+  String get passengerLegalDeleteAccountBody =>
+      'Puedes eliminar tu cuenta desde la app o consultar la información oficial para completar la solicitud.';
+
+  @override
+  String get passengerLegalDeleteAccountAction => 'Ver cómo solicitar';
+
+  @override
+  String get passengerLegalDeleteAccountConfirmNow => 'Programar eliminación';
+
+  @override
+  String get passengerLegalDeleteAccountDeleting => 'Programando eliminación…';
+
+  @override
+  String get passengerLegalDeleteAccountScheduledSuccess =>
+      'Eliminación programada. Puedes cancelarla desde tu perfil antes de la fecha límite.';
+
+  @override
+  String get passengerPlayNotificationDisclosureTitle =>
+      'Notificaciones de viaje';
+
+  @override
+  String get passengerPlayNotificationDisclosureBody =>
+      'Texi necesita enviarte notificaciones cuando un conductor acepte tu viaje, cambie el estado del trayecto o te envíe un mensaje durante el viaje.';
+
+  @override
+  String get passengerPlayLocationDisclosureTitle =>
+      'Ubicación para solicitar viajes';
+
+  @override
+  String get passengerPlayLocationDisclosureBody =>
+      'Texi usa tu ubicación para mostrarte en el mapa, encontrar conductores cercanos y facilitar la recogida en el punto de origen.';
+
+  @override
+  String get passengerPlayDisclosureContinue => 'Continuar';
 }

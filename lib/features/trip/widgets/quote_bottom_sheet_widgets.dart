@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
+import '../../../core/utils/service_type_display.dart';
 
 class TripQuoteHeader extends StatelessWidget {
   const TripQuoteHeader({
@@ -69,19 +70,6 @@ class TripQuoteOptionTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  IconData _serviceIcon(String value) {
-    final normalized = value.toLowerCase();
-    if (normalized.contains('confort') || normalized.contains('comfort')) {
-      return Icons.airline_seat_recline_extra_rounded;
-    }
-    if (normalized.contains('exclus') ||
-        normalized.contains('vip') ||
-        normalized.contains('premium')) {
-      return Icons.workspace_premium_rounded;
-    }
-    return Icons.local_taxi_rounded;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -104,7 +92,7 @@ class TripQuoteOptionTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
                   child: Icon(
-                    _serviceIcon(serviceName),
+                    serviceTypeIconData(serviceName),
                     color: isSelected ? AppColors.primary : AppColors.textSecondary,
                     size: AppIconSizes.xl,
                   ),
