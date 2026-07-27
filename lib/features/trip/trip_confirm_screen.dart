@@ -10,6 +10,7 @@ import '../../core/auth/auth_service.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/network/texi_backend_error.dart';
+import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -41,8 +42,20 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
 
     if (origin == null || destination == null || quote == null || option == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+    if (!await passengerEnsurePlayDisclosuresBeforeTripFlow(context, l10n)) {
+      if (mounted) {
+        setState(() {
+          _error = l10n.tripRequireGpsForRequest;
+        });
+      }
+      return;
+    }
+
     final permission =
-        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+        await PassengerGeolocationPermissionCache.ensureLocationPermission(
+      requestIfDenied: false,
+    );
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       if (mounted) {

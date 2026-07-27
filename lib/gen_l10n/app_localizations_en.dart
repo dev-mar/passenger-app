@@ -56,6 +56,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Verification service unavailable. Please try again later.';
 
   @override
+  String get loginErrorSessionSuperseded =>
+      'Your session was opened on another device.';
+
+  @override
+  String get loginErrorTripOperationalLock =>
+      'Finish or cancel your current trip before signing in on another device.';
+
+  @override
   String get serviceTypeNameStandard => 'Standard';
 
   @override
@@ -182,6 +190,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripSecureChat => 'Secure chat';
+
+  @override
+  String get passengerTripChatTitle => 'Trip chat';
+
+  @override
+  String get passengerTripChatSubtitle => 'Live conversation with your driver.';
+
+  @override
+  String get passengerTripChatOnline => 'Online';
+
+  @override
+  String get passengerTripChatOffline => 'Offline';
+
+  @override
+  String get passengerTripChatTemplateCantFindVehicle =>
+      'I can\'t see your vehicle';
+
+  @override
+  String get passengerTripChatTemplateWhereAreYou => 'Where are you exactly?';
+
+  @override
+  String get passengerTripChatTemplateWaitingHere => 'I\'m waiting here';
+
+  @override
+  String get passengerTripChatNow => 'Now';
+
+  @override
+  String get passengerTripChatErrorStorage =>
+      'Chat unavailable. Contact support.';
+
+  @override
+  String get passengerTripChatErrorPhase =>
+      'Chat isn\'t available at this trip stage.';
+
+  @override
+  String get passengerTripChatErrorNotReady =>
+      'Chat isn\'t ready yet. Try again in a few seconds.';
+
+  @override
+  String passengerTripChatErrorSendReceive(String code) {
+    return 'Couldn\'t send the message ($code). Check your connection.';
+  }
+
+  @override
+  String get passengerTripChatEmptyState =>
+      'No messages yet.\nSend one to start the conversation.';
+
+  @override
+  String get passengerTripChatMessageHint => 'Write a message';
+
+  @override
+  String get passengerTripChatSenderYou => 'You';
+
+  @override
+  String get passengerTripChatSenderDriver => 'Driver';
+
+  @override
+  String get passengerTripChatDriverTemplateAtPickup =>
+      'I arrived at the pickup point';
+
+  @override
+  String get passengerTripChatDriverTemplateCannotFind =>
+      'I can\'t find you at the pickup point';
+
+  @override
+  String get passengerTripChatDriverTemplateConfirmLocation =>
+      'Please confirm your exact location';
+
+  @override
+  String get commonEmptyDash => '—';
 
   @override
   String get tripNoCoverageInZone =>
@@ -1027,19 +1105,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your driver is waiting at the pickup point.';
 
   @override
-  String get passengerNotifyDriverArrivedTitle => 'Your driver has arrived';
+  String get passengerNotifyDriverArrivedTitle => 'Your driver arrived';
 
   @override
   String get passengerNotifyDriverArrivedBody =>
-      'Your trip is ready to start. Check the details.';
+      'They\'re waiting at the pickup point.';
 
   @override
   String passengerNotifyDriverArrivedBodyNamed(String name) {
-    return '$name has arrived at the pickup point.';
+    return '$name is waiting at the pickup point.';
   }
 
   @override
-  String get passengerNotifyChatNewTitle => 'New chat message';
+  String get passengerNotifyChatNewTitle => 'Trip message';
 
   @override
   String get passengerNotifyChatSenderDriver => 'Driver';
@@ -1117,6 +1195,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passengerLegalSectionTitle => 'Legal & privacy';
 
   @override
+  String get passengerLegalSectionSubtitle =>
+      'Review the documents that apply to your account and manage your data.';
+
+  @override
   String get passengerLegalPrivacyPolicy => 'Privacy policy';
 
   @override
@@ -1140,7 +1222,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerLegalDeleteAccountScheduledSuccess =>
-      'Deletion scheduled. You can cancel it from your profile before the deadline.';
+      'Deletion scheduled. Your session was closed; sign in to recover your account before the deadline.';
+
+  @override
+  String passengerLegalDeleteAccountBodyGrace(int graceDays) {
+    return 'Your account will enter a scheduled deletion period for $graceDays days. After you confirm, your session will close and you cannot use the app. To recover it, sign in with your phone number and cancel the request before the deadline.';
+  }
+
+  @override
+  String get passengerLegalLoginHint =>
+      'By continuing, you agree to the service terms.';
+
+  @override
+  String get passengerLegalRegistrationHint =>
+      'Before continuing, review the legal documents that apply to your account.';
+
+  @override
+  String get passengerLoginAccountDeletionPendingTitle => 'Deletion scheduled';
+
+  @override
+  String passengerLoginAccountDeletionPendingBody(String effectiveDate) {
+    return 'This account is scheduled for deletion on $effectiveDate. You cannot use the app until you recover it.';
+  }
+
+  @override
+  String get passengerLoginAccountDeletionPendingDateFallback =>
+      'the scheduled date';
+
+  @override
+  String get passengerLoginAccountDeletionRecover => 'Recover account';
+
+  @override
+  String get passengerLoginAccountDeletionDismiss => 'OK';
+
+  @override
+  String get passengerLoginAccountDeletionRecovering => 'Recovering account…';
+
+  @override
+  String get passengerLoginAccountDeletionRecoverSuccess =>
+      'Account recovered. Welcome back.';
+
+  @override
+  String get passengerLegalDeleteAccountPendingTitle => 'Deletion scheduled';
+
+  @override
+  String passengerLegalDeleteAccountPendingBody(
+    String effectiveDate,
+    int daysRemaining,
+  ) {
+    return 'Your account will be deleted on $effectiveDate. You have $daysRemaining days left to cancel and restore access.';
+  }
+
+  @override
+  String get passengerLegalDeleteAccountPendingDateFallback =>
+      'the scheduled date';
+
+  @override
+  String get passengerLegalDeleteAccountCancelAction => 'Cancel deletion';
+
+  @override
+  String get passengerLegalDeleteAccountCancelling => 'Cancelling deletion…';
+
+  @override
+  String get passengerLegalDeleteAccountCancelSuccess =>
+      'Deletion cancelled. Your account is still active.';
+
+  @override
+  String get passengerPlayCameraDisclosureTitle => 'Camera access';
+
+  @override
+  String get passengerPlayCameraDisclosureBody =>
+      'Texi uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.';
+
+  @override
+  String get passengerPlayGalleryDisclosureTitle => 'Photo library access';
+
+  @override
+  String get passengerPlayGalleryDisclosureBody =>
+      'Texi accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.';
 
   @override
   String get passengerPlayNotificationDisclosureTitle => 'Trip notifications';
@@ -1159,4 +1318,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerPlayDisclosureContinue => 'Continue';
+
+  @override
+  String get passengerPlayNotificationDisclosureRequired =>
+      'Enable notifications to receive trip updates from your driver.';
 }

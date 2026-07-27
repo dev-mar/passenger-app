@@ -56,6 +56,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Servicio de verificación no disponible. Intenta más tarde.';
 
   @override
+  String get loginErrorSessionSuperseded =>
+      'Tu sesión se abrió en otro dispositivo.';
+
+  @override
+  String get loginErrorTripOperationalLock =>
+      'Terminá o cancelá tu viaje actual antes de iniciar sesión en otro dispositivo.';
+
+  @override
   String get serviceTypeNameStandard => 'Estándar';
 
   @override
@@ -184,6 +192,77 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get tripSecureChat => 'Chat seguro';
+
+  @override
+  String get passengerTripChatTitle => 'Chat del viaje';
+
+  @override
+  String get passengerTripChatSubtitle =>
+      'Conversación activa con el conductor en tiempo real.';
+
+  @override
+  String get passengerTripChatOnline => 'En línea';
+
+  @override
+  String get passengerTripChatOffline => 'Sin conexión';
+
+  @override
+  String get passengerTripChatTemplateCantFindVehicle => 'No veo tu vehículo';
+
+  @override
+  String get passengerTripChatTemplateWhereAreYou =>
+      '¿Dónde estás exactamente?';
+
+  @override
+  String get passengerTripChatTemplateWaitingHere => 'Estoy esperando aquí';
+
+  @override
+  String get passengerTripChatNow => 'Ahora';
+
+  @override
+  String get passengerTripChatErrorStorage =>
+      'Chat no disponible. Contacta a soporte.';
+
+  @override
+  String get passengerTripChatErrorPhase =>
+      'El chat no está disponible en esta etapa del viaje.';
+
+  @override
+  String get passengerTripChatErrorNotReady =>
+      'El chat aún no está listo. Intenta en unos segundos.';
+
+  @override
+  String passengerTripChatErrorSendReceive(String code) {
+    return 'No se pudo enviar el mensaje ($code). Revisa tu conexión.';
+  }
+
+  @override
+  String get passengerTripChatEmptyState =>
+      'Aún no hay mensajes.\nEnvía uno para iniciar la conversación.';
+
+  @override
+  String get passengerTripChatMessageHint => 'Escribe un mensaje';
+
+  @override
+  String get passengerTripChatSenderYou => 'Tú';
+
+  @override
+  String get passengerTripChatSenderDriver => 'Conductor';
+
+  @override
+  String get passengerTripChatDriverTemplateAtPickup =>
+      'Ya llegué al punto de recogida';
+
+  @override
+  String get passengerTripChatDriverTemplateCannotFind =>
+      'No logro ubicarte en el punto';
+
+  @override
+  String get passengerTripChatDriverTemplateConfirmLocation =>
+      'Confirma tu ubicación exacta';
+
+  @override
+  String get commonEmptyDash => '—';
 
   @override
   String get tripNoCoverageInZone =>
@@ -416,7 +495,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripConfirmDestination => 'Confirmar destino';
 
   @override
-  String get tripLogout => 'Cerrar sesion';
+  String get tripLogout => 'Cerrar sesión';
 
   @override
   String get profileLogoutSubtitle => 'Salir de la cuenta actual';
@@ -555,25 +634,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripRecoveringStateTitle => 'Recuperando tu viaje…';
 
   @override
-  String get verifyCodeTitle => 'Verifica tu numero';
+  String get verifyCodeTitle => 'Verifica tu número';
 
   @override
   String verifyCodeSubtitle(String phone) {
-    return 'Te enviamos un codigo de 4 digitos a $phone. Ingresalo para continuar.';
+    return 'Te enviamos un código de 4 dígitos a $phone. Ingrésalo para continuar.';
   }
 
   @override
-  String get verifyCodeFieldLabel => 'Codigo de verificacion de cuatro digitos';
+  String get verifyCodeFieldLabel => 'Código de verificación de cuatro dígitos';
 
   @override
   String get verifyCodeMaskHint => '••••';
 
   @override
-  String get verifyCodeConfirm => 'Confirmar codigo';
+  String get verifyCodeConfirm => 'Confirmar código';
 
   @override
   String get verifyCodeRetryHint =>
-      'Si no recibiste el codigo, revisa el numero y vuelve a intentar en unos minutos.';
+      'Si no recibiste el código, revisa el número y vuelve a intentar en unos minutos.';
 
   @override
   String get verifyCodeErrorActivateAccount =>
@@ -624,7 +703,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profilePhotoTooLarge =>
-      'La foto es muy pesada. Elige otra o toma una con menor resolucion.';
+      'La foto es muy pesada. Elige otra o toma una con menor resolución.';
 
   @override
   String get profilePhotoPickFailed =>
@@ -634,13 +713,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profilePhotoTake => 'Tomar foto';
 
   @override
-  String get profilePhotoGallery => 'Elegir de galeria';
+  String get profilePhotoGallery => 'Elegir de galería';
 
   @override
   String get profilePhotoCropTitle => 'Ajustar selfie';
 
   @override
-  String get profileReviewInfoTitle => 'Revisa tu informacion';
+  String get profileReviewInfoTitle => 'Revisa tu información';
 
   @override
   String get profileAcknowledge => 'Entendido';
@@ -652,10 +731,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeTooltipProfile => 'Abrir perfil';
 
   @override
-  String get homeLocationMissingTitle => 'No detectamos tu ubicacion';
+  String get homeLocationMissingTitle => 'No detectamos tu ubicación';
 
   @override
-  String get homeMapMe => 'Tu posicion';
+  String get homeMapMe => 'Tu posición';
 
   @override
   String homeMapDriverTitle(String id) {
@@ -705,20 +784,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileStateLoading => 'Estado: cargando';
 
   @override
-  String get profileStateEmpty => 'Estado: vacio';
+  String get profileStateEmpty => 'Estado: vacío';
 
   @override
   String get profileStateError => 'Estado: error';
 
   @override
-  String get profileStateOffline => 'Estado: sin conexion';
+  String get profileStateOffline => 'Estado: sin conexión';
 
   @override
   String get profileEmptyTitle => 'Completa tu perfil';
 
   @override
   String get profileEmptyBody =>
-      'Aun no encontramos datos de perfil. Puedes crearlos en unos pasos.';
+      'Aún no encontramos datos de perfil. Puedes crearlos en unos pasos.';
 
   @override
   String get profileCompleteNow => 'Completar ahora';
@@ -728,14 +807,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileErrorBody =>
-      'Ocurrio un problema temporal. Intenta nuevamente.';
+      'Ocurrió un problema temporal. Intenta nuevamente.';
 
   @override
-  String get profileOfflineTitle => 'Sin conexion';
+  String get profileOfflineTitle => 'Sin conexión';
 
   @override
   String get profileOfflineBody =>
-      'Revisa tu red para sincronizar tu informacion de perfil.';
+      'Revisa tu red para sincronizar tu información de perfil.';
 
   @override
   String get profileRefresh => 'Actualizar';
@@ -798,7 +877,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileMockInitials => 'JP';
 
   @override
-  String get profileMockName => 'Juan Perez';
+  String get profileMockName => 'Juan Pérez';
 
   @override
   String get profileMockPhone => '+591 71234567';
@@ -834,7 +913,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileFieldDocument => 'Documento';
 
   @override
-  String get profileFieldAddress => 'Direccion';
+  String get profileFieldAddress => 'Dirección';
 
   @override
   String get profileMockEmail => 'juan@email.com';
@@ -864,10 +943,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileSectionSecurity => 'Seguridad';
 
   @override
-  String get profileFieldBiometrics => 'Biometria';
+  String get profileFieldBiometrics => 'Biometría';
 
   @override
-  String get profileFieldLastAccess => 'Ultimo acceso';
+  String get profileFieldLastAccess => 'Último acceso';
 
   @override
   String get profileSecurityNotAvailable => 'No disponible';
@@ -879,7 +958,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileMockLastAccessValue => 'Hoy, 09:14';
 
   @override
-  String get profileActionEditInfo => 'Editar informacion';
+  String get profileActionEditInfo => 'Editar información';
 
   @override
   String get profileActionSupport => 'Soporte y ayuda';
@@ -1025,22 +1104,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerNotifyArrivalReminder =>
-      'Tu conductor te está esperando en el punto de recogida.';
+      'Tu conductor te espera en el punto de recogida.';
 
   @override
-  String get passengerNotifyDriverArrivedTitle => 'Tu conductor ya llegó';
+  String get passengerNotifyDriverArrivedTitle => 'Tu conductor llegó';
 
   @override
   String get passengerNotifyDriverArrivedBody =>
-      'Tu viaje está listo para iniciar. Revisa los detalles.';
+      'Te espera en el punto de recogida.';
 
   @override
   String passengerNotifyDriverArrivedBodyNamed(String name) {
-    return '$name ya llegó al punto de recogida.';
+    return '$name te espera en el punto de recogida.';
   }
 
   @override
-  String get passengerNotifyChatNewTitle => 'Nuevo mensaje de chat';
+  String get passengerNotifyChatNewTitle => 'Mensaje del viaje';
 
   @override
   String get passengerNotifyChatSenderDriver => 'Conductor';
@@ -1118,6 +1197,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get passengerLegalSectionTitle => 'Legal y privacidad';
 
   @override
+  String get passengerLegalSectionSubtitle =>
+      'Consulta los documentos aplicables a tu cuenta y gestiona tus datos.';
+
+  @override
   String get passengerLegalPrivacyPolicy => 'Política de privacidad';
 
   @override
@@ -1141,7 +1224,86 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerLegalDeleteAccountScheduledSuccess =>
-      'Eliminación programada. Puedes cancelarla desde tu perfil antes de la fecha límite.';
+      'Eliminación programada. Tu sesión se cerró; inicia sesión para recuperar tu cuenta antes de la fecha límite.';
+
+  @override
+  String passengerLegalDeleteAccountBodyGrace(int graceDays) {
+    return 'Tu cuenta entrará en eliminación programada durante $graceDays días. Al confirmar se cerrará tu sesión y no podrás usar la app. Para recuperarla, inicia sesión con tu número y cancela la solicitud antes de la fecha límite.';
+  }
+
+  @override
+  String get passengerLegalLoginHint =>
+      'Al continuar, aceptas las condiciones del servicio.';
+
+  @override
+  String get passengerLegalRegistrationHint =>
+      'Antes de continuar, revisa la documentación legal aplicable a tu cuenta.';
+
+  @override
+  String get passengerLoginAccountDeletionPendingTitle =>
+      'Eliminación programada';
+
+  @override
+  String passengerLoginAccountDeletionPendingBody(String effectiveDate) {
+    return 'Esta cuenta tiene una eliminación programada para el $effectiveDate. No puedes usar la app hasta recuperarla.';
+  }
+
+  @override
+  String get passengerLoginAccountDeletionPendingDateFallback =>
+      'la fecha indicada';
+
+  @override
+  String get passengerLoginAccountDeletionRecover => 'Recuperar cuenta';
+
+  @override
+  String get passengerLoginAccountDeletionDismiss => 'Entendido';
+
+  @override
+  String get passengerLoginAccountDeletionRecovering => 'Recuperando cuenta…';
+
+  @override
+  String get passengerLoginAccountDeletionRecoverSuccess =>
+      'Cuenta recuperada. Bienvenido de nuevo.';
+
+  @override
+  String get passengerLegalDeleteAccountPendingTitle =>
+      'Eliminación programada';
+
+  @override
+  String passengerLegalDeleteAccountPendingBody(
+    String effectiveDate,
+    int daysRemaining,
+  ) {
+    return 'Tu cuenta se eliminará el $effectiveDate. Quedan $daysRemaining días para cancelar y reactivar tu acceso.';
+  }
+
+  @override
+  String get passengerLegalDeleteAccountPendingDateFallback =>
+      'la fecha indicada';
+
+  @override
+  String get passengerLegalDeleteAccountCancelAction => 'Cancelar eliminación';
+
+  @override
+  String get passengerLegalDeleteAccountCancelling => 'Cancelando eliminación…';
+
+  @override
+  String get passengerLegalDeleteAccountCancelSuccess =>
+      'Eliminación cancelada. Tu cuenta sigue activa.';
+
+  @override
+  String get passengerPlayCameraDisclosureTitle => 'Acceso a la cámara';
+
+  @override
+  String get passengerPlayCameraDisclosureBody =>
+      'Texi usa la cámara para tomar tu foto de perfil o adjuntar imágenes en soporte. Las fotos se envían de forma segura a nuestros servidores.';
+
+  @override
+  String get passengerPlayGalleryDisclosureTitle => 'Acceso a fotos';
+
+  @override
+  String get passengerPlayGalleryDisclosureBody =>
+      'Texi accede a fotos que elijas de tu galería para tu perfil o tickets de soporte. Solo se sube la imagen que selecciones.';
 
   @override
   String get passengerPlayNotificationDisclosureTitle =>
@@ -1161,4 +1323,8 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerPlayDisclosureContinue => 'Continuar';
+
+  @override
+  String get passengerPlayNotificationDisclosureRequired =>
+      'Activa las notificaciones para recibir avisos de tu viaje.';
 }

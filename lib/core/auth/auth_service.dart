@@ -4,6 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
 import '../network/passenger_client_meta.dart';
+import '../network/passenger_http_resilience.dart';
+import '../notifications/passenger_push_token_service.dart';
 import '../storage/trip_session_storage.dart';
 
 /// Claves de almacenamiento seguro.
@@ -31,21 +33,27 @@ class AuthService {
   /// Callback que la app debe asignar al arrancar (main). Se invoca cuando el backend
   /// responde 401 (token expirado/inválido) para cerrar sesión y redirigir a login.
   static void Function()? onSessionExpired;
+  static void Function()? onSessionSuperseded;
   static Future<void> Function()? onSessionEstablished;
 
-  static final _dio = Dio(BaseOptions(
-    baseUrl: AppConfig.baseUrlAuth,
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-  ));
+  static Dio get _dio => passengerAuthPublicHttpClient();
 
   /// Devuelve un token válido para usar en APIs. Si hay refresh_token y el token
   /// está vencido o por vencer, intenta refrescar. Retorna null si no hay sesión o el refresh falla.
+  static Future<String?> _readSecure(String key) async {
+    try {
+      return await _storage
+          .read(key: key)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<String?> getValidToken() async {
-    String? token = await _storage.read(key: _keyAuthToken);
-    String? refreshToken = await _storage.read(key: _keyRefreshToken);
-    final expiresAtStr = await _storage.read(key: _keyExpiresAt);
+    String? token = await _readSecure(_keyAuthToken);
+    String? refreshToken = await _readSecure(_keyRefreshToken);
+    final expiresAtStr = await _readSecure(_keyExpiresAt);
     int? expiresAt = expiresAtStr != null ? int.tryParse(expiresAtStr) : null;
 
     final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -90,6 +98,7 @@ class AuthService {
 
   /// Cierra sesión: borra token y refresh.
   static Future<void> logout() async {
+    await PassengerPushTokenService.instance.revokeAllOnServerIfPossible();
     await _storage.delete(key: _keyAuthToken);
     await _storage.delete(key: _keyRefreshToken);
     await _storage.delete(key: _keyExpiresAt);

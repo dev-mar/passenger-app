@@ -35,12 +35,7 @@ Future<void> setupPassengerFirebaseMessaging() async {
     );
   }
 
-  await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-    provisional: false,
-  );
+  // POST_NOTIFICATIONS / FCM: solo tras divulgación in-app (ver compliance).
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     unawaited(

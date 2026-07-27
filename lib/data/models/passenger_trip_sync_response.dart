@@ -1,3 +1,5 @@
+import '../../features/trip/passenger_trip_vehicle_info.dart';
+
 /// Respuesta de sincronización del estado de un trip para pasajero.
 ///
 /// La estructura real puede variar, por eso el parsing es defensivo.
@@ -32,12 +34,11 @@ class PassengerTripSyncResponse {
 
     // Algunos endpoints devuelven driver/vehicle anidado o campos planos.
     final driver = json['driver'] as Map<String, dynamic>?;
-    final vehicle = json['vehicle'] as Map<String, dynamic>?;
 
     final driverName = (driver?['fullName'] ?? driver?['driverName'] ?? json['fullName'] ?? json['driverName'])?.toString();
-    final carColor = (vehicle?['carColor'] ?? vehicle?['car_color'] ?? json['carColor'] ?? json['car_color'])?.toString();
-    final carPlate = (vehicle?['licensePlate'] ?? vehicle?['plate'] ?? json['carPlate'] ?? json['plate'] ?? json['car_plate'])?.toString();
-    final carModel = (vehicle?['carModel'] ?? vehicle?['model'] ?? json['carModel'] ?? json['car_model'])?.toString();
+    final carColor = resolvePassengerTripCarColor(json);
+    final carPlate = resolvePassengerTripCarPlate(json);
+    final carModel = resolvePassengerTripCarModel(json);
 
     return PassengerTripSyncResponse(
       tripId: tripId,

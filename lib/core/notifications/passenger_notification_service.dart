@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../gen_l10n/app_localizations.dart';
+import '../l10n/passenger_locale_holder.dart';
 import 'passenger_fcm_navigation.dart';
 
 class PassengerNotificationService {
@@ -12,7 +14,6 @@ class PassengerNotificationService {
       PassengerNotificationService._();
 
   static const String _channelId = 'texi_passenger_trip_updates';
-  static const String _channelName = 'Actualizaciones de viaje';
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
@@ -20,8 +21,11 @@ class PassengerNotificationService {
   static const int _quietHoursEnd = 7; // 07:00
   static const String _chatVibrationLevel = 'medium'; // low | medium | high
 
+  AppLocalizations _l10nForCurrentLocale() => PassengerLocaleHolder.l10n();
+
   Future<void> initialize() async {
     if (_initialized) return;
+    final l10n = _l10nForCurrentLocale();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const settings = InitializationSettings(android: android);
     await _plugin.initialize(
@@ -30,10 +34,10 @@ class PassengerNotificationService {
         schedulePassengerLocalNotificationTripTap(response.payload);
       },
     );
-    const channel = AndroidNotificationChannel(
+    final channel = AndroidNotificationChannel(
       _channelId,
-      _channelName,
-      description: 'Notificaciones de estado de viaje para pasajero.',
+      l10n.passengerNotificationChannelName,
+      description: l10n.passengerNotificationChannelDescription,
       importance: Importance.high,
       playSound: true,
       enableVibration: true,
@@ -43,14 +47,34 @@ class PassengerNotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(channel);
-    if (Platform.isAndroid) {
+    _initialized = true;
+  }
+
+  /// Android 13+: solicitar tras divulgación in-app (Google Play).
+  Future<bool> areAndroidNotificationsEnabled() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await androidPlugin?.areNotificationsEnabled() ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> requestAndroidPostNotificationsPermission() async {
+    if (!Platform.isAndroid) return;
+    try {
       final androidPlugin = _plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
       await androidPlugin?.requestNotificationsPermission();
+    } catch (_) {
+      // Permiso ya concedido o no disponible en esta versión.
     }
-    _initialized = true;
   }
 
   /// Mensaje solo `data` (sin `notification`): mostrar en isolate de background.
@@ -96,11 +120,12 @@ class PassengerNotificationService {
     String? payload,
   }) async {
     if (!_initialized) await initialize();
-    const details = NotificationDetails(
+    final l10n = _l10nForCurrentLocale();
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
-        _channelName,
-        channelDescription: 'Avisos FCM y estado de viaje.',
+        l10n.passengerNotificationChannelName,
+        channelDescription: l10n.passengerNotificationChannelFcmDescription,
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
@@ -115,26 +140,28 @@ class PassengerNotificationService {
     required bool isAppInForeground,
     required String tripId,
     String? driverName,
+    bool notifyInForeground = true,
   }) async {
     await initialize();
-    if (isAppInForeground) return;
-    const details = NotificationDetails(
+    if (isAppInForeground && !notifyInForeground) return;
+    final l10n = _l10nForCurrentLocale();
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
-        _channelName,
+        l10n.passengerNotificationChannelName,
         channelDescription:
-            'Avisos cuando el conductor llega al punto de recogida.',
+            l10n.passengerNotificationChannelDriverArrivedDescription,
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
       ),
     );
-    final title = 'Tu conductor ya llegó';
+    final title = l10n.passengerNotifyDriverArrivedTitle;
     final who = (driverName ?? '').trim();
     final body = who.isEmpty
-        ? 'Tu viaje está listo para iniciar. Revisa los detalles.'
-        : '$who ya llegó al punto de recogida.';
+        ? l10n.passengerNotifyDriverArrivedBody
+        : l10n.passengerNotifyDriverArrivedBodyNamed(who);
     await _plugin.show(
       tripId.hashCode.abs() % 2147483647,
       title,
@@ -150,15 +177,18 @@ class PassengerNotificationService {
     required String senderRole,
     required String messageText,
     bool notifyInForeground = false,
+    bool includeSenderPrefix = true,
+    String? titleOverride,
   }) async {
     await initialize();
     if (isAppInForeground && !notifyInForeground) return;
+    final l10n = _l10nForCurrentLocale();
     final quiet = isWithinQuietHours();
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
-        _channelName,
-        channelDescription: 'Mensajes de chat del viaje activo.',
+        l10n.passengerNotificationChannelName,
+        channelDescription: l10n.passengerNotificationChannelChatDescription,
         importance: Importance.high,
         priority: Priority.high,
         playSound: !quiet,
@@ -166,11 +196,15 @@ class PassengerNotificationService {
         vibrationPattern: quiet ? null : _chatVibrationPattern(),
       ),
     );
-    final who = senderRole == 'driver' ? 'Conductor' : 'Pasajero';
+    final who = senderRole == 'driver'
+        ? l10n.passengerNotifyChatSenderDriver
+        : l10n.passengerNotifyChatSenderPassenger;
+    final trimmed = messageText.trim();
+    final body = includeSenderPrefix ? '$who: $trimmed' : trimmed;
     await _plugin.show(
-      (tripId + messageText).hashCode.abs() % 2147483647,
-      'Nuevo mensaje de chat',
-      '$who: $messageText',
+      (tripId + trimmed).hashCode.abs() % 2147483647,
+      titleOverride ?? l10n.passengerNotifyChatNewTitle,
+      body,
       details,
       payload: 'chat:$tripId',
     );

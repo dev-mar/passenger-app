@@ -4,6 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'passenger_device_identity.dart';
+
 /// Misma forma que el conductor (`app_instance_id`, `platform`, etc.) para
 /// `buildClientMeta` en `POST /api/v2/auth/login` y rutas de auth pasajero.
 class PassengerDeviceTelemetry {
@@ -14,7 +16,9 @@ class PassengerDeviceTelemetry {
     final info = await _readDeviceInfo();
     final appVersion = await _readAppVersion();
     final networkType = await _readNetworkType();
+    final deviceId = await PassengerDeviceIdentity.stableDeviceId();
 
+    payload['device_id'] = deviceId;
     if (info['app_instance_id'] != null) {
       payload['app_instance_id'] = info['app_instance_id'];
     }

@@ -7,6 +7,8 @@ import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
+import '../../core/compliance/passenger_login_legal_footer.dart';
+import '../../features/profile/widgets/passenger_profile_legal_section.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import 'login_controller.dart';
@@ -80,8 +82,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
         break;
       case LoginNextStep.error:
+        final loginState = ref.read(loginControllerProvider);
+        if (loginState.errorCode == 'ACCOUNT_DELETION_PENDING') {
+          await _showAccountDeletionPendingDialog(
+            countryCode: countryCode,
+            phoneNumber: phone,
+            fullPhone: fullPhone,
+            accountDeletion: loginState.accountDeletion,
+          );
+          break;
+        }
         setState(() {
-          final loginState = ref.read(loginControllerProvider);
           final code = loginState.errorCode;
           const authReviewDataCodes = <String>{
             'PASS_AUTH_VALIDATION',
@@ -114,6 +125,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     l10n.loginErrorPhoneDuplicatePassenger,
                   'PASS_AUTH_OTP_STORE' =>
                     l10n.loginErrorVerificationServiceUnavailable,
+                  'SESSION_SUPERSEDED' => l10n.loginErrorSessionSuperseded,
+                  'TRIP_OPERATIONAL_LOCK' => l10n.loginErrorTripOperationalLock,
                   _ =>
                     loginState.errorMessage ??
                         l10n.loginErrorInvalidCredentials,
@@ -121,6 +134,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         });
         break;
     }
+  }
+
+  Future<void> _showAccountDeletionPendingDialog({
+    required String countryCode,
+    required String phoneNumber,
+    required String fullPhone,
+    Map<String, dynamic>? accountDeletion,
+  }) async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final effectiveRaw = accountDeletion?['deletion_effective_at']?.toString();
+    final effectiveDate = formatPassengerAccountDeletionDate(
+          context,
+          effectiveRaw,
+        ) ??
+        l10n.passengerLoginAccountDeletionPendingDateFallback;
+
+    final recover = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          icon: Icon(Icons.schedule_send_outlined, color: AppColors.primary),
+          title: Text(l10n.passengerLoginAccountDeletionPendingTitle),
+          content: Text(
+            l10n.passengerLoginAccountDeletionPendingBody(effectiveDate),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.passengerLoginAccountDeletionDismiss),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.passengerLoginAccountDeletionRecover),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (recover != true || !mounted) return;
+
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    final recovered = await ref
+        .read(loginControllerProvider.notifier)
+        .recoverAccountFromPendingDeletion(
+          countryCode: countryCode,
+          phoneNumber: phoneNumber,
+          fullPhone: fullPhone,
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (recovered) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.passengerLoginAccountDeletionRecoverSuccess),
+        ),
+      );
+      context.goNamed('trip_request');
+      return;
+    }
+
+    final loginState = ref.read(loginControllerProvider);
+    setState(() {
+      _errorMessage =
+          loginState.errorMessage ?? l10n.loginErrorInvalidCredentials;
+    });
   }
 
   @override
@@ -264,6 +351,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 20),
+                      const PassengerLoginLegalFooter(
+                        textColor: AppColors.textSecondary,
                       ),
                           ],
                         ),

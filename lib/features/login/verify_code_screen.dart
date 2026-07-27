@@ -5,13 +5,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
-import '../../core/network/passenger_client_meta.dart';
+import '../../core/network/passenger_api_client.dart';
+import '../../core/network/passenger_api_providers.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../core/network/passenger_client_meta.dart';
+import '../../core/network/passenger_http_resilience.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
 
@@ -36,17 +39,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  late final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.baseUrlAuth,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ),
-  );
+  PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
   @override
   void dispose() {
@@ -67,8 +60,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     try {
       final clientMeta = await passengerAuthClientMeta();
-      final response = await _dio.post(
-        AppConfig.authUsersPath,
+      final response = await _api.postPublic<Map<String, dynamic>>(
+        path: AppConfig.authUsersPath,
         data: <String, dynamic>{
           ...clientMeta,
           'phone_number': fullPhone,
@@ -79,19 +72,26 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       );
 
       final body = response.data;
-      if (body is! Map || body['success'] != true) {
+      if (body is! Map) {
         if (!mounted) return;
         setState(() {
           _isLoading = false;
-          _errorMessage = body is Map
-              ? (body['message']?.toString() ??
-                  l10n.verifyCodeErrorActivateAccount)
-              : l10n.verifyCodeErrorActivateAccount;
+          _errorMessage = l10n.verifyCodeErrorActivateAccount;
+        });
+        return;
+      }
+      final envelope = Map<String, dynamic>.from(body as Map);
+      if (envelope['success'] != true) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = envelope['message']?.toString() ??
+              l10n.verifyCodeErrorActivateAccount;
         });
         return;
       }
 
-      final data = body['data'];
+      final data = envelope['data'];
       if (data is! Map) {
         if (!mounted) return;
         setState(() {
@@ -173,8 +173,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     try {
       final clientMeta = await passengerAuthClientMeta();
-      final response = await _dio.post(
-        AppConfig.authVerifyCodePath,
+      final response = await _api.postPublic<Map<String, dynamic>>(
+        path: AppConfig.authVerifyCodePath,
         data: <String, dynamic>{
           ...clientMeta,
           'country_code': widget.countryCode,
@@ -184,8 +184,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       );
 
       final body = response.data;
-      if (body is! Map || body['success'] != true) {
-        final message = (body is Map ? body['message']?.toString() : null) ??
+      if (body is! Map) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = l10n.verifyCodeErrorValidateCode;
+        });
+        return;
+      }
+      final envelope = Map<String, dynamic>.from(body as Map);
+      if (envelope['success'] != true) {
+        final message = envelope['message']?.toString() ??
             l10n.verifyCodeErrorValidateCode;
         setState(() {
           _isLoading = false;
@@ -196,7 +204,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
       if (!mounted) return;
 
-      final rawData = body['data'];
+      final rawData = envelope['data'];
       final reuseDriver = rawData is Map &&
           (rawData['reuse_driver_profile'] == true ||
               rawData['reuse_driver_profile'] == 'true');
@@ -227,16 +235,15 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       if (!mounted) return;
       final data = e.response?.data;
       final code = TexiBackendError.codeFromResponse(data);
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
+      final networkCode = networkErrorCodeFromDio(e);
+      if (networkCode == 'NETWORK_TIMEOUT') {
         setState(() {
           _isLoading = false;
           _errorMessage = l10n.verifyCodeErrorNetwork;
         });
         return;
       }
-      if (e.type == DioExceptionType.connectionError) {
+      if (networkCode == 'NETWORK_CONNECTION') {
         setState(() {
           _isLoading = false;
           _errorMessage = l10n.verifyCodeErrorConnection;
@@ -257,7 +264,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
           (e.message != null && e.message!.isNotEmpty ? e.message! : null);
       final message = (code != null && code.startsWith('RBAC_'))
           ? localizedTripApiError(l10n, code, fallbackMessage: fallback)
-          : (fallback ?? l10n.verifyCodeErrorValidateCode);
+          : localizedTripApiError(l10n, code, fallbackMessage: fallback);
       setState(() {
         _isLoading = false;
         _errorMessage = message;

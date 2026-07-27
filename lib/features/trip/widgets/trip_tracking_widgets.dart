@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/ui/texi_scale_press.dart';
+import '../../../gen_l10n/app_localizations.dart';
 import '../driver_avatar_premium.dart';
 
 class TripSearchingDriverOverlay extends StatefulWidget {
@@ -501,6 +502,7 @@ class TripStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final accent = _statusAccent();
     final progress = _statusProgressValue();
     final currentStep = _statusStepIndex();
@@ -839,7 +841,7 @@ class TripStatusCard extends StatelessWidget {
                   icon: unreadChatCount > 0
                       ? _ChatUnreadBell(count: unreadChatCount)
                       : const Icon(Icons.chat_bubble_outline_rounded),
-                  label: Text(chatLabel ?? 'Chat de viaje'),
+                  label: Text(chatLabel ?? l10n.tripSecureChat),
                 ),
               ),
             ],

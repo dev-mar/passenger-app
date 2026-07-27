@@ -14,6 +14,8 @@
   "loginErrorPhoneOtherAccountType": "This number is already linked to another type of Texi account. Use another number or the app that matches that account.",
   "loginErrorPhoneDuplicatePassenger": "We could not start passenger registration with this number. If you already use it as a driver, use the driver app or another number here.",
   "loginErrorVerificationServiceUnavailable": "Verification service unavailable. Please try again later.",
+  "loginErrorSessionSuperseded": "Your session was opened on another device.",
+  "loginErrorTripOperationalLock": "Finish or cancel your current trip before signing in on another device.",
   "serviceTypeNameStandard": "Standard",
   "serviceTypeNameTwoWheels": "Two wheels",
   "serviceTypeNameComfort": "Comfort",
@@ -67,6 +69,29 @@
   "tripDraftCalculatingRoute": "Calculating the route on the map…",
   "tripDraftEditStop": "Edit",
   "tripSecureChat": "Secure chat",
+  "passengerTripChatTitle": "Trip chat",
+  "passengerTripChatSubtitle": "Live conversation with your driver.",
+  "passengerTripChatOnline": "Online",
+  "passengerTripChatOffline": "Offline",
+  "passengerTripChatTemplateCantFindVehicle": "I can't see your vehicle",
+  "passengerTripChatTemplateWhereAreYou": "Where are you exactly?",
+  "passengerTripChatTemplateWaitingHere": "I'm waiting here",
+  "passengerTripChatNow": "Now",
+  "passengerTripChatErrorStorage": "Chat unavailable. Contact support.",
+  "passengerTripChatErrorPhase": "Chat isn't available at this trip stage.",
+  "passengerTripChatErrorNotReady": "Chat isn't ready yet. Try again in a few seconds.",
+  "passengerTripChatErrorSendReceive": "Couldn't send the message ({code}). Check your connection.",
+  "@passengerTripChatErrorSendReceive": {
+    "placeholders": {"code": {"type": "String"}}
+  },
+  "passengerTripChatEmptyState": "No messages yet.\nSend one to start the conversation.",
+  "passengerTripChatMessageHint": "Write a message",
+  "passengerTripChatSenderYou": "You",
+  "passengerTripChatSenderDriver": "Driver",
+  "passengerTripChatDriverTemplateAtPickup": "I arrived at the pickup point",
+  "passengerTripChatDriverTemplateCannotFind": "I can't find you at the pickup point",
+  "passengerTripChatDriverTemplateConfirmLocation": "Please confirm your exact location",
+  "commonEmptyDash": "—",
   "tripNoCoverageInZone": "We don't have service coverage in this area at the moment. Try another location or move to a service zone.",
   "tripNoDriversAvailable": "No drivers available at the moment. Please try again in a few moments.",
   "tripNext": "Next",
@@ -392,13 +417,13 @@
   "passengerRatingFallbackPunctual": "Arrived quickly",
   "passengerRatingFallbackExcellent": "Excellent service",
   "passengerNotifyArrivalReminder": "Your driver is waiting at the pickup point.",
-  "passengerNotifyDriverArrivedTitle": "Your driver has arrived",
-  "passengerNotifyDriverArrivedBody": "Your trip is ready to start. Check the details.",
-  "passengerNotifyDriverArrivedBodyNamed": "{name} has arrived at the pickup point.",
+  "passengerNotifyDriverArrivedTitle": "Your driver arrived",
+  "passengerNotifyDriverArrivedBody": "They're waiting at the pickup point.",
+  "passengerNotifyDriverArrivedBodyNamed": "{name} is waiting at the pickup point.",
   "@passengerNotifyDriverArrivedBodyNamed": {
     "placeholders": {"name": {"type": "String"}}
   },
-  "passengerNotifyChatNewTitle": "New chat message",
+  "passengerNotifyChatNewTitle": "Trip message",
   "passengerNotifyChatSenderDriver": "Driver",
   "passengerNotifyChatSenderPassenger": "Passenger",
   "passengerNotificationChannelName": "Trip updates",
@@ -432,6 +457,7 @@
   "homeDriverDistanceKm": "{km} km",
   "@homeDriverDistanceKm": {"placeholders": {"km": {"type": "String"}}},
   "passengerLegalSectionTitle": "Legal & privacy",
+  "passengerLegalSectionSubtitle": "Review the documents that apply to your account and manage your data.",
   "passengerLegalPrivacyPolicy": "Privacy policy",
   "passengerLegalTermsOfService": "Terms of service",
   "passengerLegalDeleteAccountTitle": "Delete account",
@@ -439,10 +465,47 @@
   "passengerLegalDeleteAccountAction": "How to request",
   "passengerLegalDeleteAccountConfirmNow": "Schedule deletion",
   "passengerLegalDeleteAccountDeleting": "Scheduling deletion…",
-  "passengerLegalDeleteAccountScheduledSuccess": "Deletion scheduled. You can cancel it from your profile before the deadline.",
+  "passengerLegalDeleteAccountScheduledSuccess": "Deletion scheduled. Your session was closed; sign in to recover your account before the deadline.",
+  "passengerLegalDeleteAccountBodyGrace": "Your account will enter a scheduled deletion period for {graceDays} days. After you confirm, your session will close and you cannot use the app. To recover it, sign in with your phone number and cancel the request before the deadline.",
+  "@passengerLegalDeleteAccountBodyGrace": {
+    "placeholders": {
+      "graceDays": { "type": "int" }
+    }
+  },
+  "passengerLegalLoginHint": "By continuing, you agree to the service terms.",
+  "passengerLegalRegistrationHint": "Before continuing, review the legal documents that apply to your account.",
+  "passengerLoginAccountDeletionPendingTitle": "Deletion scheduled",
+  "passengerLoginAccountDeletionPendingBody": "This account is scheduled for deletion on {effectiveDate}. You cannot use the app until you recover it.",
+  "@passengerLoginAccountDeletionPendingBody": {
+    "placeholders": {
+      "effectiveDate": { "type": "String" }
+    }
+  },
+  "passengerLoginAccountDeletionPendingDateFallback": "the scheduled date",
+  "passengerLoginAccountDeletionRecover": "Recover account",
+  "passengerLoginAccountDeletionDismiss": "OK",
+  "passengerLoginAccountDeletionRecovering": "Recovering account…",
+  "passengerLoginAccountDeletionRecoverSuccess": "Account recovered. Welcome back.",
+  "passengerLegalDeleteAccountPendingTitle": "Deletion scheduled",
+  "passengerLegalDeleteAccountPendingBody": "Your account will be deleted on {effectiveDate}. You have {daysRemaining} days left to cancel and restore access.",
+  "@passengerLegalDeleteAccountPendingBody": {
+    "placeholders": {
+      "effectiveDate": { "type": "String" },
+      "daysRemaining": { "type": "int" }
+    }
+  },
+  "passengerLegalDeleteAccountPendingDateFallback": "the scheduled date",
+  "passengerLegalDeleteAccountCancelAction": "Cancel deletion",
+  "passengerLegalDeleteAccountCancelling": "Cancelling deletion…",
+  "passengerLegalDeleteAccountCancelSuccess": "Deletion cancelled. Your account is still active.",
+  "passengerPlayCameraDisclosureTitle": "Camera access",
+  "passengerPlayCameraDisclosureBody": "Texi uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.",
+  "passengerPlayGalleryDisclosureTitle": "Photo library access",
+  "passengerPlayGalleryDisclosureBody": "Texi accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.",
   "passengerPlayNotificationDisclosureTitle": "Trip notifications",
   "passengerPlayNotificationDisclosureBody": "Texi needs to send you notifications when a driver accepts your trip, trip status changes, or the driver sends a message during an active ride.",
   "passengerPlayLocationDisclosureTitle": "Location for trip requests",
   "passengerPlayLocationDisclosureBody": "Texi uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.",
-  "passengerPlayDisclosureContinue": "Continue"
+  "passengerPlayDisclosureContinue": "Continue",
+  "passengerPlayNotificationDisclosureRequired": "Enable notifications to receive trip updates from your driver."
 }

@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../config/app_config.dart';
 import '../maps/trip_route_tracking_policy.dart';
+import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
 /// Decodifica una polyline codificada (formato Google).
@@ -54,7 +55,7 @@ class DirectionsRouteResult {
 /// Cliente para Google Directions API.
 /// Requiere habilitar "Directions API" en Google Cloud (mismo proyecto que Maps).
 class DirectionsService {
-  DirectionsService() : _dio = Dio();
+  DirectionsService() : _dio = passengerGoogleMapsHttpClient();
 
   final Dio _dio;
   static const _baseUrl =

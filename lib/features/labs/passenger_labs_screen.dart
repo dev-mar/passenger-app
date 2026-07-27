@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/theme/app_colors.dart';
+import '../../gen_l10n/app_localizations.dart';
 
 /// Pantalla de pruebas internas; acceso por allowlist de teléfono o `TEXI_PASSENGER_INTERNAL_TOOLS`.
 class PassengerLabsScreen extends ConsumerWidget {
@@ -11,6 +12,7 @@ class PassengerLabsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final gate = ref.watch(passengerInternalToolsVisibleProvider);
 
     return gate.when(
@@ -18,25 +20,27 @@ class PassengerLabsScreen extends ConsumerWidget {
         if (!allowed) {
           return Scaffold(
             backgroundColor: AppColors.background,
-            appBar: AppBar(title: const Text('Labs')),
-            body: const Center(
-              child: Text('No disponible.'),
+            appBar: AppBar(title: Text(l10n.passengerLabsTitle)),
+            body: Center(
+              child: Text(l10n.passengerLabsNotAvailable),
             ),
           );
         }
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: const Text('Labs (beta)'),
+            title: Text(l10n.passengerLabsTitleBeta),
             backgroundColor: AppColors.surface,
           ),
           body: ListView(
             padding: const EdgeInsets.all(24),
-            children: const [
+            children: [
               Text(
-                'Espacio reservado para pruebas de producto (mapa, sockets, flags). '
-                'El icono de matraz en Home solo aparece con número QA o dart-define.',
-                style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+                l10n.passengerLabsDescription,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
               ),
             ],
           ),
@@ -51,14 +55,16 @@ class PassengerLabsScreen extends ConsumerWidget {
         }
         return Scaffold(
           backgroundColor: AppColors.background,
-          appBar: AppBar(title: const Text('Labs')),
+          appBar: AppBar(title: Text(l10n.passengerLabsTitle)),
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Error al comprobar acceso.',
+                l10n.passengerLabsGateError,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.9)),
+                style: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
+                ),
               ),
             ),
           ),

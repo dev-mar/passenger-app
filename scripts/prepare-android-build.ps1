@@ -1,5 +1,9 @@
-# Libera locks Gradle (proyecto + caché global en %USERPROFILE%\.gradle) antes de flutter build apk.
-# Uso: .\scripts\prepare-android-build.ps1
+﻿param(
+  # Solo quita locks; no ejecuta gradlew --stop ni mata procesos Java (uso antes de flutter build).
+  [switch]$LocksOnly
+)
+# Libera locks Gradle (proyecto + cachÃ© global en %USERPROFILE%\.gradle) antes de flutter build apk.
+# Uso: .\scripts\prepare-android-build.ps1 [-LocksOnly]
 
 $ErrorActionPreference = "Stop"
 $androidDir = Join-Path $PSScriptRoot "..\android" | Resolve-Path
@@ -44,15 +48,18 @@ if ($javaHome) {
   Write-Host "JAVA_HOME=$javaHome" -ForegroundColor DarkGray
 }
 
-Write-Host "Deteniendo daemons Gradle..." -ForegroundColor Cyan
-$gradlew = Join-Path $androidDir "gradlew.bat"
-if ((Test-Path $gradlew) -and $javaHome) {
-  & $gradlew -p $androidDir --stop 2>$null
+if (-not $LocksOnly) {
+  Write-Host "Deteniendo daemons Gradle..." -ForegroundColor Cyan
+  $gradlew = Join-Path $androidDir "gradlew.bat"
+  if ((Test-Path $gradlew) -and $javaHome) {
+    & $gradlew -p $androidDir --stop 2>$null
+  }
+
+  Stop-GradleDaemonJavaProcesses
+  Start-Sleep -Seconds 2
+} else {
+  Write-Host "Modo LocksOnly: no se detienen daemons Gradle." -ForegroundColor DarkGray
 }
-
-Stop-GradleDaemonJavaProcesses
-Start-Sleep -Seconds 2
-
 Remove-LockFileIfPresent $projectLock
 Remove-LockFileIfPresent $globalJournalLock
 

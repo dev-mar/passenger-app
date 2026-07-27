@@ -182,6 +182,18 @@ abstract class AppLocalizations {
   /// **'Verification service unavailable. Please try again later.'**
   String get loginErrorVerificationServiceUnavailable;
 
+  /// No description provided for @loginErrorSessionSuperseded.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session was opened on another device.'**
+  String get loginErrorSessionSuperseded;
+
+  /// No description provided for @loginErrorTripOperationalLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish or cancel your current trip before signing in on another device.'**
+  String get loginErrorTripOperationalLock;
+
   /// No description provided for @serviceTypeNameStandard.
   ///
   /// In en, this message translates to:
@@ -421,6 +433,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Secure chat'**
   String get tripSecureChat;
+
+  /// No description provided for @passengerTripChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip chat'**
+  String get passengerTripChatTitle;
+
+  /// No description provided for @passengerTripChatSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live conversation with your driver.'**
+  String get passengerTripChatSubtitle;
+
+  /// No description provided for @passengerTripChatOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get passengerTripChatOnline;
+
+  /// No description provided for @passengerTripChatOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get passengerTripChatOffline;
+
+  /// No description provided for @passengerTripChatTemplateCantFindVehicle.
+  ///
+  /// In en, this message translates to:
+  /// **'I can\'t see your vehicle'**
+  String get passengerTripChatTemplateCantFindVehicle;
+
+  /// No description provided for @passengerTripChatTemplateWhereAreYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are you exactly?'**
+  String get passengerTripChatTemplateWhereAreYou;
+
+  /// No description provided for @passengerTripChatTemplateWaitingHere.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m waiting here'**
+  String get passengerTripChatTemplateWaitingHere;
+
+  /// No description provided for @passengerTripChatNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Now'**
+  String get passengerTripChatNow;
+
+  /// No description provided for @passengerTripChatErrorStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat unavailable. Contact support.'**
+  String get passengerTripChatErrorStorage;
+
+  /// No description provided for @passengerTripChatErrorPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat isn\'t available at this trip stage.'**
+  String get passengerTripChatErrorPhase;
+
+  /// No description provided for @passengerTripChatErrorNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat isn\'t ready yet. Try again in a few seconds.'**
+  String get passengerTripChatErrorNotReady;
+
+  /// No description provided for @passengerTripChatErrorSendReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the message ({code}). Check your connection.'**
+  String passengerTripChatErrorSendReceive(String code);
+
+  /// No description provided for @passengerTripChatEmptyState.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet.\nSend one to start the conversation.'**
+  String get passengerTripChatEmptyState;
+
+  /// No description provided for @passengerTripChatMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a message'**
+  String get passengerTripChatMessageHint;
+
+  /// No description provided for @passengerTripChatSenderYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get passengerTripChatSenderYou;
+
+  /// No description provided for @passengerTripChatSenderDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver'**
+  String get passengerTripChatSenderDriver;
+
+  /// No description provided for @passengerTripChatDriverTemplateAtPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'I arrived at the pickup point'**
+  String get passengerTripChatDriverTemplateAtPickup;
+
+  /// No description provided for @passengerTripChatDriverTemplateCannotFind.
+  ///
+  /// In en, this message translates to:
+  /// **'I can\'t find you at the pickup point'**
+  String get passengerTripChatDriverTemplateCannotFind;
+
+  /// No description provided for @passengerTripChatDriverTemplateConfirmLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your exact location'**
+  String get passengerTripChatDriverTemplateConfirmLocation;
+
+  /// No description provided for @commonEmptyDash.
+  ///
+  /// In en, this message translates to:
+  /// **'—'**
+  String get commonEmptyDash;
 
   /// No description provided for @tripNoCoverageInZone.
   ///
@@ -1997,25 +2129,25 @@ abstract class AppLocalizations {
   /// No description provided for @passengerNotifyDriverArrivedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your driver has arrived'**
+  /// **'Your driver arrived'**
   String get passengerNotifyDriverArrivedTitle;
 
   /// No description provided for @passengerNotifyDriverArrivedBody.
   ///
   /// In en, this message translates to:
-  /// **'Your trip is ready to start. Check the details.'**
+  /// **'They\'re waiting at the pickup point.'**
   String get passengerNotifyDriverArrivedBody;
 
   /// No description provided for @passengerNotifyDriverArrivedBodyNamed.
   ///
   /// In en, this message translates to:
-  /// **'{name} has arrived at the pickup point.'**
+  /// **'{name} is waiting at the pickup point.'**
   String passengerNotifyDriverArrivedBodyNamed(String name);
 
   /// No description provided for @passengerNotifyChatNewTitle.
   ///
   /// In en, this message translates to:
-  /// **'New chat message'**
+  /// **'Trip message'**
   String get passengerNotifyChatNewTitle;
 
   /// No description provided for @passengerNotifyChatSenderDriver.
@@ -2138,6 +2270,12 @@ abstract class AppLocalizations {
   /// **'Legal & privacy'**
   String get passengerLegalSectionTitle;
 
+  /// No description provided for @passengerLegalSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review the documents that apply to your account and manage your data.'**
+  String get passengerLegalSectionSubtitle;
+
   /// No description provided for @passengerLegalPrivacyPolicy.
   ///
   /// In en, this message translates to:
@@ -2183,8 +2321,131 @@ abstract class AppLocalizations {
   /// No description provided for @passengerLegalDeleteAccountScheduledSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Deletion scheduled. You can cancel it from your profile before the deadline.'**
+  /// **'Deletion scheduled. Your session was closed; sign in to recover your account before the deadline.'**
   String get passengerLegalDeleteAccountScheduledSuccess;
+
+  /// No description provided for @passengerLegalDeleteAccountBodyGrace.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account will enter a scheduled deletion period for {graceDays} days. After you confirm, your session will close and you cannot use the app. To recover it, sign in with your phone number and cancel the request before the deadline.'**
+  String passengerLegalDeleteAccountBodyGrace(int graceDays);
+
+  /// No description provided for @passengerLegalLoginHint.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing, you agree to the service terms.'**
+  String get passengerLegalLoginHint;
+
+  /// No description provided for @passengerLegalRegistrationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Before continuing, review the legal documents that apply to your account.'**
+  String get passengerLegalRegistrationHint;
+
+  /// No description provided for @passengerLoginAccountDeletionPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion scheduled'**
+  String get passengerLoginAccountDeletionPendingTitle;
+
+  /// No description provided for @passengerLoginAccountDeletionPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is scheduled for deletion on {effectiveDate}. You cannot use the app until you recover it.'**
+  String passengerLoginAccountDeletionPendingBody(String effectiveDate);
+
+  /// No description provided for @passengerLoginAccountDeletionPendingDateFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'the scheduled date'**
+  String get passengerLoginAccountDeletionPendingDateFallback;
+
+  /// No description provided for @passengerLoginAccountDeletionRecover.
+  ///
+  /// In en, this message translates to:
+  /// **'Recover account'**
+  String get passengerLoginAccountDeletionRecover;
+
+  /// No description provided for @passengerLoginAccountDeletionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get passengerLoginAccountDeletionDismiss;
+
+  /// No description provided for @passengerLoginAccountDeletionRecovering.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovering account…'**
+  String get passengerLoginAccountDeletionRecovering;
+
+  /// No description provided for @passengerLoginAccountDeletionRecoverSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account recovered. Welcome back.'**
+  String get passengerLoginAccountDeletionRecoverSuccess;
+
+  /// No description provided for @passengerLegalDeleteAccountPendingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion scheduled'**
+  String get passengerLegalDeleteAccountPendingTitle;
+
+  /// No description provided for @passengerLegalDeleteAccountPendingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account will be deleted on {effectiveDate}. You have {daysRemaining} days left to cancel and restore access.'**
+  String passengerLegalDeleteAccountPendingBody(
+    String effectiveDate,
+    int daysRemaining,
+  );
+
+  /// No description provided for @passengerLegalDeleteAccountPendingDateFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'the scheduled date'**
+  String get passengerLegalDeleteAccountPendingDateFallback;
+
+  /// No description provided for @passengerLegalDeleteAccountCancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel deletion'**
+  String get passengerLegalDeleteAccountCancelAction;
+
+  /// No description provided for @passengerLegalDeleteAccountCancelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling deletion…'**
+  String get passengerLegalDeleteAccountCancelling;
+
+  /// No description provided for @passengerLegalDeleteAccountCancelSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion cancelled. Your account is still active.'**
+  String get passengerLegalDeleteAccountCancelSuccess;
+
+  /// No description provided for @passengerPlayCameraDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access'**
+  String get passengerPlayCameraDisclosureTitle;
+
+  /// No description provided for @passengerPlayCameraDisclosureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Texi uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.'**
+  String get passengerPlayCameraDisclosureBody;
+
+  /// No description provided for @passengerPlayGalleryDisclosureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo library access'**
+  String get passengerPlayGalleryDisclosureTitle;
+
+  /// No description provided for @passengerPlayGalleryDisclosureBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Texi accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.'**
+  String get passengerPlayGalleryDisclosureBody;
 
   /// No description provided for @passengerPlayNotificationDisclosureTitle.
   ///
@@ -2215,6 +2476,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get passengerPlayDisclosureContinue;
+
+  /// No description provided for @passengerPlayNotificationDisclosureRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable notifications to receive trip updates from your driver.'**
+  String get passengerPlayNotificationDisclosureRequired;
 }
 
 class _AppLocalizationsDelegate

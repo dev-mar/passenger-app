@@ -21,6 +21,10 @@ String localizedTripApiError (
       return l10n.tripNoCoverageInZone;
     case 'NO_DRIVERS_AVAILABLE':
       return l10n.tripNoDriversAvailable;
+    case 'SESSION_SUPERSEDED':
+      return l10n.loginErrorSessionSuperseded;
+    case 'TRIP_OPERATIONAL_LOCK':
+      return l10n.loginErrorTripOperationalLock;
   }
   if (fb != null && fb.isNotEmpty) return fb;
   return l10n.commonError;

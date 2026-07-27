@@ -1,8 +1,11 @@
-param(
-  [ValidateSet("run", "apk")]
+﻿param(
+  [ValidateSet("run", "apk", "appbundle")]
   [string]$Mode = "run",
 
   [string]$MapsApiKey,
+
+  [ValidateSet("dev", "prod")]
+  [string]$Environment = "dev",
 
   [string]$BackendBaseUrl,
 
@@ -14,6 +17,77 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+$DevBackendDefault = "https://api.dev.taxitexi.com"
+$ProdBackendCanonical = "https://api-prodtx.taxitexi.com"
+
+function Clear-InvalidProdBackendSessionEnv {
+  if ([string]::IsNullOrWhiteSpace($env:TEXI_BACKEND_BASE_URL)) {
+    return
+  }
+  try {
+    $parsed = [Uri]$env:TEXI_BACKEND_BASE_URL.Trim()
+    if (Test-InvalidProdBackendHost -HostName $parsed.Host) {
+      Write-Host "Eliminando TEXI_BACKEND_BASE_URL de sesion (host invalido): $($env:TEXI_BACKEND_BASE_URL)" -ForegroundColor Yellow
+      Remove-Item Env:TEXI_BACKEND_BASE_URL -ErrorAction SilentlyContinue
+    }
+  } catch {
+    Remove-Item Env:TEXI_BACKEND_BASE_URL -ErrorAction SilentlyContinue
+  }
+}
+
+function Test-InvalidProdBackendHost {
+  param([string]$HostName)
+
+  $h = $HostName.ToLower()
+  if ($h -eq "api-prod.taxitexi.com") {
+    return $true
+  }
+  return $h.StartsWith("api.prod")
+}
+
+function Assert-ValidProdBackendUrl {
+  param(
+    [string]$Url,
+    [string]$Source = ""
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Url)) {
+    return
+  }
+
+  $parsed = [Uri]$Url
+  if (Test-InvalidProdBackendHost -HostName $parsed.Host) {
+    Write-Host ""
+    Write-Host "Host no valido para API backend en prod: $Url" -ForegroundColor Red
+    if (-not [string]::IsNullOrWhiteSpace($Source)) {
+      Write-Host "Origen: $Source" -ForegroundColor DarkYellow
+    }
+    Write-Host "Usa $ProdBackendCanonical" -ForegroundColor Yellow
+    if ($Source -like '*sesion*') {
+      Write-Host "Limpia la variable de sesion: Remove-Item Env:TEXI_BACKEND_BASE_URL" -ForegroundColor Yellow
+    }
+    exit 1
+  }
+}
+
+function Get-LocalEnvFilePath {
+  param([string]$AppEnvironment)
+
+  $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+  if ($AppEnvironment -eq "prod") {
+    foreach ($name in @(".env.prod", ".env.prod.local")) {
+      $candidate = Join-Path $repoRoot $name
+      if (Test-Path $candidate) { return $candidate }
+    }
+    return Join-Path $repoRoot ".env.prod"
+  }
+  foreach ($name in @(".env.local", ".env")) {
+    $candidate = Join-Path $repoRoot $name
+    if (Test-Path $candidate) { return $candidate }
+  }
+  return Join-Path $repoRoot ".env.local"
+}
 
 function Get-EnvValueFromLocalFile {
   param(
@@ -50,7 +124,10 @@ function Get-EnvValueFromLocalFile {
 }
 
 function Resolve-MapsKey {
-  param([string]$FromParam)
+  param(
+    [string]$FromParam,
+    [string]$AppEnvironment = "dev"
+  )
 
   if (-not [string]::IsNullOrWhiteSpace($FromParam)) {
     return $FromParam.Trim()
@@ -60,8 +137,7 @@ function Resolve-MapsKey {
     return $env:GOOGLE_MAPS_API_KEY.Trim()
   }
 
-  $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-  $envLocalPath = Join-Path $repoRoot ".env.local"
+  $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
   $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "GOOGLE_MAPS_API_KEY"
   if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
     return $fromLocalFile.Trim()
@@ -70,29 +146,102 @@ function Resolve-MapsKey {
   return ""
 }
 
-function Resolve-BackendBaseUrl {
+function Resolve-AppEnvironment {
   param([string]$FromParam)
 
   if (-not [string]::IsNullOrWhiteSpace($FromParam)) {
-    return $FromParam.Trim()
+    return $FromParam.Trim().ToLower()
   }
 
-  if (-not [string]::IsNullOrWhiteSpace($env:TEXI_BACKEND_BASE_URL)) {
-    return $env:TEXI_BACKEND_BASE_URL.Trim()
+  if (-not [string]::IsNullOrWhiteSpace($env:TEXI_APP_ENV)) {
+    return $env:TEXI_APP_ENV.Trim().ToLower()
   }
 
   $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
   $envLocalPath = Join-Path $repoRoot ".env.local"
-  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "TEXI_BACKEND_BASE_URL"
+  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "TEXI_APP_ENV"
   if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
-    return $fromLocalFile.Trim()
+    return $fromLocalFile.Trim().ToLower()
   }
 
-  return ""
+  return "dev"
 }
 
-$resolvedKey = Resolve-MapsKey -FromParam $MapsApiKey
-$resolvedBackend = Resolve-BackendBaseUrl -FromParam $BackendBaseUrl
+function Get-BackendUrlFromProdEnvFiles {
+  $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+  $value = ""
+  foreach ($name in @(".env.prod", ".env.prod.local")) {
+    $candidate = Join-Path $repoRoot $name
+    $fromFile = Get-EnvValueFromLocalFile -FilePath $candidate -Key "TEXI_BACKEND_BASE_URL"
+    if (-not [string]::IsNullOrWhiteSpace($fromFile)) {
+      $value = $fromFile.Trim()
+    }
+  }
+  return $value
+}
+
+function Resolve-BackendBaseUrl {
+  param(
+    [string]$FromParam,
+    [string]$AppEnvironment
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($FromParam)) {
+    return @{
+      Url    = $FromParam.Trim()
+      Source = "-BackendBaseUrl"
+    }
+  }
+
+  if ($AppEnvironment -eq "prod") {
+    $fromProdFiles = Get-BackendUrlFromProdEnvFiles
+    if (-not [string]::IsNullOrWhiteSpace($fromProdFiles)) {
+      return @{
+        Url    = $fromProdFiles
+        Source = ".env.prod / .env.prod.local"
+      }
+    }
+  } else {
+    $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
+    $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "TEXI_BACKEND_BASE_URL"
+    if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
+      return @{
+        Url    = $fromLocalFile.Trim()
+        Source = (Split-Path $envLocalPath -Leaf)
+      }
+    }
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($env:TEXI_BACKEND_BASE_URL)) {
+    return @{
+      Url    = $env:TEXI_BACKEND_BASE_URL.Trim()
+      Source = '$env:TEXI_BACKEND_BASE_URL (sesion PowerShell)'
+    }
+  }
+
+  if ($AppEnvironment -eq "dev") {
+    return @{
+      Url    = $DevBackendDefault
+      Source = "default dev"
+    }
+  }
+
+  return @{
+    Url    = ""
+    Source = ""
+  }
+}
+
+$resolvedEnvironment = Resolve-AppEnvironment -FromParam $Environment
+Clear-InvalidProdBackendSessionEnv
+$resolvedKey = Resolve-MapsKey -FromParam $MapsApiKey -AppEnvironment $resolvedEnvironment
+$resolvedBackendInfo = Resolve-BackendBaseUrl -FromParam $BackendBaseUrl -AppEnvironment $resolvedEnvironment
+$resolvedBackend = $resolvedBackendInfo.Url
+$resolvedBackendSource = $resolvedBackendInfo.Source
+$resolvedFlavor = $Flavor
+if ([string]::IsNullOrWhiteSpace($resolvedFlavor)) {
+  $resolvedFlavor = $resolvedEnvironment
+}
 
 if ([string]::IsNullOrWhiteSpace($resolvedKey)) {
   Write-Host ""
@@ -100,35 +249,45 @@ if ([string]::IsNullOrWhiteSpace($resolvedKey)) {
   Write-Host "Opciones:" -ForegroundColor Yellow
   Write-Host "  1) Pasar por parametro: -MapsApiKey ""TU_KEY"""
   Write-Host "  2) Exportar variable: `$env:GOOGLE_MAPS_API_KEY=""TU_KEY"""
-  Write-Host "  3) Guardar en .env.local: GOOGLE_MAPS_API_KEY=TU_KEY"
+  Write-Host "  3) Dev: .env.local / .env | Prod: .env.prod (ver env.prod.example)"
   Write-Host ""
-  Write-Host "Ejemplos:"
-  Write-Host "  .\scripts\run-with-maps-key.ps1 -Mode run -MapsApiKey ""TU_KEY"""
-  Write-Host "  .\scripts\run-with-maps-key.ps1 -Mode apk -MapsApiKey ""TU_KEY"""
+  Write-Host "Ejemplos:" -ForegroundColor Yellow
+  Write-Host "  .\scripts\run-with-maps-key.ps1 -Mode run"
+  Write-Host "  .\scripts\run-with-maps-key.ps1 -Mode apk"
+  Write-Host "  .\scripts\run-with-maps-key.ps1 -Mode appbundle -Environment prod -BackendBaseUrl ""https://HOST_API_PROD"""
   exit 1
 }
 
-$env:GOOGLE_MAPS_API_KEY = $resolvedKey
-if (-not [string]::IsNullOrWhiteSpace($resolvedBackend)) {
-  $env:TEXI_BACKEND_BASE_URL = $resolvedBackend
+if ($resolvedEnvironment -eq "prod" -and [string]::IsNullOrWhiteSpace($resolvedBackend)) {
+  Write-Host ""
+  Write-Host "Build prod requiere TEXI_BACKEND_BASE_URL." -ForegroundColor Red
+  Write-Host "Usa -BackendBaseUrl, `$env:TEXI_BACKEND_BASE_URL o .env.prod" -ForegroundColor Yellow
+  exit 1
 }
 
+if ($resolvedEnvironment -eq "prod") {
+  Assert-ValidProdBackendUrl -Url $resolvedBackend -Source $resolvedBackendSource
+}
+
+$env:GOOGLE_MAPS_API_KEY = $resolvedKey
+$env:TEXI_APP_ENV = $resolvedEnvironment
+$env:TEXI_BACKEND_BASE_URL = $resolvedBackend
+
 $flutterArgs = @()
-if (-not [string]::IsNullOrWhiteSpace($Flavor)) {
-  $flutterArgs += @("--flavor", $Flavor)
+if (-not [string]::IsNullOrWhiteSpace($resolvedFlavor)) {
+  $flutterArgs += @("--flavor", $resolvedFlavor)
 }
 if (-not [string]::IsNullOrWhiteSpace($Target)) {
   $flutterArgs += @("-t", $Target)
 }
 
-# runtime defines consumidos por AppConfig (no solo Gradle).
+$flutterArgs += @("--dart-define", "TEXI_APP_ENV=$resolvedEnvironment")
+$flutterArgs += @("--dart-define", "TEXI_BACKEND_BASE_URL=$resolvedBackend")
 $flutterArgs += @("--dart-define", "GOOGLE_MAPS_API_KEY=$resolvedKey")
 $flutterArgs += @("--dart-define", "PASSENGER_SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
-# Compat temporal con builds viejos.
 $flutterArgs += @("--dart-define", "SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
-if (-not [string]::IsNullOrWhiteSpace($resolvedBackend)) {
-  $flutterArgs += @("--dart-define", "TEXI_BACKEND_BASE_URL=$resolvedBackend")
-}
+
+Write-Host "Entorno: $resolvedEnvironment | Flavor: $resolvedFlavor | Backend: $resolvedBackend" -ForegroundColor DarkGray
 
 if ($Mode -eq "run") {
   Write-Host "Ejecutando: flutter run (dart-defines cargados)" -ForegroundColor Cyan
@@ -136,10 +295,24 @@ if ($Mode -eq "run") {
   exit $LASTEXITCODE
 }
 
-Write-Host "Ejecutando: flutter build apk (dart-defines cargados)" -ForegroundColor Cyan
+$buildCmd = if ($Mode -eq "appbundle") { "appbundle" } else { "apk" }
+Write-Host "Ejecutando: flutter build $buildCmd (dart-defines cargados)" -ForegroundColor Cyan
 $prepareScript = Join-Path $PSScriptRoot "prepare-android-build.ps1"
 if (Test-Path $prepareScript) {
+  # Igual que conductor: detener daemons antes del build (evita locks corruptos).
+  # No compilar pasajero y conductor en paralelo: comparten daemon/caché Gradle global.
   & $prepareScript
 }
-& flutter build apk @flutterArgs
+& flutter build $buildCmd @flutterArgs
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+if ($resolvedEnvironment -eq "prod" -and $Mode -eq "apk") {
+  $apkPath = Join-Path (Resolve-Path (Join-Path $PSScriptRoot "..")).Path "build\app\outputs\flutter-apk\app-$resolvedFlavor-release.apk"
+  $verifyScript = Join-Path $PSScriptRoot "verify-apk-backend-url.ps1"
+  if ((Test-Path $apkPath) -and (Test-Path $verifyScript)) {
+    & $verifyScript -ApkPath $apkPath
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  }
+}
+
 exit $LASTEXITCODE

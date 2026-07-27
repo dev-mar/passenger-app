@@ -3,22 +3,12 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../auth/auth_service.dart';
-import '../config/app_config.dart';
+import 'passenger_http_resilience.dart';
 
 class PassengerMapTelemetryService {
   PassengerMapTelemetryService._();
 
-  static final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.baseUrlAuth,
-      connectTimeout: const Duration(seconds: 8),
-      receiveTimeout: const Duration(seconds: 8),
-      headers: const <String, String>{
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-    ),
-  );
+  static Dio get _dio => passengerAuthPublicHttpClient();
 
   static final Map<String, DateTime> _lastSentByKey = <String, DateTime>{};
   static const Duration _cooldown = Duration(seconds: 25);

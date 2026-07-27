@@ -8,7 +8,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/locale_provider.dart';
+import 'core/l10n/passenger_locale_holder.dart';
 import 'core/auth/auth_service.dart';
+import 'core/auth/passenger_session_expulsion.dart';
+import 'features/trip/passenger_realtime_controller.dart';
 import 'core/app_lifecycle/passenger_app_visibility.dart';
 import 'core/notifications/passenger_notification_service.dart';
 import 'core/notifications/passenger_fcm.dart';
@@ -29,14 +32,27 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(
     passengerFirebaseMessagingBackgroundHandler,
   );
-  AuthService.onSessionEstablished = () => PassengerPushTokenService.instance.syncTokenIfPossible();
-  // Cuando el backend devuelve 401 (token expirado), se cierra sesión y se redirige a login.
-  AuthService.onSessionExpired = () {
+  AuthService.onSessionEstablished = () {
+    resetPassengerSessionExpulsionState();
+    return PassengerPushTokenService.instance.syncTokenIfPossible();
+  };
+  void navigateToLogin() {
     final context = AppRouter.navigatorKey.currentContext;
     if (context != null) {
       GoRouter.of(context).goNamed(AppRouter.login);
     }
+  }
+  AuthService.onSessionExpired = () {
+    markPassengerSessionExpelled();
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context != null) {
+      ProviderScope.containerOf(context)
+          .read(passengerRealtimeProvider.notifier)
+          .disconnect();
+    }
+    navigateToLogin();
   };
+  AuthService.onSessionSuperseded = AuthService.onSessionExpired;
 
   // Notification channel + permisos FCM se inicializan tras el primer frame
   // (ver `_TexiAppState.initState`) para no demorar la primera renderización.
@@ -83,9 +99,13 @@ class _TexiAppState extends ConsumerState<TexiApp> with WidgetsBindingObserver {
 
   /// App cerrada: el usuario abre desde el toque en la notificación (p. ej. conductor llegó).
   Future<void> _consumeInitialPassengerFcmMessage() async {
-    final msg = await FirebaseMessaging.instance.getInitialMessage();
-    if (msg == null) return;
-    await handlePassengerFcmNotificationOpen(msg);
+    try {
+      final msg = await FirebaseMessaging.instance.getInitialMessage();
+      if (msg == null) return;
+      await handlePassengerFcmNotificationOpen(msg);
+    } catch (_) {
+      // Widget tests y arranques sin `Firebase.initializeApp` (no pasan por main).
+    }
   }
 
   @override
@@ -102,6 +122,7 @@ class _TexiAppState extends ConsumerState<TexiApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    PassengerLocaleHolder.appLocale = locale;
 
     return MaterialApp.router(
       title: AppConfig.appName,

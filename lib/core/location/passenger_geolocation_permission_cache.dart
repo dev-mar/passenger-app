@@ -7,7 +7,9 @@ class PassengerGeolocationPermissionCache {
 
   /// Misma semántica que antes: resuelve permiso y opcionalmente solicita.
   /// No lanza; el caller valida `denied` / `deniedForever`.
-  static Future<LocationPermission> ensureLocationPermission () async {
+  static Future<LocationPermission> ensureLocationPermission({
+    bool requestIfDenied = true,
+  }) async {
     final now = DateTime.now();
     final g = _cachedGranted;
     final at = _cachedAt;
@@ -19,7 +21,7 @@ class PassengerGeolocationPermissionCache {
     }
 
     var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied && requestIfDenied) {
       permission = await Geolocator.requestPermission();
     }
 

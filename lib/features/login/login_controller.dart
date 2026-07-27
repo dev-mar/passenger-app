@@ -5,11 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
+import '../../core/network/passenger_api_client.dart';
+import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
+import '../../core/network/passenger_http_resilience.dart';
+import '../../core/network/texi_backend_error.dart';
 
 final loginControllerProvider =
     StateNotifierProvider<LoginController, LoginState>((ref) {
-  return LoginController();
+  return LoginController(ref.watch(passengerApiClientProvider));
 });
 
 /// Próximo paso del flujo de login.
@@ -25,27 +29,18 @@ enum LoginNextStep {
 }
 
 class LoginState {
+  const LoginState({this.errorMessage, this.errorCode, this.accountDeletion});
+
   final String? errorMessage;
   /// Código de negocio del backend (`PASS_AUTH_*`, etc.) cuando aplica.
   final String? errorCode;
-  LoginState({this.errorMessage, this.errorCode});
+  final Map<String, dynamic>? accountDeletion;
 }
 
 class LoginController extends StateNotifier<LoginState> {
-  LoginController() : super(LoginState());
+  LoginController(this._api) : super(const LoginState());
 
-  final _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.baseUrlAuth,
-      // Login puede incluir push OTP en servidor; 15s generaba timeout falso en redes lentas.
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ),
-  );
+  final PassengerApiClient _api;
 
   /// Login según contrato:
   /// - Si el usuario ya existe y está activo, devuelve token.
@@ -54,32 +49,33 @@ class LoginController extends StateNotifier<LoginState> {
     required String countryCode,
     required String phoneNumber,
     required String fullPhone,
+    bool cancelPendingDeletion = false,
   }) async {
-    state = LoginState();
+    state = const LoginState();
 
     try {
       final clientMeta = await passengerAuthClientMeta();
       String? pushToken;
       try {
         if (Firebase.apps.isNotEmpty) {
-          // Timeout corto: si FCM aún no está listo (cold start o sin red), seguimos
-          // con canal "code" en vez de demorar el login esperando un push token.
           final t = await FirebaseMessaging.instance
               .getToken()
               .timeout(const Duration(milliseconds: 1500));
           if (t != null && t.trim().isNotEmpty) pushToken = t.trim();
         }
-      } catch (_) {
-        // Fallback silencioso: el backend mantiene canal "code".
-      }
-      final response = await _dio.post(
-        AppConfig.loginPath,
+      } catch (_) {}
+
+      final response = await _api.postPublic<Map<String, dynamic>>(
+        path: AppConfig.loginPath,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
         data: <String, dynamic>{
           ...clientMeta,
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
           if (pushToken != null) 'otp_channel': 'push',
           'push_token': ?pushToken,
+          if (cancelPendingDeletion) 'cancel_pending_deletion': true,
         },
       );
 
@@ -87,33 +83,36 @@ class LoginController extends StateNotifier<LoginState> {
       if (body is! Map) {
         return _fail(code: 'CLIENT_INVALID_RESPONSE');
       }
+      final envelope = Map<String, dynamic>.from(body as Map);
 
-      final success = body['success'] == true;
+      final success = envelope['success'] == true;
       if (!success) {
-        final code = body['code']?.toString();
-        final msg = body['message']?.toString();
-        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
+        final code = envelope['code']?.toString();
+        final msg = envelope['message']?.toString();
+        return _fail(
+          code: code ?? 'AUTH_LOGIN_FAILED',
+          message: msg,
+          data: envelope['data'] is Map
+              ? Map<String, dynamic>.from(envelope['data'] as Map)
+              : null,
+        );
       }
 
-      final data = body['data'];
+      final data = envelope['data'];
       if (data is! Map) {
         return _fail(code: 'CLIENT_EMPTY_DATA');
       }
 
-      // Caso 1: respuesta con token → usuario activo (flujo clásico de login).
       final token = data['token']?.toString();
       if (token == null || token.isEmpty) {
-        // Caso 2: sin token pero status=pending / no verificado → ir a pantalla de código.
         final status = data['status']?.toString();
         final isVerified = data['is_verified'] == true;
         if (status == 'pending' || !isVerified) {
           return LoginNextStep.verifyCode;
         }
-        // Si no hay token ni estado pendiente, consideramos que falta configuración en backend.
         return _fail(code: 'CLIENT_TOKEN_MISSING');
       }
 
-      // Los campos de refresh/expiración son opcionales en este backend.
       final refreshToken = data['refresh_token']?.toString();
       final expiresIn = data['expires_in'];
       int? expiresInSec;
@@ -131,28 +130,57 @@ class LoginController extends StateNotifier<LoginState> {
       await AuthService.persistLoginPhoneE164(fullPhone);
       return LoginNextStep.tripRequest;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
-        return _fail(code: 'NETWORK_TIMEOUT');
-      }
-      if (e.type == DioExceptionType.connectionError) {
-        return _fail(code: 'NETWORK_CONNECTION');
+      final networkCode = networkErrorCodeFromDio(e);
+      if (networkCode != null) {
+        return _fail(code: networkCode);
       }
       final data = e.response?.data;
-      if (data is Map) {
-        final code = data['code']?.toString();
-        final msg = data['message']?.toString();
-        return _fail(code: code ?? 'AUTH_LOGIN_FAILED', message: msg);
+      final code = TexiBackendError.codeFromResponse(data);
+      final msg = TexiBackendError.messageFromResponse(data);
+      Map<String, dynamic>? payload;
+      if (data is Map && data['data'] is Map) {
+        payload = Map<String, dynamic>.from(data['data'] as Map);
       }
-      return _fail(code: 'NETWORK_REQUEST_FAILED', message: e.message);
+      return _fail(
+        code: code ?? 'AUTH_LOGIN_FAILED',
+        message: msg ?? e.message,
+        data: payload,
+      );
     } catch (_) {
       return _fail(code: 'CLIENT_UNEXPECTED');
     }
   }
 
-  LoginNextStep _fail({required String code, String? message}) {
-    state = LoginState(errorMessage: message, errorCode: code);
+  Future<bool> recoverAccountFromPendingDeletion({
+    required String countryCode,
+    required String phoneNumber,
+    required String fullPhone,
+  }) async {
+    final step = await login(
+      countryCode: countryCode,
+      phoneNumber: phoneNumber,
+      fullPhone: fullPhone,
+      cancelPendingDeletion: true,
+    );
+    return step == LoginNextStep.tripRequest;
+  }
+
+  LoginNextStep _fail({
+    required String code,
+    String? message,
+    Map<String, dynamic>? data,
+  }) {
+    Map<String, dynamic>? accountDeletion;
+    if (data?['account_deletion'] is Map) {
+      accountDeletion = Map<String, dynamic>.from(
+        data!['account_deletion'] as Map,
+      );
+    }
+    state = LoginState(
+      errorMessage: message,
+      errorCode: code,
+      accountDeletion: accountDeletion,
+    );
     return LoginNextStep.error;
   }
 }

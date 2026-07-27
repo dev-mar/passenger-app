@@ -1,110 +1,32 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:math';
-import '../config/app_config.dart';
-import '../auth/auth_service.dart';
+import 'passenger_http_resilience.dart' as passenger_http;
 import 'passenger_resilience_telemetry_service.dart';
 import '../../data/models/nearby_driver.dart';
 import '../../data/models/quote_response.dart';
 import '../../data/models/passenger_trip_sync_response.dart';
+import '../../features/trip/passenger_trip_vehicle_info.dart';
 
 /// Cliente para el backend de viajes (quote, trips, nearby-drivers) en `app_texi_WebSocket`.
-/// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired].
+/// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired] vía interceptor compartido.
 class TripsApi {
-  TripsApi({required String token}) : _dio = _createDio(token);
+  TripsApi({required String token})
+      : _dio = passenger_http.buildPassengerTripsAuthedDio(token: token);
   static const int _defaultCreateRetryAfterMs = 1200;
-  static final Random _retryJitterRandom = Random();
-
-  static Dio _createDio(String token) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: AppConfig.baseUrlTripsRest,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-
-    if (kDebugMode) {
-      dio.interceptors.add(
-        LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
-          responseHeader: false,
-          responseBody: true,
-          error: true,
-        ),
-      );
-    }
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onError: (error, handler) {
-          if (error.response?.statusCode == 401) {
-            AuthService.logout();
-            AuthService.onSessionExpired?.call();
-          }
-          return handler.next(error);
-        },
-      ),
-    );
-    return dio;
-  }
 
   final Dio _dio;
 
   static int? retryAfterMsFromResponse(
     dynamic data,
     Headers? headers,
-  ) {
-    int? fromPayload(dynamic body) {
-      if (body is! Map) return null;
-      final map = Map<String, dynamic>.from(body);
-      final errorObj = map['error'];
-      if (errorObj is Map) {
-        final err = Map<String, dynamic>.from(errorObj);
-        final msRaw = err['retry_after_ms'];
-        if (msRaw is num) return msRaw.toInt();
-        final secRaw = err['retry_after_sec'];
-        if (secRaw is num) return secRaw.toInt() * 1000;
-      }
-      final msTop = map['retry_after_ms'];
-      if (msTop is num) return msTop.toInt();
-      final secTop = map['retry_after_sec'];
-      if (secTop is num) return secTop.toInt() * 1000;
-      return null;
-    }
-
-    final payloadMs = fromPayload(data);
-    if (payloadMs != null && payloadMs > 0) return payloadMs;
-    final rawRetryAfter = headers?.value('retry-after');
-    if (rawRetryAfter != null) {
-      final sec = int.tryParse(rawRetryAfter.trim());
-      if (sec != null && sec > 0) return sec * 1000;
-    }
-    return null;
-  }
+  ) =>
+      passenger_http.retryAfterMsFromResponse(data, headers);
 
   static int retryAfterMsForCreateTrip(DioException e) {
     final fromResp = retryAfterMsFromResponse(e.response?.data, e.response?.headers);
     if (fromResp != null && fromResp > 0) return fromResp;
     return _defaultCreateRetryAfterMs;
-  }
-
-  static bool _isRetryableDioFailure(DioException e) {
-    final status = e.response?.statusCode ?? 0;
-    final isRetryableStatus = status == 429 || status >= 500;
-    final isTransientNetwork =
-        e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout ||
-        e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.unknown;
-    return isRetryableStatus || isTransientNetwork;
   }
 
   Future<Response<T>> _requestWithRetry<T>({
@@ -114,46 +36,15 @@ class TripsApi {
     int maxAttempts = 3,
     int baseDelayMs = 320,
     int maxDelayMs = 4500,
-  }) async {
-    var attempt = 0;
-    while (true) {
-      attempt += 1;
-      try {
-        return await operation();
-      } on DioException catch (e) {
-        final shouldRetry = attempt < maxAttempts && _isRetryableDioFailure(e);
-        if (!shouldRetry) {
-          unawaited(
-            PassengerResilienceTelemetryService.sendEvent(
-              flow: flow,
-              endpoint: endpoint,
-              event: 'retry_exhausted',
-              attempt: attempt,
-              statusCode: e.response?.statusCode,
-            ),
-          );
-          rethrow;
-        }
-        final retryAfterMs = retryAfterMsFromResponse(e.response?.data, e.response?.headers);
-        final expDelay = baseDelayMs * (1 << (attempt - 1).clamp(0, 5));
-        final jitter = _retryJitterRandom.nextInt(260);
-        final waitMs = max(retryAfterMs ?? 0, expDelay + jitter)
-            .clamp(250, maxDelayMs)
-            .toInt();
-        final statusCode = e.response?.statusCode;
-        unawaited(
-          PassengerResilienceTelemetryService.sendEvent(
-            flow: flow,
-            endpoint: endpoint,
-            event: statusCode == 429 ? 'rate_limited' : 'retry_attempt',
-            attempt: attempt,
-            waitMs: waitMs,
-            statusCode: statusCode,
-          ),
-        );
-        await Future<void>.delayed(Duration(milliseconds: waitMs));
-      }
-    }
+  }) {
+    return passenger_http.requestWithRetry<Response<T>>(
+      operation: operation,
+      flow: flow,
+      endpoint: endpoint,
+      maxAttempts: maxAttempts,
+      baseDelayMs: baseDelayMs,
+      maxDelayMs: maxDelayMs,
+    );
   }
 
   Future<Response<dynamic>> _postQuoteWithRetry({
@@ -768,25 +659,9 @@ class TripStatusResponse {
         pickStr(driverMap?['driverName']) ??
         pickStr(driverMap?['displayName']) ??
         pickStr(driverMap?['display_name']);
-    final carModel =
-        pickStr(json['carModel']) ??
-        pickStr(json['car_model']) ??
-        pickStr(driverMap?['carModel']) ??
-        pickStr(driverMap?['car_model']) ??
-        pickStr(driverMap?['model']);
-    final carPlate =
-        pickStr(json['carPlate']) ??
-        pickStr(json['car_plate']) ??
-        pickStr(json['plate']) ??
-        pickStr(driverMap?['carPlate']) ??
-        pickStr(driverMap?['car_plate']) ??
-        pickStr(driverMap?['licensePlate']);
-    final carColor =
-        pickStr(json['carColor']) ??
-        pickStr(json['car_color']) ??
-        pickStr(driverMap?['carColor']) ??
-        pickStr(driverMap?['car_color']) ??
-        pickStr(driverMap?['color']);
+    final carModel = resolvePassengerTripCarModel(json);
+    final carPlate = resolvePassengerTripCarPlate(json);
+    final carColor = resolvePassengerTripCarColor(json);
     final ratingRaw =
         json['driverRating'] ??
         json['averageRating'] ??

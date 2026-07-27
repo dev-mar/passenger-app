@@ -12,6 +12,7 @@ import '../../core/router/app_router.dart';
 import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/network/texi_backend_error.dart';
+import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
@@ -49,8 +50,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _initLocationAndDrivers() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    if (!await passengerEnsurePlayDisclosuresBeforeTripFlow(context, l10n)) {
+      if (!mounted) return;
+      setState(() {
+        _loadingLocation = false;
+        _error = l10n.homeLocationError;
+      });
+      return;
+    }
+
     final permission =
-        await PassengerGeolocationPermissionCache.ensureLocationPermission();
+        await PassengerGeolocationPermissionCache.ensureLocationPermission(
+      requestIfDenied: false,
+    );
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       setState(() {

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
+import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
 /// Respuesta de una búsqueda de dirección (Google Geocoding API).
@@ -18,7 +19,7 @@ class GeocodingResult {
 /// Cliente para Google Geocoding API.
 /// Requiere habilitar "Geocoding API" en Google Cloud (mismo proyecto que Maps).
 class GeocodingService {
-  GeocodingService() : _dio = Dio();
+  GeocodingService() : _dio = passengerGoogleMapsHttpClient();
 
   final Dio _dio;
   static const _baseUrl = 'https://maps.googleapis.com/maps/api/geocode/json';

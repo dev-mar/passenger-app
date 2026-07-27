@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/network/trips_api.dart';
@@ -53,6 +54,16 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
     return PassengerTripSubmitResult(
       PassengerTripSubmitResultKind.error,
       message: l10n.tripRequireGpsForRequest,
+    );
+  }
+
+  if (!context.mounted) {
+    return const PassengerTripSubmitResult(PassengerTripSubmitResultKind.error);
+  }
+  if (!await passengerEnsureNotificationDisclosureForTripUpdates(context, l10n)) {
+    return PassengerTripSubmitResult(
+      PassengerTripSubmitResultKind.error,
+      message: l10n.passengerPlayNotificationDisclosureRequired,
     );
   }
 
@@ -137,6 +148,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
       quote: quote,
       selectedOption: option,
     );
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
     ref
         .read(passengerRealtimeProvider.notifier)
         .connect(tripId: result.tripId, quote: quote);

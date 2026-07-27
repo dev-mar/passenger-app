@@ -93,13 +93,14 @@ class _PassengerRatingSheetContentState
         api.getPassengerRatingFeedbackCatalog(stars: 5),
       ]);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       final lowRaw = results[0];
       final highRaw = results[1];
       setState(() {
-        _feedbackLow = (lowRaw.isEmpty ? _fallbackFeedback(2) : lowRaw)
+        _feedbackLow = (lowRaw.isEmpty ? _fallbackFeedback(l10n, 2) : lowRaw)
             .take(5)
             .toList(growable: false);
-        _feedbackHigh = (highRaw.isEmpty ? _fallbackFeedback(5) : highRaw)
+        _feedbackHigh = (highRaw.isEmpty ? _fallbackFeedback(l10n, 5) : highRaw)
             .take(5)
             .toList(growable: false);
       });
@@ -113,9 +114,10 @@ class _PassengerRatingSheetContentState
 
   void _applyFallbackCatalogs() {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
-      _feedbackLow = _fallbackFeedback(2).take(5).toList(growable: false);
-      _feedbackHigh = _fallbackFeedback(5).take(5).toList(growable: false);
+      _feedbackLow = _fallbackFeedback(l10n, 2).take(5).toList(growable: false);
+      _feedbackHigh = _fallbackFeedback(l10n, 5).take(5).toList(growable: false);
     });
   }
 
@@ -133,69 +135,72 @@ class _PassengerRatingSheetContentState
     });
   }
 
-  List<TripRatingFeedbackItem> _fallbackFeedback(int stars) {
+  List<TripRatingFeedbackItem> _fallbackFeedback(
+    AppLocalizations l10n,
+    int stars,
+  ) {
     if (stars <= 3) {
-      return const [
+      return [
         TripRatingFeedbackItem(
           code: 'fallback_delay',
-          label: 'Tardó en llegar',
+          label: l10n.passengerRatingFallbackDelay,
           minStars: 1,
           maxStars: 3,
         ),
         TripRatingFeedbackItem(
           code: 'fallback_route',
-          label: 'Ruta poco conveniente',
+          label: l10n.passengerRatingFallbackRoute,
           minStars: 1,
           maxStars: 3,
         ),
         TripRatingFeedbackItem(
           code: 'fallback_cleanliness',
-          label: 'Vehículo poco cómodo',
+          label: l10n.passengerRatingFallbackCleanliness,
           minStars: 1,
           maxStars: 3,
         ),
         TripRatingFeedbackItem(
           code: 'fallback_attitude',
-          label: 'Trato mejorable',
+          label: l10n.passengerRatingFallbackAttitude,
           minStars: 1,
           maxStars: 3,
         ),
         TripRatingFeedbackItem(
           code: 'fallback_other',
-          label: 'Otro motivo',
+          label: l10n.passengerRatingFallbackOther,
           minStars: 1,
           maxStars: 3,
         ),
       ];
     }
-    return const [
+    return [
       TripRatingFeedbackItem(
         code: 'fallback_safe',
-        label: 'Conducción segura',
+        label: l10n.passengerRatingFallbackSafe,
         minStars: 4,
         maxStars: 5,
       ),
       TripRatingFeedbackItem(
         code: 'fallback_clean',
-        label: 'Vehículo limpio',
+        label: l10n.passengerRatingFallbackClean,
         minStars: 4,
         maxStars: 5,
       ),
       TripRatingFeedbackItem(
         code: 'fallback_kind',
-        label: 'Muy amable',
+        label: l10n.passengerRatingFallbackKind,
         minStars: 4,
         maxStars: 5,
       ),
       TripRatingFeedbackItem(
         code: 'fallback_punctual',
-        label: 'Llegó rápido',
+        label: l10n.passengerRatingFallbackPunctual,
         minStars: 4,
         maxStars: 5,
       ),
       TripRatingFeedbackItem(
         code: 'fallback_excellent',
-        label: 'Excelente servicio',
+        label: l10n.passengerRatingFallbackExcellent,
         minStars: 4,
         maxStars: 5,
       ),

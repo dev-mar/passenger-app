@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
+import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
 class PlaceSuggestion {
@@ -32,7 +33,7 @@ class PlaceDetailsResult {
 /// Cliente para Google Places Autocomplete + Place Details.
 /// Requiere habilitar "Places API" en Google Cloud.
 class PlacesAutocompleteService {
-  PlacesAutocompleteService() : _dio = Dio();
+  PlacesAutocompleteService() : _dio = passengerGoogleMapsHttpClient();
 
   final Dio _dio;
   static final RequestPolicyCache<List<PlaceSuggestion>> _suggestionsCache =

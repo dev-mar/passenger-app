@@ -46,12 +46,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   /// Mínimo amortiguador para que la animación de marca no parpadee si la
   /// resolución de sesión termina en pocos ms. Antes: 1800 ms secuenciales fijos.
   static const Duration _minBrandDwell = Duration(milliseconds: 400);
+  static const Duration _sessionResolveTimeout = Duration(seconds: 6);
+
+  Future<String?> _resolveSessionToken() async {
+    try {
+      return await AuthService.getValidToken().timeout(
+        _sessionResolveTimeout,
+        onTimeout: () => null,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> _navigateAfterDelay() async {
     // Token y trip_id activo se piden en paralelo: ambos viven en SecureStorage y
     // no compiten por red. Cuando no hay token, el storedId simplemente se ignora.
     final results = await Future.wait<Object?>([
-      AuthService.getValidToken(),
+      _resolveSessionToken(),
       TripSessionStorage.getActiveTripId(),
       Future<void>.delayed(_minBrandDwell),
     ]);

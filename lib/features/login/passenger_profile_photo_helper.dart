@@ -6,6 +6,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/compliance/passenger_play_media_disclosures.dart';
 import '../../gen_l10n/app_localizations.dart';
 
 /// Límites alineados al selfie del conductor (`facePortrait`).
@@ -41,6 +42,9 @@ Future<PassengerProfilePhotoPickOutcome> pickPassengerProfilePhoto(
   ImageSource source,
 ) async {
   final l10n = AppLocalizations.of(context)!;
+  if (!await passengerEnsureMediaDisclosureBeforePick(context, l10n, source: source)) {
+    return (result: null, tooLarge: false);
+  }
   final picker = ImagePicker();
   final xfile = await picker.pickImage(
     source: source,

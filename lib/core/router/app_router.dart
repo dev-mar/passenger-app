@@ -1,5 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../auth/auth_service.dart';
+import '../config/passenger_app_environment.dart';
+import '../session/passenger_internal_tools_gate.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/login/login_screen.dart';
 import '../../features/login/verify_code_screen.dart';
@@ -34,9 +39,78 @@ class AppRouter {
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
 
+  /// Rutas públicas (onboarding / splash). El resto exige sesión persistida.
+  static const Set<String> _publicPaths = {
+    '/',
+    '/login',
+    '/auth/verify',
+    '/auth/profile',
+  };
+
+  static bool _isProtectedPath(String location) {
+    if (_publicPaths.contains(location)) return false;
+    if (location == '/home' ||
+        location == '/profile' ||
+        location == '/labs' ||
+        location == '/trip/history') {
+      return true;
+    }
+    return location.startsWith('/trip/');
+  }
+
+  static Future<bool> _hasStoredSession() async {
+    try {
+      return await AuthService.hasStoredSession()
+          .timeout(const Duration(seconds: 3));
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AppRouter] Error leyendo sesión: $e');
+      }
+      return false;
+    }
+  }
+
+  static Future<String?> _labsRedirectIfDenied() async {
+    if (PassengerAppEnvironment.showsInternalToolsByDefault) return null;
+    try {
+      final phone = await AuthService.readLoginPhoneE164Digits()
+          .timeout(const Duration(seconds: 3));
+      if (PassengerInternalToolsGate.phoneAllowsInternalTools(phone)) {
+        return null;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AppRouter] gate labs: $e');
+      }
+    }
+    return '/home';
+  }
+
   static final GoRouter router = GoRouter(
     navigatorKey: navigatorKey,
     initialLocation: '/',
+    redirect: (BuildContext context, GoRouterState state) async {
+      final location = state.matchedLocation;
+
+      // Splash resuelve sesión por su cuenta; evitar lectura segura duplicada al arrancar.
+      if (location == '/') return null;
+
+      final hasSession = await _hasStoredSession();
+
+      if (location == '/login' && hasSession) {
+        return '/home';
+      }
+
+      if (_isProtectedPath(location) && !hasSession) {
+        return '/login';
+      }
+
+      if (location == '/labs' && hasSession) {
+        return await _labsRedirectIfDenied();
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',

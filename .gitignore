@@ -33,10 +33,12 @@ migrate_working_dir/
 /build/
 /coverage/
 .env
+.env.local
+.env.prod
 .env.*
-!.env.example
-!.env.template
-!.env.*.example
+.env.example
+.env.template
+.env.*.example
 
 # Symbolication related
 app.*.symbols
@@ -65,6 +67,8 @@ android/**/build/
 android/captures/
 android/local.properties
 android/**/local.properties
+**/key.properties
+**/google-services.json
 
 # Salidas de build móvil
 *.apk

@@ -876,23 +876,34 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
                   ),
                   if ((trip.driverName ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text('Conductor: ${trip.driverName}'),
+                    Text(l10n.tripHistoryDriverName(trip.driverName!.trim())),
                   ],
                   if ((trip.driverCarColor ?? '').trim().isNotEmpty ||
                       (trip.driverCarModel ?? '').trim().isNotEmpty ||
                       (trip.driverCarPlate ?? '').trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Vehículo: ${[if ((trip.driverCarColor ?? '').trim().isNotEmpty) trip.driverCarColor, if ((trip.driverCarModel ?? '').trim().isNotEmpty) trip.driverCarModel, if ((trip.driverCarPlate ?? '').trim().isNotEmpty) trip.driverCarPlate].join(' · ')}',
+                      l10n.tripHistoryVehicleDetails(
+                        [
+                          if ((trip.driverCarColor ?? '').trim().isNotEmpty)
+                            trip.driverCarColor,
+                          if ((trip.driverCarModel ?? '').trim().isNotEmpty)
+                            trip.driverCarModel,
+                          if ((trip.driverCarPlate ?? '').trim().isNotEmpty)
+                            trip.driverCarPlate,
+                        ].join(' · '),
+                      ),
                     ),
                   ],
                   const SizedBox(height: 6),
                   if (created != null)
                     Text(
-                      'Hora: ${created.hour.toString().padLeft(2, '0')}:${created.minute.toString().padLeft(2, '0')}',
+                      l10n.tripHistoryCreatedTime(
+                        '${created.hour.toString().padLeft(2, '0')}:${created.minute.toString().padLeft(2, '0')}',
+                      ),
                     ),
                   const SizedBox(height: 6),
-                  Text('ID: ${trip.id}'),
+                  Text(l10n.tripHistoryTripId(trip.id)),
                 ],
               ),
             ),

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_service.dart';
-import '../config/app_config.dart';
+import '../config/passenger_app_environment.dart';
 
 /// Pantallas internas (labs / QA) visibles solo con `--dart-define` o allowlist por prefijo nacional.
 ///
@@ -24,7 +24,7 @@ class PassengerInternalToolsGate {
 
 /// `true` si el build fuerza labs o el teléfono guardado al login está en allowlist QA.
 final passengerInternalToolsVisibleProvider = FutureProvider.autoDispose<bool>((ref) async {
-  if (AppConfig.passengerInternalToolsDartDefine) return true;
+  if (PassengerAppEnvironment.showsInternalToolsByDefault) return true;
   final phone = await AuthService.readLoginPhoneE164Digits();
   return PassengerInternalToolsGate.phoneAllowsInternalTools(phone);
 });

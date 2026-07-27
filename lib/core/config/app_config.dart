@@ -1,6 +1,9 @@
+import 'passenger_app_environment.dart';
+
 /// Configuración centralizada: un solo host `app_texi_WebSocket` (mismo que conductor).
 ///
-/// Override: `--dart-define=TEXI_BACKEND_BASE_URL=https://api.dev.taxitexi.com`
+/// Entorno dev/prod: `--dart-define=TEXI_APP_ENV=dev|prod`
+/// Override URL: `--dart-define=TEXI_BACKEND_BASE_URL=...`
 class AppConfig {
   AppConfig._();
 
@@ -8,14 +11,11 @@ class AppConfig {
   static const String packageName = 'com.taxitexi.texi.passenger';
 
   /// `applicationId` Android (debe coincidir con `google-services.json` / FCM).
-  static const String firebaseAndroidApplicationId =
-      'com.taxitexi.texi_passenger_app';
+  static String get firebaseAndroidApplicationId =>
+      PassengerAppEnvironment.firebaseAndroidApplicationId;
 
   /// Origen HTTPS del backend (sin path de API).
-  static const String backendBaseUrl = String.fromEnvironment(
-    'TEXI_BACKEND_BASE_URL',
-    defaultValue: 'https://api.dev.taxitexi.com',
-  );
+  static String get backendBaseUrl => PassengerAppEnvironment.backendBaseUrl;
 
   /// REST de autenticación pasajero bajo `/api/v2`.
   static String get baseUrlAuth => '$backendBaseUrl/api/v2';
@@ -65,8 +65,6 @@ class AppConfig {
   }
 
   /// Fuerza visibilidad de rutas labs (p. ej. CI); no sustituye auth.
-  static const bool passengerInternalToolsDartDefine = bool.fromEnvironment(
-    'TEXI_PASSENGER_INTERNAL_TOOLS',
-    defaultValue: false,
-  );
+  static bool get passengerInternalToolsVisible =>
+      PassengerAppEnvironment.showsInternalToolsByDefault;
 }

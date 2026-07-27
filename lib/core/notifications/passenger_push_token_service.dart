@@ -4,24 +4,20 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
+import '../auth/passenger_session_expulsion.dart';
 import '../auth/auth_service.dart';
 import '../config/app_config.dart';
+import '../network/passenger_http_resilience.dart';
 
 class PassengerPushTokenService {
   PassengerPushTokenService._();
   static final PassengerPushTokenService instance = PassengerPushTokenService._();
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.baseUrlAuth,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-    ),
-  );
+  Dio get _dio => passengerAuthPublicHttpClient();
 
   Future<void> syncTokenIfPossible() async {
     try {
+      if (passengerSessionSyncBlocked) return;
       final bearer = await AuthService.getValidToken();
       if (bearer == null || bearer.isEmpty) return;
       if (Firebase.apps.isEmpty) return;
@@ -40,8 +36,26 @@ class PassengerPushTokenService {
         },
         options: Options(headers: {'Authorization': 'Bearer $bearer'}),
       );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        passengerSessionSyncBlocked = true;
+      }
     } catch (_) {
       // No bloquea login/sesión si FCM o backend no están listos.
+    }
+  }
+
+  /// Logout: deja de enviar FCM a este dispositivo/cuenta hasta el próximo login + sync.
+  Future<void> revokeAllOnServerIfPossible() async {
+    try {
+      final bearer = await AuthService.getValidToken();
+      if (bearer == null || bearer.isEmpty) return;
+      await _dio.delete<Map<String, dynamic>>(
+        '/auth/push-token',
+        options: Options(headers: {'Authorization': 'Bearer $bearer'}),
+      );
+    } catch (_) {
+      // Cierre de sesión no debe fallar por red.
     }
   }
 }

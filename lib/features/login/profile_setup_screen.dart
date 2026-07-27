@@ -9,12 +9,16 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/auth/auth_service.dart';
 import 'passenger_profile_photo_helper.dart';
 import '../../core/config/app_config.dart';
+import '../../core/network/passenger_api_client.dart';
+import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
+import '../../core/network/passenger_http_resilience.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
+import '../../core/compliance/passenger_login_legal_footer.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
@@ -45,17 +49,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String? _profileImageBase64;
   String? _errorMessage;
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig.baseUrlAuth,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    ),
-  );
+  PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
   @override
   void dispose() {
@@ -106,8 +100,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     try {
       final clientMeta = await passengerAuthClientMeta();
-      final response = await _dio.post(
-        AppConfig.authUsersPath,
+      final response = await _api.postPublic<Map<String, dynamic>>(
+        path: AppConfig.authUsersPath,
         data: <String, dynamic>{
           ...clientMeta,
           'phone_number': fullPhone,
@@ -118,17 +112,24 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       );
 
       final body = response.data;
-      if (body is! Map || body['success'] != true) {
+      if (body is! Map) {
         setState(() => _saving = false);
         if (!mounted) return;
-        final msg =
-            body is Map ? body['message']?.toString() : null;
+        setState(() => _errorMessage = l10n.profileSetupErrorCompleteRegistration);
+        context.goNamed('login');
+        return;
+      }
+      final envelope = Map<String, dynamic>.from(body as Map);
+      if (envelope['success'] != true) {
+        setState(() => _saving = false);
+        if (!mounted) return;
+        final msg = envelope['message']?.toString();
         setState(() => _errorMessage = msg ?? l10n.profileSetupErrorCompleteRegistration);
         context.goNamed('login');
         return;
       }
 
-      final data = body['data'];
+      final data = envelope['data'];
       if (data is! Map) {
         setState(() => _saving = false);
         if (!mounted) return;
@@ -167,16 +168,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      if (e.type == DioExceptionType.connectionTimeout ||
-          e.type == DioExceptionType.sendTimeout ||
-          e.type == DioExceptionType.receiveTimeout) {
+      final networkCode = networkErrorCodeFromDio(e);
+      if (networkCode == 'NETWORK_TIMEOUT') {
         setState(() {
           _errorMessage =
               l10n.profileSetupErrorNetwork;
         });
         return;
       }
-      if (e.type == DioExceptionType.connectionError) {
+      if (networkCode == 'NETWORK_CONNECTION') {
         setState(() {
           _errorMessage = l10n.profileSetupErrorConnection;
         });
@@ -189,12 +189,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           ? (data['message']?.toString() ??
               (data['error'] as Map?)?['details']?.toString())
           : null;
-      final msg = (code != null && code.startsWith('RBAC_'))
-          ? localizedTripApiError(l10n, code, fallbackMessage: backendMsg)
-          : (backendMsg ??
-              (status != null
-                  ? l10n.profileSetupErrorRegisterStatus(status.toString())
-                  : l10n.profileSetupErrorCompleteRegistration));
+      final mapped = localizedTripApiError(l10n, code, fallbackMessage: backendMsg);
+      final msg = mapped == l10n.commonError &&
+              backendMsg == null &&
+              (code == null || code.isEmpty)
+          ? (status != null
+              ? l10n.profileSetupErrorRegisterStatus(status.toString())
+              : l10n.profileSetupErrorCompleteRegistration)
+          : mapped;
       setState(() {
         _errorMessage = msg;
       });
@@ -360,6 +362,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                           : Text(l10n.profileSetupContinue),
                     ),
                   ),
+                ),
+                const SizedBox(height: 20),
+                const PassengerLoginLegalFooter(
+                  tone: PassengerLegalNoticeTone.emphasized,
                 ),
                 SizedBox(
                   height: 16 + AppSafeScrolling.systemNavBottom(context),
