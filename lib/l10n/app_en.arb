@@ -1,9 +1,9 @@
 {
   "@@locale": "en",
-  "appName": "Texi",
+  "appName": "TEXIAPP",
   "splashGettingLocation": "Getting your location...",
   "loginWelcome": "Welcome",
-  "loginSubtitle": "Enter your number to continue",
+  "loginSubtitle": "Enter your number to sign in or create your account.",
   "loginCode": "Code",
   "loginPhone": "Phone",
   "loginCountryCodeHint": "+591",
@@ -17,7 +17,7 @@
   "loginErrorSessionSuperseded": "Your session was opened on another device.",
   "loginErrorTripOperationalLock": "Finish or cancel your current trip before signing in on another device.",
   "serviceTypeNameStandard": "Standard",
-  "serviceTypeNameTwoWheels": "Two wheels",
+  "serviceTypeNameTwoWheels": "Moto",
   "serviceTypeNameComfort": "Comfort",
   "serviceTypeNamePremium": "Premium",
   "loginPhoneRequired": "Enter your phone number",
@@ -53,7 +53,7 @@
   "tripMoveMapSetDestination": "Move the map and tap the button to set the destination.",
   "tripTapMapDestination": "Tap the map or choose an option below",
   "tripSeePrices": "See prices",
-  "tripCancelQuoteDraft": "Cancel and start over",
+  "tripCancelQuoteDraft": "Cancel request",
   "@tripCancelQuoteDraft": {
     "description": "Clears quote, route and destination before requesting a driver"
   },
@@ -69,6 +69,19 @@
   "tripDraftCalculatingRoute": "Calculating the route on the map…",
   "tripDraftEditStop": "Edit",
   "tripSecureChat": "Secure chat",
+  "tripShareRide": "Share trip",
+  "@tripShareRide": {
+    "description": "CTA on active trip panel to share live tracking"
+  },
+  "tripShareMessage": "Hi! I'm on my way with TEXIAPP. Track my trip live here: {url}\n\nDriver: {driverName} | Vehicle: ({plate})",
+  "@tripShareMessage": {
+    "placeholders": {
+      "url": { "type": "String" },
+      "driverName": { "type": "String" },
+      "plate": { "type": "String" }
+    }
+  },
+  "tripShareError": "Couldn't create the tracking link. Please try again.",
   "passengerTripChatTitle": "Trip chat",
   "passengerTripChatSubtitle": "Live conversation with your driver.",
   "passengerTripChatOnline": "Online",
@@ -93,7 +106,7 @@
   "passengerTripChatDriverTemplateConfirmLocation": "Please confirm your exact location",
   "commonEmptyDash": "—",
   "tripNoCoverageInZone": "We don't have service coverage in this area at the moment. Try another location or move to a service zone.",
-  "tripNoDriversAvailable": "No drivers available at the moment. Please try again in a few moments.",
+  "tripNoDriversAvailable": "We couldn't find drivers nearby right now. Please try again in a few minutes.",
   "tripNext": "Next",
   "quoteTitle": "Choose your ride",
   "quoteSubtitle": "Select a service type",
@@ -103,20 +116,53 @@
   "confirmFrom": "From",
   "confirmTo": "To",
   "confirmRequestRide": "Request ride",
+  "confirmRequestRideWithService": "Request {serviceName}",
+  "@confirmRequestRideWithService": {
+    "placeholders": {
+      "serviceName": {"type": "String"}
+    }
+  },
   "searchingTitle": "Looking for a driver",
-  "searchingSubtitle": "We are finding the best option for you",
-  "tripSearchingPatienceHint": "Still no nearby driver; we're still searching.",
+  "searchingSubtitle": "Connecting with the closest drivers.",
+  "@searchingSubtitle": {
+    "description": "Stage 1 (0–30s) searching overlay subtitle"
+  },
+  "tripSearchingStage2Title": "Widening the search…",
+  "@tripSearchingStage2Title": {
+    "description": "Stage 2 (30–60s) title"
+  },
+  "tripSearchingStage2Body": "There's some traffic nearby, but we're still finding the best option for you.",
+  "tripSearchingStage3Title": "Keep searching?",
+  "@tripSearchingStage3Title": {
+    "description": "Stage 3 (+60s) title"
+  },
+  "tripSearchingStage3Body": "Demand is high in your area, but your request is still active.",
+  "tripSearchingCancelRequest": "Cancel request",
+  "@tripSearchingCancelRequest": {
+    "description": "Secondary discreet CTA on matching overlay"
+  },
+  "tripSearchingContinueCta": "Continue",
+  "@tripSearchingContinueCta": {
+    "description": "Primary stage 3 CTA; soft sync/socket refresh"
+  },
+  "tripSearchingEtaHint": "Estimated match: 1–3 min",
+  "tripSearchingRotateCheck2km": "Checking drivers within 2 km…",
+  "tripSearchingRotateAvailability": "Checking availability…",
+  "tripSearchingRotateOptimizeRoute": "Optimizing your route…",
+  "tripSearchingOfflineBanner": "No internet connection. Retrying…",
+  "tripSearchingLocationBanner": "Turn on location to improve matching.",
+  "tripSearchingPatienceHint": "There's some traffic nearby, but we're still finding the best option for you.",
   "@tripSearchingPatienceHint": {
-    "description": "Non-blocking hint after ~60s on driver-search overlay."
+    "description": "Legacy alias stage 2; prefer tripSearchingStage2Body"
   },
-  "tripSearchingLongWaitTitle": "Still waiting?",
-  "tripSearchingLongWaitBody": "Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.",
+  "tripSearchingLongWaitTitle": "Keep searching?",
+  "tripSearchingLongWaitBody": "Demand is high in your area, but your request is still active.",
   "@tripSearchingLongWaitBody": {
-    "description": "Optional card after ~90s; does not block the map."
+    "description": "Legacy alias stage 3"
   },
-  "tripSearchingKeepWaitingCta": "Keep searching",
+  "tripSearchingKeepWaitingCta": "Continue",
   "@tripSearchingKeepWaitingCta": {
-    "description": "Dismisses long-wait card and runs soft refresh (REST sync / socket)."
+    "description": "Legacy alias for Continue"
   },
   "tripConnectionError": "Could not connect to receive trip updates. Check your connection.",
   "tripRbacForbidden": "Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.",
@@ -194,6 +240,15 @@
   "tripConfirmOrigin": "Confirm origin",
   "tripConfirmDestination": "Confirm destination",
   "tripLogout": "Log out",
+  "menuLeaveAppTitle": "Are you sure you want to leave?",
+  "menuLeaveAppMessage": "Your verification will stay active when you return.",
+  "menuLeaveAppConfirm": "Leave the app",
+  "menuLeaveAppLogout": "Log out",
+  "menuLogoutConfirmTitle": "Log out?",
+  "menuLogoutConfirmMessage": "You will need to verify your account again when you return.",
+  "menuLogoutConfirmAction": "Log out",
+  "menuLogoutConfirmBack": "Go back",
+  "profileSettingsTitle": "Settings",
   "profileLogoutSubtitle": "Sign out from this account",
   "tripHistoryMenu": "History",
   "tripHistoryTitle": "Trip history",
@@ -252,15 +307,37 @@
   "@tripRecoveringStateTitle": {
     "description": "Shown while syncing trip state after reopening the app"
   },
+  "tripRecoveringStuckTitle": "We couldn't restore your trip",
+  "@tripRecoveringStuckTitle": {
+    "description": "Title when trip rehydration takes too long"
+  },
+  "tripRecoveringStuckBody": "Your trip is still active. Check your connection and try again. Don't tap Cancel — that only applies while matching a driver.",
+  "tripRecoveringCheckNetwork": "Internet connection",
+  "tripRecoveringCheckLocation": "Location permission and GPS",
+  "tripRecoveringRetryCta": "Retry reconnection",
+  "tripCancelBlockedActiveBody": "Your trip is already in progress. It can't be cancelled from here.",
+  "@tripCancelBlockedActiveBody": {
+    "description": "SnackBar if cancel is attempted on an accepted trip"
+  },
   "verifyCodeTitle": "Verify your number",
-  "verifyCodeSubtitle": "We sent a 4-digit code to {phone}. Enter it to continue.",
+  "verifyCodeSubtitle": "We sent a 6-digit code to {phone}. Enter it to continue.",
   "@verifyCodeSubtitle": {
     "placeholders": {
       "phone": {"type": "String"}
     }
   },
-  "verifyCodeFieldLabel": "4-digit verification code",
-  "verifyCodeMaskHint": "••••",
+  "verifyCodeFieldLabel": "6-digit verification code",
+  "verifyCodeMaskHint": "••••••",
+  "verifyCodeWaTitle": "Verify with WhatsApp",
+  "verifyCodeWaSubtitle": "Send the pre-filled message from WhatsApp to confirm {phone}.",
+  "@verifyCodeWaSubtitle": {
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+  "verifyCodeWaOpenButton": "Open WhatsApp",
+  "verifyCodeWaWaiting": "Waiting for your WhatsApp message…",
+  "verifyCodeWaFallbackHint": "Having trouble? You can enter the code manually below.",
   "verifyCodeConfirm": "Confirm code",
   "verifyCodeRetryHint": "If you did not receive the code, check the number and try again in a few minutes.",
   "verifyCodeErrorActivateAccount": "Could not activate the passenger account.",
@@ -268,7 +345,7 @@
   "verifyCodeErrorTokenMissing": "Token not received.",
   "verifyCodeErrorNetwork": "Could not connect. Check your internet and try again.",
   "verifyCodeErrorConnection": "No connection to the server. Check your network.",
-  "verifyCodeErrorInvalidCodeInput": "Enter the 4-digit code you received.",
+  "verifyCodeErrorInvalidCodeInput": "Enter the 6-digit code you received.",
   "verifyCodeErrorValidateCode": "Could not validate the code.",
   "verifyCodeErrorUnexpected": "Unexpected error while validating the code.",
   "profileSetupErrorCompleteRegistration": "Could not complete registration.",
@@ -364,7 +441,7 @@
   "profileMockBiometricsValue": "Enabled",
   "profileMockLastAccessValue": "Today, 09:14",
   "profileActionEditInfo": "Edit information",
-  "profileActionSupport": "Support and help",
+  "profileActionSupport": "Safety",
   "profileQuickActions": "Quick actions",
   "profileEditDisplayNameLabel": "Display name",
   "profileEditNameInvalid": "Enter a valid name",
@@ -472,8 +549,11 @@
       "graceDays": { "type": "int" }
     }
   },
-  "passengerLegalLoginHint": "By continuing, you agree to the service terms.",
-  "passengerLegalRegistrationHint": "Before continuing, review the legal documents that apply to your account.",
+  "passengerLegalLoginHint": "By continuing, you agree to our Privacy policy and Terms of service.",
+  "passengerLegalRegistrationHint": "Before continuing, review the Privacy policy and Terms of service.",
+  "passengerLegalLoginPrefix": "By continuing, you agree to our ",
+  "passengerLegalRegistrationPrefix": "Before continuing, review our ",
+  "passengerLegalLoginConjunction": " and ",
   "passengerLoginAccountDeletionPendingTitle": "Deletion scheduled",
   "passengerLoginAccountDeletionPendingBody": "This account is scheduled for deletion on {effectiveDate}. You cannot use the app until you recover it.",
   "@passengerLoginAccountDeletionPendingBody": {
@@ -498,6 +578,9 @@
   "passengerLegalDeleteAccountCancelAction": "Cancel deletion",
   "passengerLegalDeleteAccountCancelling": "Cancelling deletion…",
   "passengerLegalDeleteAccountCancelSuccess": "Deletion cancelled. Your account is still active.",
+  "passengerAccountDeletionErrorSessionExpired": "Session expired. Sign in and try again.",
+  "passengerAccountDeletionErrorScheduleFailed": "Could not schedule account deletion.",
+  "passengerAccountDeletionErrorCancelFailed": "Could not cancel account deletion.",
   "passengerPlayCameraDisclosureTitle": "Camera access",
   "passengerPlayCameraDisclosureBody": "Texi uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.",
   "passengerPlayGalleryDisclosureTitle": "Photo library access",
@@ -507,5 +590,58 @@
   "passengerPlayLocationDisclosureTitle": "Location for trip requests",
   "passengerPlayLocationDisclosureBody": "Texi uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.",
   "passengerPlayDisclosureContinue": "Continue",
-  "passengerPlayNotificationDisclosureRequired": "Enable notifications to receive trip updates from your driver."
+  "passengerPlayNotificationDisclosureRequired": "Enable notifications to receive trip updates from your driver.",
+  "menuSupportHelp": "Safety",
+  "menuOperatorTexi": "Operator",
+  "menuProfile": "Profile",
+  "menuTripHistory": "My trips",
+  "menuOpenTooltip": "Menu",
+  "safetyEmergencyCta": "Emergency",
+  "safetyLiveTrackingTitle": "Live tracking",
+  "safetyLiveTrackingUnavailable": "This feature is only available once your trip is underway.",
+  "supportHelpSubtitle": "Emergency and assistance 24/7",
+  "supportEmergencyTitle": "Emergency",
+  "supportEmergencyBody": "If you're in danger or need immediate help, call {number}.",
+  "@supportEmergencyBody": {
+    "placeholders": {
+      "number": { "type": "String" }
+    }
+  },
+  "supportCallNowCta": "CALL NOW",
+  "supportMoreOptionsTitle": "More help options",
+  "supportWhatsAppTitle": "WhatsApp",
+  "supportTicketsSubtitle": "Create or review support tickets",
+  "supportCompanyCallTitle": "Call Texi",
+  "supportCallFailed": "Could not start the call. Check phone permissions.",
+  "supportTrustFooter": "Your safety comes first. Operators and protocols ready to assist you.",
+  "operatorTexiSubtitle": "Contact our Operators and learn more about our services.",
+  "operatorSecurityCtaTitle": "Safety",
+  "operatorSecurityCtaSubtitle": "Emergency 110 and assistance",
+  "operatorSecurityCareMessage": "Your safety matters to us. We're here to look after you on every ride.",
+  "operatorCallTitle": "Call operator",
+  "operatorVerifiedDriversCtaTitle": "Verified drivers",
+  "operatorVerifiedDriversCtaSubtitle": "How TEXI validates every driver",
+  "operatorVerifiedDriversTitle": "Verified drivers",
+  "operatorCheckIdentityTitle": "Identity verified",
+  "operatorCheckIdentityBody": "Document and photo reviewed",
+  "operatorCheckBackgroundTitle": "Background checks",
+  "operatorCheckBackgroundBody": "Security filters applied",
+  "operatorCheckInspectionTitle": "Vehicle inspection",
+  "operatorCheckInspectionBody": "Condition and paperwork up to date",
+  "operatorCheckInsuranceTitle": "Active insurance",
+  "operatorCheckInsuranceBody": "Coverage active for service",
+  "operatorCheckTrainingTitle": "Training",
+  "operatorCheckTrainingBody": "Texi service standards",
+  "operatorTrustClosing": "Ride with confidence. Drivers verified by Texi.",
+  "profileCompletenessTitle": "Complete your information",
+  "profileCompletenessMissing": "{count} fields left to complete",
+  "@profileCompletenessMissing": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "profileCompletenessDone": "Your profile is complete",
+  "profileCompleteInfoCta": "COMPLETE INFORMATION",
+  "profileVerifiedUserLabel": "Verified user",
+  "profileBrandTitle": "TEXIAPP"
 }

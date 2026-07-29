@@ -7,8 +7,8 @@ import 'passenger_app_environment.dart';
 class AppConfig {
   AppConfig._();
 
-  static const String appName = 'Texi';
-  static const String packageName = 'com.taxitexi.texi.passenger';
+  static const String appName = 'TEXIAPP';
+  static const String packageName = 'com.taxitexi.texi_passenger_app';
 
   /// `applicationId` Android (debe coincidir con `google-services.json` / FCM).
   static String get firebaseAndroidApplicationId =>
@@ -31,6 +31,9 @@ class AppConfig {
 
   /// `POST` tras código de verificación — ventana para [authUsersPath].
   static const String authVerifyCodePath = '/auth/verify-code';
+
+  /// `GET` polling estado challenge WA inbound (`phone_e164`, `challenge_id`).
+  static const String authChallengeStatusPath = '/auth/challenge-status';
 
   /// `POST` completar nombre + foto opcional; devuelve `token` + `refresh_token` + `expires_in`.
   static const String authUsersPath = '/auth/users';

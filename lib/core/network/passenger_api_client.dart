@@ -67,6 +67,21 @@ class PassengerApiClient {
     return dio.post<T>(path, data: data);
   }
 
+  /// GET público sin Bearer (p. ej. polling challenge-status pre-login).
+  Future<Response<T>> getPublic<T>({
+    required String path,
+    Map<String, dynamic>? queryParameters,
+    Duration connectTimeout = const Duration(seconds: 15),
+    Duration receiveTimeout = const Duration(seconds: 15),
+  }) {
+    final dio = createPublicDio(
+      baseUrl: _authBaseUrl,
+      connectTimeout: connectTimeout,
+      receiveTimeout: receiveTimeout,
+    );
+    return dio.get<T>(path, queryParameters: queryParameters);
+  }
+
   Future<Response<T>> getAuthWithRetry<T>({
     required String path,
     required String flow,

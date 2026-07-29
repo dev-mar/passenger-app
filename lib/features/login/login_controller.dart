@@ -8,6 +8,7 @@ import '../../core/config/app_config.dart';
 import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
+import '../../core/config/passenger_app_environment.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/network/texi_backend_error.dart';
 
@@ -29,12 +30,22 @@ enum LoginNextStep {
 }
 
 class LoginState {
-  const LoginState({this.errorMessage, this.errorCode, this.accountDeletion});
+  const LoginState({
+    this.errorMessage,
+    this.errorCode,
+    this.accountDeletion,
+    this.verificationChannel,
+    this.challengeId,
+    this.waDeepLink,
+  });
 
   final String? errorMessage;
   /// Código de negocio del backend (`PASS_AUTH_*`, etc.) cuando aplica.
   final String? errorCode;
   final Map<String, dynamic>? accountDeletion;
+  final String? verificationChannel;
+  final String? challengeId;
+  final String? waDeepLink;
 }
 
 class LoginController extends StateNotifier<LoginState> {
@@ -73,7 +84,10 @@ class LoginController extends StateNotifier<LoginState> {
           ...clientMeta,
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
-          if (pushToken != null) 'otp_channel': 'push',
+          if (PassengerAppEnvironment.multichannelAuthEnabled)
+            'otp_channel': 'whatsapp_inbound'
+          else if (pushToken != null)
+            'otp_channel': 'push',
           'push_token': ?pushToken,
           if (cancelPendingDeletion) 'cancel_pending_deletion': true,
         },
@@ -108,6 +122,11 @@ class LoginController extends StateNotifier<LoginState> {
         final status = data['status']?.toString();
         final isVerified = data['is_verified'] == true;
         if (status == 'pending' || !isVerified) {
+          state = LoginState(
+            verificationChannel: data['verification_channel']?.toString(),
+            challengeId: data['challenge_id']?.toString(),
+            waDeepLink: data['wa_deep_link']?.toString(),
+          );
           return LoginNextStep.verifyCode;
         }
         return _fail(code: 'CLIENT_TOKEN_MISSING');

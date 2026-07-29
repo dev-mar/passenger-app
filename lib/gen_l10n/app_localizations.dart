@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Texi'**
+  /// **'TEXIAPP'**
   String get appName;
 
   /// No description provided for @splashGettingLocation.
@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Enter your number to continue'**
+  /// **'Enter your number to sign in or create your account.'**
   String get loginSubtitle;
 
   /// No description provided for @loginCode.
@@ -203,7 +203,7 @@ abstract class AppLocalizations {
   /// No description provided for @serviceTypeNameTwoWheels.
   ///
   /// In en, this message translates to:
-  /// **'Two wheels'**
+  /// **'Moto'**
   String get serviceTypeNameTwoWheels;
 
   /// No description provided for @serviceTypeNameComfort.
@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// Clears quote, route and destination before requesting a driver
   ///
   /// In en, this message translates to:
-  /// **'Cancel and start over'**
+  /// **'Cancel request'**
   String get tripCancelQuoteDraft;
 
   /// No description provided for @tripSearchPlaceholder.
@@ -433,6 +433,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Secure chat'**
   String get tripSecureChat;
+
+  /// CTA on active trip panel to share live tracking
+  ///
+  /// In en, this message translates to:
+  /// **'Share trip'**
+  String get tripShareRide;
+
+  /// No description provided for @tripShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi! I\'m on my way with TEXIAPP. Track my trip live here: {url}\n\nDriver: {driverName} | Vehicle: ({plate})'**
+  String tripShareMessage(String url, String driverName, String plate);
+
+  /// No description provided for @tripShareError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create the tracking link. Please try again.'**
+  String get tripShareError;
 
   /// No description provided for @passengerTripChatTitle.
   ///
@@ -563,7 +581,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripNoDriversAvailable.
   ///
   /// In en, this message translates to:
-  /// **'No drivers available at the moment. Please try again in a few moments.'**
+  /// **'We couldn\'t find drivers nearby right now. Please try again in a few minutes.'**
   String get tripNoDriversAvailable;
 
   /// No description provided for @tripNext.
@@ -620,40 +638,118 @@ abstract class AppLocalizations {
   /// **'Request ride'**
   String get confirmRequestRide;
 
+  /// No description provided for @confirmRequestRideWithService.
+  ///
+  /// In en, this message translates to:
+  /// **'Request {serviceName}'**
+  String confirmRequestRideWithService(String serviceName);
+
   /// No description provided for @searchingTitle.
   ///
   /// In en, this message translates to:
   /// **'Looking for a driver'**
   String get searchingTitle;
 
-  /// No description provided for @searchingSubtitle.
+  /// Stage 1 (0–30s) searching overlay subtitle
   ///
   /// In en, this message translates to:
-  /// **'We are finding the best option for you'**
+  /// **'Connecting with the closest drivers.'**
   String get searchingSubtitle;
 
-  /// Non-blocking hint after ~60s on driver-search overlay.
+  /// Stage 2 (30–60s) title
   ///
   /// In en, this message translates to:
-  /// **'Still no nearby driver; we\'re still searching.'**
+  /// **'Widening the search…'**
+  String get tripSearchingStage2Title;
+
+  /// No description provided for @tripSearchingStage2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s some traffic nearby, but we\'re still finding the best option for you.'**
+  String get tripSearchingStage2Body;
+
+  /// Stage 3 (+60s) title
+  ///
+  /// In en, this message translates to:
+  /// **'Keep searching?'**
+  String get tripSearchingStage3Title;
+
+  /// No description provided for @tripSearchingStage3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Demand is high in your area, but your request is still active.'**
+  String get tripSearchingStage3Body;
+
+  /// Secondary discreet CTA on matching overlay
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel request'**
+  String get tripSearchingCancelRequest;
+
+  /// Primary stage 3 CTA; soft sync/socket refresh
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get tripSearchingContinueCta;
+
+  /// No description provided for @tripSearchingEtaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated match: 1–3 min'**
+  String get tripSearchingEtaHint;
+
+  /// No description provided for @tripSearchingRotateCheck2km.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking drivers within 2 km…'**
+  String get tripSearchingRotateCheck2km;
+
+  /// No description provided for @tripSearchingRotateAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking availability…'**
+  String get tripSearchingRotateAvailability;
+
+  /// No description provided for @tripSearchingRotateOptimizeRoute.
+  ///
+  /// In en, this message translates to:
+  /// **'Optimizing your route…'**
+  String get tripSearchingRotateOptimizeRoute;
+
+  /// No description provided for @tripSearchingOfflineBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Retrying…'**
+  String get tripSearchingOfflineBanner;
+
+  /// No description provided for @tripSearchingLocationBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location to improve matching.'**
+  String get tripSearchingLocationBanner;
+
+  /// Legacy alias stage 2; prefer tripSearchingStage2Body
+  ///
+  /// In en, this message translates to:
+  /// **'There\'s some traffic nearby, but we\'re still finding the best option for you.'**
   String get tripSearchingPatienceHint;
 
   /// No description provided for @tripSearchingLongWaitTitle.
   ///
   /// In en, this message translates to:
-  /// **'Still waiting?'**
+  /// **'Keep searching?'**
   String get tripSearchingLongWaitTitle;
 
-  /// Optional card after ~90s; does not block the map.
+  /// Legacy alias stage 3
   ///
   /// In en, this message translates to:
-  /// **'Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.'**
+  /// **'Demand is high in your area, but your request is still active.'**
   String get tripSearchingLongWaitBody;
 
-  /// Dismisses long-wait card and runs soft refresh (REST sync / socket).
+  /// Legacy alias for Continue
   ///
   /// In en, this message translates to:
-  /// **'Keep searching'**
+  /// **'Continue'**
   String get tripSearchingKeepWaitingCta;
 
   /// No description provided for @tripConnectionError.
@@ -974,6 +1070,60 @@ abstract class AppLocalizations {
   /// **'Log out'**
   String get tripLogout;
 
+  /// No description provided for @menuLeaveAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave?'**
+  String get menuLeaveAppTitle;
+
+  /// No description provided for @menuLeaveAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your verification will stay active when you return.'**
+  String get menuLeaveAppMessage;
+
+  /// No description provided for @menuLeaveAppConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the app'**
+  String get menuLeaveAppConfirm;
+
+  /// No description provided for @menuLeaveAppLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get menuLeaveAppLogout;
+
+  /// No description provided for @menuLogoutConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out?'**
+  String get menuLogoutConfirmTitle;
+
+  /// No description provided for @menuLogoutConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to verify your account again when you return.'**
+  String get menuLogoutConfirmMessage;
+
+  /// No description provided for @menuLogoutConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get menuLogoutConfirmAction;
+
+  /// No description provided for @menuLogoutConfirmBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get menuLogoutConfirmBack;
+
+  /// No description provided for @profileSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get profileSettingsTitle;
+
   /// No description provided for @profileLogoutSubtitle.
   ///
   /// In en, this message translates to:
@@ -1238,6 +1388,42 @@ abstract class AppLocalizations {
   /// **'Restoring your trip…'**
   String get tripRecoveringStateTitle;
 
+  /// Title when trip rehydration takes too long
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t restore your trip'**
+  String get tripRecoveringStuckTitle;
+
+  /// No description provided for @tripRecoveringStuckBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trip is still active. Check your connection and try again. Don\'t tap Cancel — that only applies while matching a driver.'**
+  String get tripRecoveringStuckBody;
+
+  /// No description provided for @tripRecoveringCheckNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet connection'**
+  String get tripRecoveringCheckNetwork;
+
+  /// No description provided for @tripRecoveringCheckLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission and GPS'**
+  String get tripRecoveringCheckLocation;
+
+  /// No description provided for @tripRecoveringRetryCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry reconnection'**
+  String get tripRecoveringRetryCta;
+
+  /// SnackBar if cancel is attempted on an accepted trip
+  ///
+  /// In en, this message translates to:
+  /// **'Your trip is already in progress. It can\'t be cancelled from here.'**
+  String get tripCancelBlockedActiveBody;
+
   /// No description provided for @verifyCodeTitle.
   ///
   /// In en, this message translates to:
@@ -1247,20 +1433,50 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'We sent a 4-digit code to {phone}. Enter it to continue.'**
+  /// **'We sent a 6-digit code to {phone}. Enter it to continue.'**
   String verifyCodeSubtitle(String phone);
 
   /// No description provided for @verifyCodeFieldLabel.
   ///
   /// In en, this message translates to:
-  /// **'4-digit verification code'**
+  /// **'6-digit verification code'**
   String get verifyCodeFieldLabel;
 
   /// No description provided for @verifyCodeMaskHint.
   ///
   /// In en, this message translates to:
-  /// **'••••'**
+  /// **'••••••'**
   String get verifyCodeMaskHint;
+
+  /// No description provided for @verifyCodeWaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify with WhatsApp'**
+  String get verifyCodeWaTitle;
+
+  /// No description provided for @verifyCodeWaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the pre-filled message from WhatsApp to confirm {phone}.'**
+  String verifyCodeWaSubtitle(String phone);
+
+  /// No description provided for @verifyCodeWaOpenButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open WhatsApp'**
+  String get verifyCodeWaOpenButton;
+
+  /// No description provided for @verifyCodeWaWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your WhatsApp message…'**
+  String get verifyCodeWaWaiting;
+
+  /// No description provided for @verifyCodeWaFallbackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Having trouble? You can enter the code manually below.'**
+  String get verifyCodeWaFallbackHint;
 
   /// No description provided for @verifyCodeConfirm.
   ///
@@ -1307,7 +1523,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeErrorInvalidCodeInput.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 4-digit code you received.'**
+  /// **'Enter the 6-digit code you received.'**
   String get verifyCodeErrorInvalidCodeInput;
 
   /// No description provided for @verifyCodeErrorValidateCode.
@@ -1847,7 +2063,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileActionSupport.
   ///
   /// In en, this message translates to:
-  /// **'Support and help'**
+  /// **'Safety'**
   String get profileActionSupport;
 
   /// No description provided for @profileQuickActions.
@@ -2333,14 +2549,32 @@ abstract class AppLocalizations {
   /// No description provided for @passengerLegalLoginHint.
   ///
   /// In en, this message translates to:
-  /// **'By continuing, you agree to the service terms.'**
+  /// **'By continuing, you agree to our Privacy policy and Terms of service.'**
   String get passengerLegalLoginHint;
 
   /// No description provided for @passengerLegalRegistrationHint.
   ///
   /// In en, this message translates to:
-  /// **'Before continuing, review the legal documents that apply to your account.'**
+  /// **'Before continuing, review the Privacy policy and Terms of service.'**
   String get passengerLegalRegistrationHint;
+
+  /// No description provided for @passengerLegalLoginPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing, you agree to our '**
+  String get passengerLegalLoginPrefix;
+
+  /// No description provided for @passengerLegalRegistrationPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Before continuing, review our '**
+  String get passengerLegalRegistrationPrefix;
+
+  /// No description provided for @passengerLegalLoginConjunction.
+  ///
+  /// In en, this message translates to:
+  /// **' and '**
+  String get passengerLegalLoginConjunction;
 
   /// No description provided for @passengerLoginAccountDeletionPendingTitle.
   ///
@@ -2423,6 +2657,24 @@ abstract class AppLocalizations {
   /// **'Deletion cancelled. Your account is still active.'**
   String get passengerLegalDeleteAccountCancelSuccess;
 
+  /// No description provided for @passengerAccountDeletionErrorSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired. Sign in and try again.'**
+  String get passengerAccountDeletionErrorSessionExpired;
+
+  /// No description provided for @passengerAccountDeletionErrorScheduleFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not schedule account deletion.'**
+  String get passengerAccountDeletionErrorScheduleFailed;
+
+  /// No description provided for @passengerAccountDeletionErrorCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not cancel account deletion.'**
+  String get passengerAccountDeletionErrorCancelFailed;
+
   /// No description provided for @passengerPlayCameraDisclosureTitle.
   ///
   /// In en, this message translates to:
@@ -2482,6 +2734,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable notifications to receive trip updates from your driver.'**
   String get passengerPlayNotificationDisclosureRequired;
+
+  /// No description provided for @menuSupportHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get menuSupportHelp;
+
+  /// No description provided for @menuOperatorTexi.
+  ///
+  /// In en, this message translates to:
+  /// **'Operator'**
+  String get menuOperatorTexi;
+
+  /// No description provided for @menuProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get menuProfile;
+
+  /// No description provided for @menuTripHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'My trips'**
+  String get menuTripHistory;
+
+  /// No description provided for @menuOpenTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menuOpenTooltip;
+
+  /// No description provided for @safetyEmergencyCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency'**
+  String get safetyEmergencyCta;
+
+  /// No description provided for @safetyLiveTrackingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Live tracking'**
+  String get safetyLiveTrackingTitle;
+
+  /// No description provided for @safetyLiveTrackingUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature is only available once your trip is underway.'**
+  String get safetyLiveTrackingUnavailable;
+
+  /// No description provided for @supportHelpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency and assistance 24/7'**
+  String get supportHelpSubtitle;
+
+  /// No description provided for @supportEmergencyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency'**
+  String get supportEmergencyTitle;
+
+  /// No description provided for @supportEmergencyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you\'re in danger or need immediate help, call {number}.'**
+  String supportEmergencyBody(String number);
+
+  /// No description provided for @supportCallNowCta.
+  ///
+  /// In en, this message translates to:
+  /// **'CALL NOW'**
+  String get supportCallNowCta;
+
+  /// No description provided for @supportMoreOptionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'More help options'**
+  String get supportMoreOptionsTitle;
+
+  /// No description provided for @supportWhatsAppTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get supportWhatsAppTitle;
+
+  /// No description provided for @supportTicketsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create or review support tickets'**
+  String get supportTicketsSubtitle;
+
+  /// No description provided for @supportCompanyCallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call Texi'**
+  String get supportCompanyCallTitle;
+
+  /// No description provided for @supportCallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the call. Check phone permissions.'**
+  String get supportCallFailed;
+
+  /// No description provided for @supportTrustFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Your safety comes first. Operators and protocols ready to assist you.'**
+  String get supportTrustFooter;
+
+  /// No description provided for @operatorTexiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact our Operators and learn more about our services.'**
+  String get operatorTexiSubtitle;
+
+  /// No description provided for @operatorSecurityCtaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get operatorSecurityCtaTitle;
+
+  /// No description provided for @operatorSecurityCtaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency 110 and assistance'**
+  String get operatorSecurityCtaSubtitle;
+
+  /// No description provided for @operatorSecurityCareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your safety matters to us. We\'re here to look after you on every ride.'**
+  String get operatorSecurityCareMessage;
+
+  /// No description provided for @operatorCallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call operator'**
+  String get operatorCallTitle;
+
+  /// No description provided for @operatorVerifiedDriversCtaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified drivers'**
+  String get operatorVerifiedDriversCtaTitle;
+
+  /// No description provided for @operatorVerifiedDriversCtaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How TEXI validates every driver'**
+  String get operatorVerifiedDriversCtaSubtitle;
+
+  /// No description provided for @operatorVerifiedDriversTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified drivers'**
+  String get operatorVerifiedDriversTitle;
+
+  /// No description provided for @operatorCheckIdentityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity verified'**
+  String get operatorCheckIdentityTitle;
+
+  /// No description provided for @operatorCheckIdentityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Document and photo reviewed'**
+  String get operatorCheckIdentityBody;
+
+  /// No description provided for @operatorCheckBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background checks'**
+  String get operatorCheckBackgroundTitle;
+
+  /// No description provided for @operatorCheckBackgroundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Security filters applied'**
+  String get operatorCheckBackgroundBody;
+
+  /// No description provided for @operatorCheckInspectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vehicle inspection'**
+  String get operatorCheckInspectionTitle;
+
+  /// No description provided for @operatorCheckInspectionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition and paperwork up to date'**
+  String get operatorCheckInspectionBody;
+
+  /// No description provided for @operatorCheckInsuranceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active insurance'**
+  String get operatorCheckInsuranceTitle;
+
+  /// No description provided for @operatorCheckInsuranceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Coverage active for service'**
+  String get operatorCheckInsuranceBody;
+
+  /// No description provided for @operatorCheckTrainingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get operatorCheckTrainingTitle;
+
+  /// No description provided for @operatorCheckTrainingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Texi service standards'**
+  String get operatorCheckTrainingBody;
+
+  /// No description provided for @operatorTrustClosing.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride with confidence. Drivers verified by Texi.'**
+  String get operatorTrustClosing;
+
+  /// No description provided for @profileCompletenessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your information'**
+  String get profileCompletenessTitle;
+
+  /// No description provided for @profileCompletenessMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} fields left to complete'**
+  String profileCompletenessMissing(int count);
+
+  /// No description provided for @profileCompletenessDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile is complete'**
+  String get profileCompletenessDone;
+
+  /// No description provided for @profileCompleteInfoCta.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETE INFORMATION'**
+  String get profileCompleteInfoCta;
+
+  /// No description provided for @profileVerifiedUserLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified user'**
+  String get profileVerifiedUserLabel;
+
+  /// No description provided for @profileBrandTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP'**
+  String get profileBrandTitle;
 }
 
 class _AppLocalizationsDelegate

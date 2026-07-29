@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Texi';
+  String get appName => 'TEXIAPP';
 
   @override
   String get splashGettingLocation => 'Getting your location...';
@@ -18,7 +18,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginWelcome => 'Welcome';
 
   @override
-  String get loginSubtitle => 'Enter your number to continue';
+  String get loginSubtitle =>
+      'Enter your number to sign in or create your account.';
 
   @override
   String get loginCode => 'Code';
@@ -67,7 +68,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceTypeNameStandard => 'Standard';
 
   @override
-  String get serviceTypeNameTwoWheels => 'Two wheels';
+  String get serviceTypeNameTwoWheels => 'Moto';
 
   @override
   String get serviceTypeNameComfort => 'Comfort';
@@ -153,7 +154,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripSeePrices => 'See prices';
 
   @override
-  String get tripCancelQuoteDraft => 'Cancel and start over';
+  String get tripCancelQuoteDraft => 'Cancel request';
 
   @override
   String get tripSearchPlaceholder => 'Search address...';
@@ -190,6 +191,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripSecureChat => 'Secure chat';
+
+  @override
+  String get tripShareRide => 'Share trip';
+
+  @override
+  String tripShareMessage(String url, String driverName, String plate) {
+    return 'Hi! I\'m on my way with TEXIAPP. Track my trip live here: $url\n\nDriver: $driverName | Vehicle: ($plate)';
+  }
+
+  @override
+  String get tripShareError =>
+      'Couldn\'t create the tracking link. Please try again.';
 
   @override
   String get passengerTripChatTitle => 'Trip chat';
@@ -267,7 +280,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripNoDriversAvailable =>
-      'No drivers available at the moment. Please try again in a few moments.';
+      'We couldn\'t find drivers nearby right now. Please try again in a few minutes.';
 
   @override
   String get tripNext => 'Next';
@@ -297,24 +310,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmRequestRide => 'Request ride';
 
   @override
+  String confirmRequestRideWithService(String serviceName) {
+    return 'Request $serviceName';
+  }
+
+  @override
   String get searchingTitle => 'Looking for a driver';
 
   @override
-  String get searchingSubtitle => 'We are finding the best option for you';
+  String get searchingSubtitle => 'Connecting with the closest drivers.';
+
+  @override
+  String get tripSearchingStage2Title => 'Widening the search…';
+
+  @override
+  String get tripSearchingStage2Body =>
+      'There\'s some traffic nearby, but we\'re still finding the best option for you.';
+
+  @override
+  String get tripSearchingStage3Title => 'Keep searching?';
+
+  @override
+  String get tripSearchingStage3Body =>
+      'Demand is high in your area, but your request is still active.';
+
+  @override
+  String get tripSearchingCancelRequest => 'Cancel request';
+
+  @override
+  String get tripSearchingContinueCta => 'Continue';
+
+  @override
+  String get tripSearchingEtaHint => 'Estimated match: 1–3 min';
+
+  @override
+  String get tripSearchingRotateCheck2km => 'Checking drivers within 2 km…';
+
+  @override
+  String get tripSearchingRotateAvailability => 'Checking availability…';
+
+  @override
+  String get tripSearchingRotateOptimizeRoute => 'Optimizing your route…';
+
+  @override
+  String get tripSearchingOfflineBanner => 'No internet connection. Retrying…';
+
+  @override
+  String get tripSearchingLocationBanner =>
+      'Turn on location to improve matching.';
 
   @override
   String get tripSearchingPatienceHint =>
-      'Still no nearby driver; we\'re still searching.';
+      'There\'s some traffic nearby, but we\'re still finding the best option for you.';
 
   @override
-  String get tripSearchingLongWaitTitle => 'Still waiting?';
+  String get tripSearchingLongWaitTitle => 'Keep searching?';
 
   @override
   String get tripSearchingLongWaitBody =>
-      'Matching can take a little longer. You can keep waiting or cancel this request below. \"Keep searching\" checks your connection to the service; your request stays active.';
+      'Demand is high in your area, but your request is still active.';
 
   @override
-  String get tripSearchingKeepWaitingCta => 'Keep searching';
+  String get tripSearchingKeepWaitingCta => 'Continue';
 
   @override
   String get tripConnectionError =>
@@ -497,6 +554,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripLogout => 'Log out';
 
   @override
+  String get menuLeaveAppTitle => 'Are you sure you want to leave?';
+
+  @override
+  String get menuLeaveAppMessage =>
+      'Your verification will stay active when you return.';
+
+  @override
+  String get menuLeaveAppConfirm => 'Leave the app';
+
+  @override
+  String get menuLeaveAppLogout => 'Log out';
+
+  @override
+  String get menuLogoutConfirmTitle => 'Log out?';
+
+  @override
+  String get menuLogoutConfirmMessage =>
+      'You will need to verify your account again when you return.';
+
+  @override
+  String get menuLogoutConfirmAction => 'Log out';
+
+  @override
+  String get menuLogoutConfirmBack => 'Go back';
+
+  @override
+  String get profileSettingsTitle => 'Settings';
+
+  @override
   String get profileLogoutSubtitle => 'Sign out from this account';
 
   @override
@@ -633,18 +719,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripRecoveringStateTitle => 'Restoring your trip…';
 
   @override
+  String get tripRecoveringStuckTitle => 'We couldn\'t restore your trip';
+
+  @override
+  String get tripRecoveringStuckBody =>
+      'Your trip is still active. Check your connection and try again. Don\'t tap Cancel — that only applies while matching a driver.';
+
+  @override
+  String get tripRecoveringCheckNetwork => 'Internet connection';
+
+  @override
+  String get tripRecoveringCheckLocation => 'Location permission and GPS';
+
+  @override
+  String get tripRecoveringRetryCta => 'Retry reconnection';
+
+  @override
+  String get tripCancelBlockedActiveBody =>
+      'Your trip is already in progress. It can\'t be cancelled from here.';
+
+  @override
   String get verifyCodeTitle => 'Verify your number';
 
   @override
   String verifyCodeSubtitle(String phone) {
-    return 'We sent a 4-digit code to $phone. Enter it to continue.';
+    return 'We sent a 6-digit code to $phone. Enter it to continue.';
   }
 
   @override
-  String get verifyCodeFieldLabel => '4-digit verification code';
+  String get verifyCodeFieldLabel => '6-digit verification code';
 
   @override
-  String get verifyCodeMaskHint => '••••';
+  String get verifyCodeMaskHint => '••••••';
+
+  @override
+  String get verifyCodeWaTitle => 'Verify with WhatsApp';
+
+  @override
+  String verifyCodeWaSubtitle(String phone) {
+    return 'Send the pre-filled message from WhatsApp to confirm $phone.';
+  }
+
+  @override
+  String get verifyCodeWaOpenButton => 'Open WhatsApp';
+
+  @override
+  String get verifyCodeWaWaiting => 'Waiting for your WhatsApp message…';
+
+  @override
+  String get verifyCodeWaFallbackHint =>
+      'Having trouble? You can enter the code manually below.';
 
   @override
   String get verifyCodeConfirm => 'Confirm code';
@@ -673,7 +797,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyCodeErrorInvalidCodeInput =>
-      'Enter the 4-digit code you received.';
+      'Enter the 6-digit code you received.';
 
   @override
   String get verifyCodeErrorValidateCode => 'Could not validate the code.';
@@ -959,7 +1083,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileActionEditInfo => 'Edit information';
 
   @override
-  String get profileActionSupport => 'Support and help';
+  String get profileActionSupport => 'Safety';
 
   @override
   String get profileQuickActions => 'Quick actions';
@@ -1231,11 +1355,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerLegalLoginHint =>
-      'By continuing, you agree to the service terms.';
+      'By continuing, you agree to our Privacy policy and Terms of service.';
 
   @override
   String get passengerLegalRegistrationHint =>
-      'Before continuing, review the legal documents that apply to your account.';
+      'Before continuing, review the Privacy policy and Terms of service.';
+
+  @override
+  String get passengerLegalLoginPrefix => 'By continuing, you agree to our ';
+
+  @override
+  String get passengerLegalRegistrationPrefix =>
+      'Before continuing, review our ';
+
+  @override
+  String get passengerLegalLoginConjunction => ' and ';
 
   @override
   String get passengerLoginAccountDeletionPendingTitle => 'Deletion scheduled';
@@ -1288,6 +1422,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Deletion cancelled. Your account is still active.';
 
   @override
+  String get passengerAccountDeletionErrorSessionExpired =>
+      'Session expired. Sign in and try again.';
+
+  @override
+  String get passengerAccountDeletionErrorScheduleFailed =>
+      'Could not schedule account deletion.';
+
+  @override
+  String get passengerAccountDeletionErrorCancelFailed =>
+      'Could not cancel account deletion.';
+
+  @override
   String get passengerPlayCameraDisclosureTitle => 'Camera access';
 
   @override
@@ -1322,4 +1468,145 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passengerPlayNotificationDisclosureRequired =>
       'Enable notifications to receive trip updates from your driver.';
+
+  @override
+  String get menuSupportHelp => 'Safety';
+
+  @override
+  String get menuOperatorTexi => 'Operator';
+
+  @override
+  String get menuProfile => 'Profile';
+
+  @override
+  String get menuTripHistory => 'My trips';
+
+  @override
+  String get menuOpenTooltip => 'Menu';
+
+  @override
+  String get safetyEmergencyCta => 'Emergency';
+
+  @override
+  String get safetyLiveTrackingTitle => 'Live tracking';
+
+  @override
+  String get safetyLiveTrackingUnavailable =>
+      'This feature is only available once your trip is underway.';
+
+  @override
+  String get supportHelpSubtitle => 'Emergency and assistance 24/7';
+
+  @override
+  String get supportEmergencyTitle => 'Emergency';
+
+  @override
+  String supportEmergencyBody(String number) {
+    return 'If you\'re in danger or need immediate help, call $number.';
+  }
+
+  @override
+  String get supportCallNowCta => 'CALL NOW';
+
+  @override
+  String get supportMoreOptionsTitle => 'More help options';
+
+  @override
+  String get supportWhatsAppTitle => 'WhatsApp';
+
+  @override
+  String get supportTicketsSubtitle => 'Create or review support tickets';
+
+  @override
+  String get supportCompanyCallTitle => 'Call Texi';
+
+  @override
+  String get supportCallFailed =>
+      'Could not start the call. Check phone permissions.';
+
+  @override
+  String get supportTrustFooter =>
+      'Your safety comes first. Operators and protocols ready to assist you.';
+
+  @override
+  String get operatorTexiSubtitle =>
+      'Contact our Operators and learn more about our services.';
+
+  @override
+  String get operatorSecurityCtaTitle => 'Safety';
+
+  @override
+  String get operatorSecurityCtaSubtitle => 'Emergency 110 and assistance';
+
+  @override
+  String get operatorSecurityCareMessage =>
+      'Your safety matters to us. We\'re here to look after you on every ride.';
+
+  @override
+  String get operatorCallTitle => 'Call operator';
+
+  @override
+  String get operatorVerifiedDriversCtaTitle => 'Verified drivers';
+
+  @override
+  String get operatorVerifiedDriversCtaSubtitle =>
+      'How TEXI validates every driver';
+
+  @override
+  String get operatorVerifiedDriversTitle => 'Verified drivers';
+
+  @override
+  String get operatorCheckIdentityTitle => 'Identity verified';
+
+  @override
+  String get operatorCheckIdentityBody => 'Document and photo reviewed';
+
+  @override
+  String get operatorCheckBackgroundTitle => 'Background checks';
+
+  @override
+  String get operatorCheckBackgroundBody => 'Security filters applied';
+
+  @override
+  String get operatorCheckInspectionTitle => 'Vehicle inspection';
+
+  @override
+  String get operatorCheckInspectionBody =>
+      'Condition and paperwork up to date';
+
+  @override
+  String get operatorCheckInsuranceTitle => 'Active insurance';
+
+  @override
+  String get operatorCheckInsuranceBody => 'Coverage active for service';
+
+  @override
+  String get operatorCheckTrainingTitle => 'Training';
+
+  @override
+  String get operatorCheckTrainingBody => 'Texi service standards';
+
+  @override
+  String get operatorTrustClosing =>
+      'Ride with confidence. Drivers verified by Texi.';
+
+  @override
+  String get profileCompletenessTitle => 'Complete your information';
+
+  @override
+  String profileCompletenessMissing(int count) {
+    return '$count fields left to complete';
+  }
+
+  @override
+  String get profileCompletenessDone => 'Your profile is complete';
+
+  @override
+  String get profileCompleteInfoCta => 'COMPLETE INFORMATION';
+
+  @override
+  String get profileVerifiedUserLabel => 'Verified user';
+
+  @override
+  String get profileBrandTitle => 'TEXIAPP';
 }

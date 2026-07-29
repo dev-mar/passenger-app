@@ -1,14 +1,17 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/ui/app_safe_scrolling.dart';
+import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -17,17 +20,24 @@ import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import 'widgets/passenger_auth_shell.dart';
 
-/// Pantalla para ingresar el código de 4 dígitos y activar al pasajero.
+/// Pantalla para ingresar el código de 6 dígitos y activar al pasajero.
 class VerifyCodeScreen extends ConsumerStatefulWidget {
   const VerifyCodeScreen({
     super.key,
     required this.countryCode,
     required this.phoneNumber,
+    this.verificationChannel,
+    this.challengeId,
+    this.waDeepLink,
   });
 
   final String countryCode;
   final String phoneNumber;
+  final String? verificationChannel;
+  final String? challengeId;
+  final String? waDeepLink;
 
   @override
   ConsumerState<VerifyCodeScreen> createState() => _VerifyCodeScreenState();
@@ -38,11 +48,97 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   final _codeFocusNode = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
+  Timer? _waPollTimer;
+  bool _waWaiting = false;
+
+  bool get _isWhatsAppInbound =>
+      widget.verificationChannel == 'whatsapp_inbound' &&
+      (widget.challengeId?.isNotEmpty ?? false);
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
   @override
+  void initState() {
+    super.initState();
+    if (_isWhatsAppInbound) {
+      _waWaiting = true;
+      _waPollTimer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) => _pollWhatsAppChallenge(),
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openWhatsAppDeepLink();
+      });
+    }
+  }
+
+  Future<void> _openWhatsAppDeepLink() async {
+    final link = widget.waDeepLink?.trim();
+    if (link == null || link.isEmpty) return;
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _pollWhatsAppChallenge() async {
+    if (!_isWhatsAppInbound || !mounted || _isLoading) return;
+    final l10n = AppLocalizations.of(context)!;
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final cc = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    final fullPhone = '$cc$phoneDigits';
+
+    try {
+      final response = await _api.getPublic<Map<String, dynamic>>(
+        path: AppConfig.authChallengeStatusPath,
+        queryParameters: <String, String>{
+          'phone_e164': fullPhone,
+          'challenge_id': widget.challengeId!,
+        },
+      );
+      final body = response.data;
+      if (body is! Map<String, dynamic>) return;
+      if (body['success'] != true) return;
+      final rawData = body['data'];
+      if (rawData is! Map) return;
+      final data = Map<String, dynamic>.from(rawData);
+      if (data['status']?.toString() != 'verified') return;
+
+      _waPollTimer?.cancel();
+      if (!mounted) return;
+
+      final reuseDriver = data['reuse_driver_profile'] == true ||
+          data['reuse_driver_profile'] == 'true';
+      if (reuseDriver) {
+        setState(() {
+          _isLoading = true;
+          _waWaiting = false;
+        });
+        await _completePassengerFromDriver();
+        return;
+      }
+
+      await AuthService.persistLoginPhoneE164(fullPhone);
+      if (!mounted) return;
+      context.goNamed(
+        'profile_setup',
+        queryParameters: {
+          'cc': widget.countryCode,
+          'phone': widget.phoneNumber,
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage ??= l10n.verifyCodeErrorNetwork;
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    _waPollTimer?.cancel();
     _codeController.dispose();
     _codeFocusNode.dispose();
     super.dispose();
@@ -160,7 +256,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     final codeText = _codeController.text.trim();
     final l10n = AppLocalizations.of(context)!;
-    if (codeText.length != 4 || int.tryParse(codeText) == null) {
+    if (codeText.length != 6 || int.tryParse(codeText) == null) {
       setState(() {
         _isLoading = false;
         _errorMessage = l10n.verifyCodeErrorInvalidCodeInput;
@@ -283,163 +379,160 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     final maskedPhone =
         '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+    return PassengerAuthShell(
+      loading: _isLoading,
+      loadingMessage: l10n.commonLoading,
+      leading: Align(
+        alignment: Alignment.centerLeft,
+        child: IconButton(
+          onPressed: _isLoading ? null : () => context.goNamed('login'),
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: AppColors.textPrimary,
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.verifyCodeTitle,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.verifyCodeSubtitle(maskedPhone),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                        ),
-                        const SizedBox(height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Semantics(
-                              label: l10n.verifyCodeFieldLabel,
-                              child: SizedBox(
-                                width: 180,
-                                child: TextField(
-                        controller: _codeController,
-                        focusNode: _codeFocusNode,
-                        maxLength: 4,
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.done,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          letterSpacing: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          counterText: '',
-                          hintText: l10n.verifyCodeMaskHint,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(16)),
-                          ),
-                        ),
-                        onSubmitted: (_) => _verify(),
-                                ),
-                              ),
+      child: PassengerAuthEntrance(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _isWhatsAppInbound ? l10n.verifyCodeWaTitle : l10n.verifyCodeTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isWhatsAppInbound
+                  ? l10n.verifyCodeWaSubtitle(maskedPhone)
+                  : l10n.verifyCodeSubtitle(maskedPhone),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.95),
+                    height: 1.4,
+                    fontSize: 13.5,
+                  ),
+            ),
+            if (_isWhatsAppInbound) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: _isLoading ? null : _openWhatsAppDeepLink,
+                icon: const Icon(Icons.chat_rounded),
+                label: Text(l10n.verifyCodeWaOpenButton),
+              ),
+              if (_waWaiting) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        l10n.verifyCodeWaWaiting,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
                             ),
-                          ],
-                        ),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          PremiumStateView(
-                            icon: Icons.sms_failed_rounded,
-                            title: l10n.loginReviewDataTitle,
-                            message: _errorMessage!,
-                            actionLabel: l10n.homeRetry,
-                            onAction: _verify,
-                          ),
-                        ],
-                        const Spacer(),
-                        SizedBox(
-                          height: 48,
-                          width: double.infinity,
-                          child: TexiScalePress(
-                            child: FilledButton(
-                              onPressed: _isLoading ? null : _verify,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 22,
-                                      width: 22,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : Text(l10n.verifyCodeConfirm),
-                            ),
-                          ),
-                        ),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 320),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeOutCubic,
-                          child: _isLoading
-                              ? Padding(
-                                  key: const ValueKey('verify-loading'),
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface.withValues(alpha: 0.72),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: AppColors.primary.withValues(alpha: 0.4),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            l10n.commonLoading,
-                                            style: const TextStyle(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(
-                                  key: ValueKey('verify-loading-empty'),
-                                ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.verifyCodeRetryHint,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(
-                          height: 16 + AppSafeScrolling.systemNavBottom(context),
-                        ),
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                l10n.verifyCodeWaFallbackHint,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.85),
+                    ),
+              ),
+            ],
+            const SizedBox(height: 22),
+            PassengerAuthGlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Semantics(
+                    label: l10n.verifyCodeFieldLabel,
+                    child: TextField(
+                      controller: _codeController,
+                      focusNode: _codeFocusNode,
+                      maxLength: 6,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        letterSpacing: 8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: passengerAuthFieldDecoration(
+                        label: l10n.verifyCodeFieldLabel,
+                        hint: l10n.verifyCodeMaskHint,
+                      ).copyWith(counterText: ''),
+                      onSubmitted: (_) => _verify(),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: AppSpacing.xxx),
+                    PremiumStateView(
+                      icon: Icons.sms_failed_rounded,
+                      title: l10n.loginReviewDataTitle,
+                      message: _errorMessage!,
+                      actionLabel: l10n.homeRetry,
+                      onAction: _verify,
+                    ),
+                  ],
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    height: 52,
+                    width: double.infinity,
+                    child: TexiScalePress(
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _verify,
+                        style: FilledButton.styleFrom(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadii.lg),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              l10n.verifyCodeConfirm,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15.5,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.arrow_forward_rounded, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.verifyCodeRetryHint,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    height: 1.4,
+                    fontSize: 12.5,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

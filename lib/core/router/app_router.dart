@@ -11,6 +11,9 @@ import '../../features/login/verify_code_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/passenger_profile_preview_screen.dart';
+import '../../features/support/passenger_support_help_screen.dart';
+import '../../features/support/passenger_operator_texi_screen.dart';
+import '../../features/support/passenger_safety_hub_screen.dart';
 import '../../features/trip/trip_request_screen.dart';
 import '../../features/trip/trip_quote_screen.dart';
 import '../../features/trip/trip_confirm_screen.dart';
@@ -29,6 +32,10 @@ class AppRouter {
   static const String profileSetup = 'profile_setup';
   static const String home = 'home';
   static const String passengerProfile = 'passenger_profile';
+  static const String supportHelp = 'support_help';
+  static const String operatorTexi = 'operator_texi';
+  static const String safetyHub = 'safety_hub';
+  static const String safetyVerifiedDrivers = 'safety_verified_drivers';
   static const String tripRequest = 'trip_request';
   static const String tripQuote = 'trip_quote';
   static const String tripConfirm = 'trip_confirm';
@@ -51,11 +58,14 @@ class AppRouter {
     if (_publicPaths.contains(location)) return false;
     if (location == '/home' ||
         location == '/profile' ||
+        location == '/support' ||
+        location == '/safety' ||
+        location == '/operator' ||
         location == '/labs' ||
         location == '/trip/history') {
       return true;
     }
-    return location.startsWith('/trip/');
+    return location.startsWith('/trip/') || location.startsWith('/safety/');
   }
 
   static Future<bool> _hasStoredSession() async {
@@ -129,7 +139,13 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final cc = q['cc'] ?? '+591';
           final phone = q['phone'] ?? '';
-          return VerifyCodeScreen(countryCode: cc, phoneNumber: phone);
+          return VerifyCodeScreen(
+            countryCode: cc,
+            phoneNumber: phone,
+            verificationChannel: q['channel'],
+            challengeId: q['challenge_id'],
+            waDeepLink: q['wa_deep_link'],
+          );
         },
       ),
       GoRoute(
@@ -151,6 +167,26 @@ class AppRouter {
         path: '/profile',
         name: passengerProfile,
         builder: (context, state) => const PassengerProfilePreviewScreen(),
+      ),
+      GoRoute(
+        path: '/support',
+        name: supportHelp,
+        builder: (context, state) => const PassengerSupportHelpScreen(),
+      ),
+      GoRoute(
+        path: '/safety',
+        name: safetyHub,
+        builder: (context, state) => const PassengerSafetyHubScreen(),
+      ),
+      GoRoute(
+        path: '/safety/verified-drivers',
+        name: safetyVerifiedDrivers,
+        builder: (context, state) => const PassengerVerifiedDriversScreen(),
+      ),
+      GoRoute(
+        path: '/operator',
+        name: operatorTexi,
+        builder: (context, state) => const PassengerOperatorTexiScreen(),
       ),
       GoRoute(
         path: '/trip/request',

@@ -68,6 +68,9 @@ class PassengerAppEnvironment {
   static bool get showsInternalToolsByDefault =>
       internalToolsDartDefine || isDev;
 
+  /// Auth multicanal (WA inbound Fase 1): activo en prod; dev mantiene OTP manual.
+  static bool get multichannelAuthEnabled => isProd;
+
   static String get firebaseAndroidApplicationId => isDev
       ? 'com.taxitexi.texi_passenger_app.dev'
       : 'com.taxitexi.texi_passenger_app';

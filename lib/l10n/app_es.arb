@@ -1,9 +1,9 @@
 {
   "@@locale": "es",
-  "appName": "Texi",
+  "appName": "TEXIAPP",
   "splashGettingLocation": "Obteniendo tu ubicación...",
   "loginWelcome": "Bienvenido",
-  "loginSubtitle": "Ingresa tu número para continuar",
+  "loginSubtitle": "Ingresa tu número para iniciar sesión o crear tu cuenta.",
   "loginCode": "Código",
   "loginPhone": "Teléfono",
   "loginCountryCodeHint": "+591",
@@ -17,7 +17,7 @@
   "loginErrorSessionSuperseded": "Tu sesión se abrió en otro dispositivo.",
   "loginErrorTripOperationalLock": "Terminá o cancelá tu viaje actual antes de iniciar sesión en otro dispositivo.",
   "serviceTypeNameStandard": "Estándar",
-  "serviceTypeNameTwoWheels": "Dos ruedas",
+  "serviceTypeNameTwoWheels": "Moto",
   "serviceTypeNameComfort": "Confort",
   "serviceTypeNamePremium": "Premium",
   "loginPhoneRequired": "Ingresa tu número de teléfono",
@@ -53,7 +53,7 @@
   "tripMoveMapSetDestination": "Mueve el mapa y toca el botón para fijar el destino.",
   "tripTapMapDestination": "Toca el mapa o elige una opción abajo",
   "tripSeePrices": "Ver precios",
-  "tripCancelQuoteDraft": "Cancelar y empezar de nuevo",
+  "tripCancelQuoteDraft": "Cancelar la solicitud",
   "@tripCancelQuoteDraft": {
     "description": "Limpia cotización, ruta y destino antes de solicitar conductor"
   },
@@ -69,6 +69,19 @@
   "tripDraftCalculatingRoute": "Calculando la ruta en el mapa…",
   "tripDraftEditStop": "Editar",
   "tripSecureChat": "Chat seguro",
+  "tripShareRide": "Compartir viaje",
+  "@tripShareRide": {
+    "description": "CTA en panel de viaje activo para compartir seguimiento"
+  },
+  "tripShareMessage": "¡Hola! Voy en camino a mi destino con TEXIAPP. Sigue mi viaje en tiempo real aquí: {url}\n\nConductor: {driverName} | Vehículo: ({plate})",
+  "@tripShareMessage": {
+    "placeholders": {
+      "url": { "type": "String" },
+      "driverName": { "type": "String" },
+      "plate": { "type": "String" }
+    }
+  },
+  "tripShareError": "No se pudo generar el enlace de seguimiento. Intenta de nuevo.",
   "passengerTripChatTitle": "Chat del viaje",
   "passengerTripChatSubtitle": "Conversación activa con el conductor en tiempo real.",
   "passengerTripChatOnline": "En línea",
@@ -93,7 +106,7 @@
   "passengerTripChatDriverTemplateConfirmLocation": "Confirma tu ubicación exacta",
   "commonEmptyDash": "—",
   "tripNoCoverageInZone": "No tenemos cobertura del servicio en esta zona por el momento. Prueba en otra ubicación o acércate a una zona de servicio.",
-  "tripNoDriversAvailable": "No hay conductores disponibles en este momento. Intenta de nuevo en unos instantes.",
+  "tripNoDriversAvailable": "No encontramos conductores cerca por ahora. Por favor, reintenta en unos minutos.",
   "tripNext": "Siguiente",
   "quoteTitle": "Elige tu viaje",
   "quoteSubtitle": "Selecciona un tipo de servicio",
@@ -103,20 +116,53 @@
   "confirmFrom": "Desde",
   "confirmTo": "Hasta",
   "confirmRequestRide": "Solicitar viaje",
+  "confirmRequestRideWithService": "Solicitar {serviceName}",
+  "@confirmRequestRideWithService": {
+    "placeholders": {
+      "serviceName": {"type": "String"}
+    }
+  },
   "searchingTitle": "Buscando conductor",
-  "searchingSubtitle": "Estamos encontrando la mejor opción para ti",
-  "tripSearchingPatienceHint": "Aún no hay conductor cerca; seguimos buscando.",
+  "searchingSubtitle": "Conectando con los conductores más cercanos.",
+  "@searchingSubtitle": {
+    "description": "Etapa 1 (0–30s) subtítulo overlay búsqueda"
+  },
+  "tripSearchingStage2Title": "Ampliando la búsqueda…",
+  "@tripSearchingStage2Title": {
+    "description": "Etapa 2 (30–60s) título"
+  },
+  "tripSearchingStage2Body": "Hay algo de tráfico cerca, pero seguimos buscando la mejor opción para ti.",
+  "tripSearchingStage3Title": "¿Deseas mantener la búsqueda?",
+  "@tripSearchingStage3Title": {
+    "description": "Etapa 3 (+60s) título"
+  },
+  "tripSearchingStage3Body": "Hay alta demanda en tu zona, pero tu solicitud sigue activa.",
+  "tripSearchingCancelRequest": "Cancelar solicitud",
+  "@tripSearchingCancelRequest": {
+    "description": "CTA secundario discreto en overlay de matching"
+  },
+  "tripSearchingContinueCta": "Continuar",
+  "@tripSearchingContinueCta": {
+    "description": "CTA primario etapa 3; refresco suave sync/socket"
+  },
+  "tripSearchingEtaHint": "Asignación estimada: 1–3 min",
+  "tripSearchingRotateCheck2km": "Revisando conductores a 2 km a la redonda…",
+  "tripSearchingRotateAvailability": "Consultando disponibilidad…",
+  "tripSearchingRotateOptimizeRoute": "Optimizando tu ruta…",
+  "tripSearchingOfflineBanner": "Sin conexión a internet. Reintentando…",
+  "tripSearchingLocationBanner": "Activa la ubicación para mejorar la búsqueda.",
+  "tripSearchingPatienceHint": "Hay algo de tráfico cerca, pero seguimos buscando la mejor opción para ti.",
   "@tripSearchingPatienceHint": {
-    "description": "Mensaje no bloqueante tras ~60s en overlay de búsqueda de conductor."
+    "description": "Legacy alias etapa 2; preferir tripSearchingStage2Body"
   },
-  "tripSearchingLongWaitTitle": "¿Sigues esperando?",
-  "tripSearchingLongWaitBody": "Encontrar conductor puede tardar un poco más. Puedes seguir esperando o cancelar esta solicitud abajo. «Seguir buscando» comprueba tu conexión con el servicio; el pedido sigue activo.",
+  "tripSearchingLongWaitTitle": "¿Deseas mantener la búsqueda?",
+  "tripSearchingLongWaitBody": "Hay alta demanda en tu zona, pero tu solicitud sigue activa.",
   "@tripSearchingLongWaitBody": {
-    "description": "Tarjeta opcional tras ~90s; no bloquea el mapa."
+    "description": "Legacy alias etapa 3"
   },
-  "tripSearchingKeepWaitingCta": "Seguir buscando",
+  "tripSearchingKeepWaitingCta": "Continuar",
   "@tripSearchingKeepWaitingCta": {
-    "description": "Cierra el aviso largo y dispara refresco suave (sync REST / socket)."
+    "description": "Legacy alias de Continuar"
   },
   "tripConnectionError": "No se pudo conectar para recibir actualizaciones del viaje. Revisa tu conexión.",
   "tripRbacForbidden": "Tu cuenta no tiene permiso para esta acción en viajes. Si sigue ocurriendo, cierra sesión y vuelve a entrar, o contacta a soporte.",
@@ -194,6 +240,15 @@
   "tripConfirmOrigin": "Confirmar origen",
   "tripConfirmDestination": "Confirmar destino",
   "tripLogout": "Cerrar sesión",
+  "menuLeaveAppTitle": "¿Seguro que deseas salir?",
+  "menuLeaveAppMessage": "Tu verificación seguirá activa cuando vuelvas.",
+  "menuLeaveAppConfirm": "Salir de la app",
+  "menuLeaveAppLogout": "Cerrar sesión",
+  "menuLogoutConfirmTitle": "¿Cerrar sesión?",
+  "menuLogoutConfirmMessage": "Tendrás que verificar tu usuario de nuevo al volver.",
+  "menuLogoutConfirmAction": "Cerrar sesión",
+  "menuLogoutConfirmBack": "Volver",
+  "profileSettingsTitle": "Ajustes",
   "profileLogoutSubtitle": "Salir de la cuenta actual",
   "tripHistoryMenu": "Historial",
   "tripHistoryTitle": "Historial de viajes",
@@ -252,15 +307,37 @@
   "@tripRecoveringStateTitle": {
     "description": "Indicador mientras se sincroniza el estado del viaje tras reabrir la app"
   },
+  "tripRecoveringStuckTitle": "No pudimos recuperar tu viaje",
+  "@tripRecoveringStuckTitle": {
+    "description": "Título cuando la rehidratación tarda demasiado"
+  },
+  "tripRecoveringStuckBody": "Tu viaje sigue activo. Revisa tu conexión e intenta de nuevo. No uses Cancelar: eso solo aplica mientras se busca conductor.",
+  "tripRecoveringCheckNetwork": "Conexión a internet",
+  "tripRecoveringCheckLocation": "Permiso y GPS de ubicación",
+  "tripRecoveringRetryCta": "Reintentar reconexión",
+  "tripCancelBlockedActiveBody": "Tu viaje ya está en curso. No se puede cancelar desde aquí.",
+  "@tripCancelBlockedActiveBody": {
+    "description": "SnackBar si se intenta cancelar con viaje ya aceptado"
+  },
   "verifyCodeTitle": "Verifica tu número",
-  "verifyCodeSubtitle": "Te enviamos un código de 4 dígitos a {phone}. Ingrésalo para continuar.",
+  "verifyCodeSubtitle": "Te enviamos un código de 6 dígitos a {phone}. Ingrésalo para continuar.",
   "@verifyCodeSubtitle": {
     "placeholders": {
       "phone": {"type": "String"}
     }
   },
-  "verifyCodeFieldLabel": "Código de verificación de cuatro dígitos",
-  "verifyCodeMaskHint": "••••",
+  "verifyCodeFieldLabel": "Código de verificación de seis dígitos",
+  "verifyCodeMaskHint": "••••••",
+  "verifyCodeWaTitle": "Verificá con WhatsApp",
+  "verifyCodeWaSubtitle": "Enviá el mensaje prellenado desde WhatsApp para confirmar {phone}.",
+  "@verifyCodeWaSubtitle": {
+    "placeholders": {
+      "phone": { "type": "String" }
+    }
+  },
+  "verifyCodeWaOpenButton": "Abrir WhatsApp",
+  "verifyCodeWaWaiting": "Esperando tu mensaje en WhatsApp…",
+  "verifyCodeWaFallbackHint": "¿Problemas? Podés ingresar el código manualmente abajo.",
   "verifyCodeConfirm": "Confirmar código",
   "verifyCodeRetryHint": "Si no recibiste el código, revisa el número y vuelve a intentar en unos minutos.",
   "verifyCodeErrorActivateAccount": "No se pudo activar la cuenta de pasajero.",
@@ -268,7 +345,7 @@
   "verifyCodeErrorTokenMissing": "No se recibió token.",
   "verifyCodeErrorNetwork": "No se pudo conectar. Revisa tu internet e intenta de nuevo.",
   "verifyCodeErrorConnection": "Sin conexión con el servidor. Verifica tu red.",
-  "verifyCodeErrorInvalidCodeInput": "Ingresa el código de 4 dígitos que recibiste.",
+  "verifyCodeErrorInvalidCodeInput": "Ingresa el código de 6 dígitos que recibiste.",
   "verifyCodeErrorValidateCode": "No se pudo validar el código.",
   "verifyCodeErrorUnexpected": "Error inesperado al validar el código.",
   "profileSetupErrorCompleteRegistration": "No se pudo completar el registro.",
@@ -364,7 +441,7 @@
   "profileMockBiometricsValue": "Activa",
   "profileMockLastAccessValue": "Hoy, 09:14",
   "profileActionEditInfo": "Editar información",
-  "profileActionSupport": "Soporte y ayuda",
+  "profileActionSupport": "Seguridad",
   "profileQuickActions": "Acciones rápidas",
   "profileEditDisplayNameLabel": "Nombre visible",
   "profileEditNameInvalid": "Ingresa un nombre válido",
@@ -472,8 +549,11 @@
       "graceDays": { "type": "int" }
     }
   },
-  "passengerLegalLoginHint": "Al continuar, aceptas las condiciones del servicio.",
-  "passengerLegalRegistrationHint": "Antes de continuar, revisa la documentación legal aplicable a tu cuenta.",
+  "passengerLegalLoginHint": "Al continuar, aceptas nuestra Política de privacidad y Términos de servicio.",
+  "passengerLegalRegistrationHint": "Antes de continuar, revisa la Política de privacidad y los Términos de servicio.",
+  "passengerLegalLoginPrefix": "Al continuar, aceptas nuestra ",
+  "passengerLegalRegistrationPrefix": "Antes de continuar, revisa nuestra ",
+  "passengerLegalLoginConjunction": " y ",
   "passengerLoginAccountDeletionPendingTitle": "Eliminación programada",
   "passengerLoginAccountDeletionPendingBody": "Esta cuenta tiene una eliminación programada para el {effectiveDate}. No puedes usar la app hasta recuperarla.",
   "@passengerLoginAccountDeletionPendingBody": {
@@ -498,6 +578,9 @@
   "passengerLegalDeleteAccountCancelAction": "Cancelar eliminación",
   "passengerLegalDeleteAccountCancelling": "Cancelando eliminación…",
   "passengerLegalDeleteAccountCancelSuccess": "Eliminación cancelada. Tu cuenta sigue activa.",
+  "passengerAccountDeletionErrorSessionExpired": "Sesión expirada. Inicia sesión e intenta de nuevo.",
+  "passengerAccountDeletionErrorScheduleFailed": "No se pudo programar la eliminación.",
+  "passengerAccountDeletionErrorCancelFailed": "No se pudo cancelar la eliminación.",
   "passengerPlayCameraDisclosureTitle": "Acceso a la cámara",
   "passengerPlayCameraDisclosureBody": "Texi usa la cámara para tomar tu foto de perfil o adjuntar imágenes en soporte. Las fotos se envían de forma segura a nuestros servidores.",
   "passengerPlayGalleryDisclosureTitle": "Acceso a fotos",
@@ -507,5 +590,58 @@
   "passengerPlayLocationDisclosureTitle": "Ubicación para solicitar viajes",
   "passengerPlayLocationDisclosureBody": "Texi usa tu ubicación para mostrarte en el mapa, encontrar conductores cercanos y facilitar la recogida en el punto de origen.",
   "passengerPlayDisclosureContinue": "Continuar",
-  "passengerPlayNotificationDisclosureRequired": "Activa las notificaciones para recibir avisos de tu viaje."
+  "passengerPlayNotificationDisclosureRequired": "Activa las notificaciones para recibir avisos de tu viaje.",
+  "menuSupportHelp": "Seguridad",
+  "menuOperatorTexi": "Operador",
+  "menuProfile": "Perfil",
+  "menuTripHistory": "Mis viajes",
+  "menuOpenTooltip": "Menú",
+  "safetyEmergencyCta": "Emergencia",
+  "safetyLiveTrackingTitle": "Seguimiento en tiempo real",
+  "safetyLiveTrackingUnavailable": "Esta función solo está disponible cuando tu viaje ya está en curso.",
+  "supportHelpSubtitle": "Emergencia y asistencia 24/7",
+  "supportEmergencyTitle": "Emergencia",
+  "supportEmergencyBody": "Si estás en peligro o necesitas ayuda inmediata, llama al {number}.",
+  "@supportEmergencyBody": {
+    "placeholders": {
+      "number": { "type": "String" }
+    }
+  },
+  "supportCallNowCta": "LLAMAR AHORA",
+  "supportMoreOptionsTitle": "Más opciones de ayuda",
+  "supportWhatsAppTitle": "WhatsApp",
+  "supportTicketsSubtitle": "Crea o revisa tickets de soporte",
+  "supportCompanyCallTitle": "Llamar a Texi",
+  "supportCallFailed": "No se pudo abrir la llamada. Revisa los permisos del teléfono.",
+  "supportTrustFooter": "Tu seguridad es prioridad. Operadores y protocolos listos para asistirte.",
+  "operatorTexiSubtitle": "Contacta con nuestros Operadores y conoce más de nuestros servicios.",
+  "operatorSecurityCtaTitle": "Seguridad",
+  "operatorSecurityCtaSubtitle": "Emergencia 110 y asistencia",
+  "operatorSecurityCareMessage": "Tu seguridad nos importa. Estamos aquí para cuidarte en cada viaje.",
+  "operatorCallTitle": "Llamar a operadora",
+  "operatorVerifiedDriversCtaTitle": "Conductores verificados",
+  "operatorVerifiedDriversCtaSubtitle": "Cómo TEXI valida a cada conductor",
+  "operatorVerifiedDriversTitle": "Conductores verificados",
+  "operatorCheckIdentityTitle": "Identidad validada",
+  "operatorCheckIdentityBody": "Documento y foto revisados",
+  "operatorCheckBackgroundTitle": "Antecedentes",
+  "operatorCheckBackgroundBody": "Filtros de seguridad aplicados",
+  "operatorCheckInspectionTitle": "Inspección del vehículo",
+  "operatorCheckInspectionBody": "Estado y documentación al día",
+  "operatorCheckInsuranceTitle": "Seguro vigente",
+  "operatorCheckInsuranceBody": "Cobertura activa para el servicio",
+  "operatorCheckTrainingTitle": "Capacitación",
+  "operatorCheckTrainingBody": "Estándares de servicio Texi",
+  "operatorTrustClosing": "Viaja con confianza. Conductores verificados por Texi.",
+  "profileCompletenessTitle": "Completa tu información",
+  "profileCompletenessMissing": "Faltan {count} datos por completar",
+  "@profileCompletenessMissing": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "profileCompletenessDone": "Tu perfil está completo",
+  "profileCompleteInfoCta": "COMPLETAR INFORMACIÓN",
+  "profileVerifiedUserLabel": "Usuario verificado",
+  "profileBrandTitle": "TEXIAPP"
 }
