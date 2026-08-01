@@ -78,6 +78,13 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
       return;
     }
     final controller = ref.read(passengerRealtimeProvider.notifier);
+    // Rehidrata canal WS antes de enviar/recibir (evita SOCKET fantasma).
+    unawaited(
+      controller.ensureSocketConnected(
+        tripId: tripId,
+        quote: ref.read(tripRequestProvider).quote,
+      ),
+    );
     final textController = TextEditingController();
 
     _o._tripChatSheetDisplayed = true;
@@ -122,8 +129,9 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
                   ];
                   String formatTime(DateTime? dt) {
                     if (dt == null) return sheetL10n.passengerTripChatNow;
-                    final hh = dt.hour.toString().padLeft(2, '0');
-                    final mm = dt.minute.toString().padLeft(2, '0');
+                    final local = dt.toLocal();
+                    final hh = local.hour.toString().padLeft(2, '0');
+                    final mm = local.minute.toString().padLeft(2, '0');
                     return '$hh:$mm';
                   }
 
@@ -422,9 +430,11 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
                                         onPressed: () {
                                           final t = textController.text.trim();
                                           if (t.isEmpty) return;
-                                          controller.sendTripChatText(
-                                            tripId: tripId,
-                                            text: t,
+                                          unawaited(
+                                            controller.sendTripChatText(
+                                              tripId: tripId,
+                                              text: t,
+                                            ),
                                           );
                                           textController.clear();
                                         },
@@ -583,30 +593,7 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
         (rtState.status == 'cancelled' || rtState.status == 'expired')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _o._routeRequestToken++;
-        ref.read(passengerRealtimeProvider.notifier).disconnect();
-        clearTripRecoverySnackTracking(ref);
-        ref.read(tripRequestProvider.notifier).reset();
-        unawaited(() async {
-          await TripSessionStorage.clearActiveTripId();
-        }());
-        _o._passengerEnRouteRouteDebounce?.cancel();
-        setState(() {
-          _o._destination = null;
-          _o._destinationDisplayLabel = null;
-          _o._routePoints = null;
-          _o._passengerEnRouteToDestPoints = null;
-          _o._loadingRoute = false;
-          _o._originConfirmed = false;
-          _o._pickingOrigin = false;
-          _o._pickingDestination = false;
-          _o._error = null;
-          if (_o._origin != null) {
-            _o._pickingOrigin = true;
-            _o._activeStop = ActiveStop.none;
-          }
-        });
-        unawaited(_o._recenterMapToDeviceGpsAfterTripEnd());
+        unawaited(_o._resetTripSessionToDraftHome(tripIdForGuard: tripId));
       });
     }
   }

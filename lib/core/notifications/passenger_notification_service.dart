@@ -20,6 +20,7 @@ class PassengerNotificationService {
   static const int _quietHoursStart = 22; // 22:00
   static const int _quietHoursEnd = 7; // 07:00
   static const String _chatVibrationLevel = 'medium'; // low | medium | high
+  static final Set<String> _arrivedNotifiedTripIds = <String>{};
 
   AppLocalizations _l10nForCurrentLocale() => PassengerLocaleHolder.l10n();
 
@@ -90,7 +91,7 @@ class PassengerNotificationService {
         message.data['tripId']?.toString() ??
         message.data['trip_id']?.toString();
     await inst._showRaw(
-      title: title?.isNotEmpty == true ? title! : 'Texi',
+      title: title?.isNotEmpty == true ? title! : 'TEXIAPP',
       body: body ?? '',
       payload: tripId,
     );
@@ -104,7 +105,7 @@ class PassengerNotificationService {
         ? n!.title!.trim()
         : (message.data['title']?.toString().trim().isNotEmpty == true
               ? message.data['title']!.trim()
-              : 'Texi');
+              : 'TEXIAPP');
     final body = n?.body?.trim().isNotEmpty == true
         ? n!.body!.trim()
         : (message.data['body']?.toString() ?? '');
@@ -144,6 +145,9 @@ class PassengerNotificationService {
   }) async {
     await initialize();
     if (isAppInForeground && !notifyInForeground) return;
+    // Dedupe: un solo aviso de llegada por tripId (socket + REST resume).
+    if (_arrivedNotifiedTripIds.contains(tripId)) return;
+    _arrivedNotifiedTripIds.add(tripId);
     final l10n = _l10nForCurrentLocale();
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -169,6 +173,11 @@ class PassengerNotificationService {
       details,
       payload: tripId,
     );
+  }
+
+  /// Llamar al cerrar viaje (completed/cancelled) para no arrastrar dedupe.
+  static void clearArrivedNotificationDedupe(String tripId) {
+    _arrivedNotifiedTripIds.remove(tripId);
   }
 
   Future<void> showTripChatMessageIfBackground({

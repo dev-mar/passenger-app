@@ -165,6 +165,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
       ref.read(passengerRealtimeProvider.notifier).connect(
             tripId: result.tripId,
             quote: quote,
+            assumeAwaitingDriver: true,
           );
       if (!mounted) return;
       context.goNamed('trip_request');

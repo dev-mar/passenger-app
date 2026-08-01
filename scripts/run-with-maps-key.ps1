@@ -11,6 +11,8 @@
 
   [bool]$PassengerSelfieCropEnabled = $true,
 
+  [switch]$MultichannelAuth,
+
   [string]$Flavor,
 
   [string]$Target = "lib/main.dart"
@@ -146,6 +148,78 @@ function Resolve-MapsKey {
   return ""
 }
 
+function Resolve-MultichannelAuth {
+  param(
+    [bool]$FromSwitch,
+    [string]$AppEnvironment
+  )
+
+  if ($FromSwitch) {
+    return $true
+  }
+
+  $raw = $env:TEXI_PASSENGER_MULTICHANNEL_AUTH
+  if (-not [string]::IsNullOrWhiteSpace($raw)) {
+    $normalized = $raw.Trim().ToLower()
+    if ($normalized -in @("1", "true", "yes", "on")) {
+      return $true
+    }
+  }
+
+  $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
+  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "TEXI_PASSENGER_MULTICHANNEL_AUTH"
+  if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
+    $normalized = $fromLocalFile.Trim().ToLower()
+    if ($normalized -in @("1", "true", "yes", "on")) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Resolve-TurnstileSiteKey {
+  param(
+    [string]$AppEnvironment,
+    [bool]$RequireForMultichannel
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($env:TURNSTILE_SITE_KEY)) {
+    return $env:TURNSTILE_SITE_KEY.Trim()
+  }
+
+  $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
+  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "TURNSTILE_SITE_KEY"
+  if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
+    return $fromLocalFile.Trim()
+  }
+
+  if ($RequireForMultichannel) {
+    Write-Host ""
+    Write-Host "Falta TURNSTILE_SITE_KEY (requerida para step-up / multicanal)." -ForegroundColor Red
+    Write-Host "Agrega TURNSTILE_SITE_KEY en .env.local (dev) o .env.prod (prod)." -ForegroundColor Yellow
+    exit 1
+  }
+
+  return ""
+}
+
+function Resolve-GoogleOAuthServerClientId {
+  param([string]$AppEnvironment)
+
+  if (-not [string]::IsNullOrWhiteSpace($env:GOOGLE_OAUTH_SERVER_CLIENT_ID)) {
+    return $env:GOOGLE_OAUTH_SERVER_CLIENT_ID.Trim()
+  }
+
+  $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
+  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "GOOGLE_OAUTH_SERVER_CLIENT_ID"
+  if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
+    return $fromLocalFile.Trim()
+  }
+
+  return ""
+}
+
 function Resolve-AppEnvironment {
   param([string]$FromParam)
 
@@ -233,6 +307,10 @@ function Resolve-BackendBaseUrl {
 }
 
 $resolvedEnvironment = Resolve-AppEnvironment -FromParam $Environment
+$resolvedMultichannelAuth = Resolve-MultichannelAuth -FromSwitch:$MultichannelAuth.IsPresent -AppEnvironment $resolvedEnvironment
+$requireTurnstile = ($resolvedMultichannelAuth -or $resolvedEnvironment -eq "prod")
+$resolvedTurnstileSiteKey = Resolve-TurnstileSiteKey -AppEnvironment $resolvedEnvironment -RequireForMultichannel:$requireTurnstile
+$resolvedGoogleOAuthClientId = Resolve-GoogleOAuthServerClientId -AppEnvironment $resolvedEnvironment
 Clear-InvalidProdBackendSessionEnv
 $resolvedKey = Resolve-MapsKey -FromParam $MapsApiKey -AppEnvironment $resolvedEnvironment
 $resolvedBackendInfo = Resolve-BackendBaseUrl -FromParam $BackendBaseUrl -AppEnvironment $resolvedEnvironment
@@ -286,8 +364,18 @@ $flutterArgs += @("--dart-define", "TEXI_BACKEND_BASE_URL=$resolvedBackend")
 $flutterArgs += @("--dart-define", "GOOGLE_MAPS_API_KEY=$resolvedKey")
 $flutterArgs += @("--dart-define", "PASSENGER_SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
 $flutterArgs += @("--dart-define", "SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
+$flutterArgs += @("--dart-define", "TEXI_PASSENGER_MULTICHANNEL_AUTH=$($resolvedMultichannelAuth.ToString().ToLower())")
+if (-not [string]::IsNullOrWhiteSpace($resolvedTurnstileSiteKey)) {
+  $flutterArgs += @("--dart-define", "TURNSTILE_SITE_KEY=$resolvedTurnstileSiteKey")
+}
+if (-not [string]::IsNullOrWhiteSpace($resolvedGoogleOAuthClientId)) {
+  $flutterArgs += @("--dart-define", "GOOGLE_OAUTH_SERVER_CLIENT_ID=$resolvedGoogleOAuthClientId")
+}
 
-Write-Host "Entorno: $resolvedEnvironment | Flavor: $resolvedFlavor | Backend: $resolvedBackend" -ForegroundColor DarkGray
+$multichannelLabel = if ($resolvedMultichannelAuth) { "on (WA inbound QA)" } else { "off" }
+$turnstileLabel = if ([string]::IsNullOrWhiteSpace($resolvedTurnstileSiteKey)) { "off" } else { "on" }
+$googleLabel = if ([string]::IsNullOrWhiteSpace($resolvedGoogleOAuthClientId)) { "off" } else { "on" }
+Write-Host "Entorno: $resolvedEnvironment | Flavor: $resolvedFlavor | Backend: $resolvedBackend | Multicanal: $multichannelLabel | Turnstile: $turnstileLabel | Google: $googleLabel" -ForegroundColor DarkGray
 
 if ($Mode -eq "run") {
   Write-Host "Ejecutando: flutter run (dart-defines cargados)" -ForegroundColor Cyan
@@ -297,6 +385,10 @@ if ($Mode -eq "run") {
 
 $buildCmd = if ($Mode -eq "appbundle") { "appbundle" } else { "apk" }
 Write-Host "Ejecutando: flutter build $buildCmd (dart-defines cargados)" -ForegroundColor Cyan
+$syncGoogleServices = Join-Path $PSScriptRoot "sync-google-services-android.ps1"
+if (Test-Path $syncGoogleServices) {
+  & $syncGoogleServices -App passenger
+}
 $prepareScript = Join-Path $PSScriptRoot "prepare-android-build.ps1"
 if (Test-Path $prepareScript) {
   # Igual que conductor: detener daemons antes del build (evita locks corruptos).

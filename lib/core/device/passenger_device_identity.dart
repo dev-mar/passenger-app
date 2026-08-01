@@ -1,21 +1,20 @@
 import 'dart:math';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../storage/passenger_secure_storage.dart';
 
 /// UUID estable por instalación para gestión de sesión (no vinculación permanente).
 class PassengerDeviceIdentity {
   PassengerDeviceIdentity._();
 
-  static const _storage = FlutterSecureStorage();
   static const _storageKey = 'passenger_stable_device_id';
 
   static Future<String> stableDeviceId() async {
-    final existing = await _storage.read(key: _storageKey);
+    final existing = await PassengerSecureStorage.read(_storageKey);
     if (existing != null && existing.trim().isNotEmpty) {
       return existing.trim();
     }
     final created = _generateUuidV4();
-    await _storage.write(key: _storageKey, value: created);
+    await PassengerSecureStorage.write(_storageKey, created);
     return created;
   }
 

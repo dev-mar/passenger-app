@@ -1,5 +1,7 @@
 ﻿part of 'trip_request_screen.dart';
 
+enum _PassengerLeaveSheetHeader { close, back }
+
 mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   @override
   _TripRequestScreenState get _d => this as _TripRequestScreenState;
@@ -91,6 +93,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _d._mapConfirmIdleTimer?.cancel();
     _d._draftSearchFocus.unfocus();
     setState(() {
+      _d._draftSearchCollapseToken++;
       _d._draftEditTarget = PassengerDraftEditTarget.origin;
       _d._pickingOrigin = true;
       _d._pickingDestination = false;
@@ -114,6 +117,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _d._mapConfirmIdleTimer?.cancel();
     _d._draftSearchFocus.unfocus();
     setState(() {
+      _d._draftSearchCollapseToken++;
       _d._draftEditTarget = PassengerDraftEditTarget.destination;
       _d._pickingDestination = true;
       _d._pickingOrigin = false;
@@ -533,6 +537,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _d._draftSearchController.clear();
     if (!mounted) return;
     setState(() {
+      _d._draftSearchCollapseToken++;
       _d._draftSuggestions = const <PlaceSuggestion>[];
       _d._loadingDraftSuggestions = false;
     });
@@ -543,7 +548,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     if (mounted) setState(() {});
     _d._draftSearchDebounce?.cancel();
     final trimmed = query.trim();
-    if (trimmed.length < 2) {
+    if (trimmed.length < PlacesAutocompleteService.minQueryLength) {
       if (!mounted) return;
       setState(() {
         _d._draftSuggestions = const <PlaceSuggestion>[];
@@ -551,7 +556,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       });
       return;
     }
-    _d._draftSearchDebounce = Timer(const Duration(milliseconds: 320), () async {
+    _d._draftSearchDebounce = Timer(const Duration(milliseconds: 350), () async {
       if (!mounted) return;
       setState(() => _d._loadingDraftSuggestions = true);
       final center = _draftSearchPhase == PassengerDraftSearchRole.origin
@@ -645,8 +650,19 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
       return;
     }
+    final msg = result.message ?? l10n.commonError;
+    if (msg == l10n.tripNoDriversAvailable) {
+      PassengerTripToast.show(
+        context,
+        message: msg,
+        icon: Icons.directions_car_outlined,
+        accent: AppColors.primary,
+      );
+      setState(() => _d._error = null);
+      return;
+    }
     setState(() {
-      _d._error = result.message ?? l10n.commonError;
+      _d._error = msg;
     });
   }
 
@@ -857,131 +873,268 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  Future<void> _showProfileMenu(BuildContext context) async {
+  Future<void> _showProfileMenu(
+    BuildContext context, {
+    Offset? anchor,
+  }) async {
+    final size = MediaQuery.sizeOf(context);
+    final resolvedAnchor = anchor ??
+        Offset(size.width - 40, size.height - 120);
+    final action = await showPassengerFanMenu(
+      context: context,
+      anchorGlobal: resolvedAnchor,
+    );
+    if (!context.mounted || action == null) return;
+
+    switch (action) {
+      case PassengerFanMenuAction.safety:
+        context.pushNamed(AppRouter.safetyHub);
+      case PassengerFanMenuAction.operator:
+        context.pushNamed(AppRouter.operatorTexi);
+      case PassengerFanMenuAction.profile:
+        context.pushNamed(AppRouter.passengerProfile);
+      case PassengerFanMenuAction.history:
+        context.pushNamed(AppRouter.tripHistory);
+      case PassengerFanMenuAction.logout:
+        await _confirmLeaveOrLogout(context);
+    }
+  }
+
+  /// Prioriza salir de la app (sesión permanece vía refresh token).
+  /// Cerrar sesión abre una segunda confirmación; Volver regresa al paso anterior.
+  Future<void> _confirmLeaveOrLogout(BuildContext context) async {
+    while (context.mounted) {
+      final choice = await _showLeaveAppSheet(context);
+      if (!context.mounted || choice == null) return;
+      if (choice == 'exit') {
+        await SystemNavigator.pop();
+        if (Platform.isAndroid || Platform.isIOS) {
+          exit(0);
+        }
+        return;
+      }
+      if (choice != 'logout') return;
+
+      final logoutChoice = await _showLogoutConfirmSheet(context);
+      if (!context.mounted) return;
+      if (logoutChoice == 'logout') {
+        await AuthService.logout();
+        if (!context.mounted) return;
+        context.goNamed(AppRouter.login);
+        return;
+      }
+      if (logoutChoice == 'back') {
+        continue;
+      }
+      return;
+    }
+  }
+
+  Future<String?> _showLeaveAppSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    await showModalBottomSheet<void>(
+    return _showPassengerLeaveSheet(
+      context: context,
+      icon: Icons.waving_hand_rounded,
+      title: l10n.menuLeaveAppTitle,
+      message: l10n.menuLeaveAppMessage,
+      primaryLabel: l10n.menuLeaveAppConfirm,
+      primaryValue: 'exit',
+      // X cierra el sheet (antes: cancelar abajo).
+      headerControl: _PassengerLeaveSheetHeader.close,
+      secondaryLabel: l10n.menuLeaveAppLogout,
+      secondaryValue: 'logout',
+    );
+  }
+
+  Future<String?> _showLogoutConfirmSheet(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return _showPassengerLeaveSheet(
+      context: context,
+      icon: Icons.logout_rounded,
+      title: l10n.menuLogoutConfirmTitle,
+      message: l10n.menuLogoutConfirmMessage,
+      primaryLabel: l10n.menuLogoutConfirmAction,
+      primaryValue: 'logout',
+      primaryDanger: true,
+      // Flecha atrás reemplaza el TextButton "Volver".
+      headerControl: _PassengerLeaveSheetHeader.back,
+      headerBackValue: 'back',
+    );
+  }
+
+  Future<String?> _showPassengerLeaveSheet({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String message,
+    required String primaryLabel,
+    required String primaryValue,
+    required _PassengerLeaveSheetHeader headerControl,
+    String? secondaryLabel,
+    String? secondaryValue,
+    String headerBackValue = 'back',
+    bool primaryDanger = false,
+  }) {
+    assert(
+      (secondaryLabel == null) == (secondaryValue == null),
+      'secondaryLabel y secondaryValue van juntos',
+    );
+    return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (ctx) {
         return SafeArea(
-          top: false,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) => Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, (1 - value) * 16),
-                child: child,
-              ),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Container(
-              margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.surface.withValues(alpha: 0.98),
-                    const Color(0xFF2A2822),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(24),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(22),
                 border: Border.all(
                   color: AppColors.border.withValues(alpha: 0.5),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 14),
-                  Center(
-                    child: Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: TexiScalePress(
-                      minScale: 0.98,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          context.pushNamed(AppRouter.passengerProfile);
-                        },
-                        borderRadius: BorderRadius.circular(999),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: AppColors.primary.withValues(
-                                  alpha: 0.18,
-                                ),
-                                child: const Icon(
-                                  Icons.person_rounded,
-                                  color: AppColors.primary,
-                                  size: 26,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                l10n.profileScreenTitle,
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                    ),
-                              ),
-                            ],
+                  SizedBox(
+                    height: 40,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.border.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Column(
-                      children: [
-                        PassengerProfileMenuActionTile(
-                          icon: Icons.receipt_long_outlined,
-                          title: l10n.tripHistoryTitle,
-                          subtitle: l10n.tripHistoryMenu,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            context.pushNamed(AppRouter.tripHistory);
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        PassengerProfileMenuActionTile(
-                          icon: Icons.logout_rounded,
-                          title: l10n.tripLogout,
-                          subtitle: l10n.profileLogoutSubtitle,
-                          danger: true,
-                          onTap: () async {
-                            Navigator.of(ctx).pop();
-                            await AuthService.logout();
-                            if (!context.mounted) return;
-                            context.goNamed(AppRouter.login);
-                          },
-                        ),
+                        if (headerControl ==
+                            _PassengerLeaveSheetHeader.back)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              tooltip: MaterialLocalizations.of(ctx)
+                                  .backButtonTooltip,
+                              onPressed: () =>
+                                  Navigator.pop(ctx, headerBackValue),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        if (headerControl ==
+                            _PassengerLeaveSheetHeader.close)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton(
+                              tooltip: MaterialLocalizations.of(ctx)
+                                  .closeButtonTooltip,
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: const Icon(Icons.close_rounded),
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: (primaryDanger
+                                    ? const Color(0xFFE05140)
+                                    : AppColors.primary)
+                                .withValues(alpha: 0.14),
+                          ),
+                          child: Icon(
+                            icon,
+                            color: primaryDanger
+                                ? const Color(0xFFE05140)
+                                : AppColors.primary,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.4,
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.95),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          onPressed: () =>
+                              Navigator.pop(ctx, primaryValue),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: primaryDanger
+                                ? const Color(0xFFE05140)
+                                : AppColors.primary,
+                            foregroundColor: AppColors.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            primaryLabel,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (secondaryLabel != null &&
+                            secondaryValue != null) ...[
+                          const SizedBox(height: 6),
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(ctx, secondaryValue),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary
+                                  .withValues(alpha: 0.72),
+                            ),
+                            child: Text(
+                              secondaryLabel,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

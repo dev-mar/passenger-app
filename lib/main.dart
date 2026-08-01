@@ -25,10 +25,6 @@ import 'gen_l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase y el handler de background DEBEN quedar registrados antes de `runApp`
-  // (Firebase porque cualquier consumidor de FCM lo asume listo; el background handler
-  // porque corre en un isolate aparte y se ata por puntero estable).
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(
     passengerFirebaseMessagingBackgroundHandler,
   );
@@ -54,14 +50,25 @@ Future<void> main() async {
   };
   AuthService.onSessionSuperseded = AuthService.onSessionExpired;
 
-  // Notification channel + permisos FCM se inicializan tras el primer frame
-  // (ver `_TexiAppState.initState`) para no demorar la primera renderización.
-
   runApp(
     const ProviderScope(
       child: TexiApp(),
     ),
   );
+
+  // Firebase no debe bloquear el primer frame (release prod en algunos devices).
+  unawaited(_initializeFirebaseCore());
+}
+
+Future<void> _initializeFirebaseCore() async {
+  try {
+    if (Firebase.apps.isNotEmpty) return;
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    ).timeout(const Duration(seconds: 12));
+  } catch (e) {
+    debugPrint('[main] Firebase init: $e');
+  }
 }
 
 class TexiApp extends ConsumerStatefulWidget {
@@ -100,6 +107,7 @@ class _TexiAppState extends ConsumerState<TexiApp> with WidgetsBindingObserver {
   /// App cerrada: el usuario abre desde el toque en la notificación (p. ej. conductor llegó).
   Future<void> _consumeInitialPassengerFcmMessage() async {
     try {
+      if (Firebase.apps.isEmpty) return;
       final msg = await FirebaseMessaging.instance.getInitialMessage();
       if (msg == null) return;
       await handlePassengerFcmNotificationOpen(msg);

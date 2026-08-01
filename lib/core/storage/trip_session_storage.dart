@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'passenger_secure_storage.dart';
 
 import '../../data/models/quote_response.dart';
 
@@ -13,25 +13,68 @@ import '../../data/models/quote_response.dart';
 class TripSessionStorage {
   TripSessionStorage._();
 
-  static const _storage = FlutterSecureStorage();
-
   static const String _keyActiveTripId = 'active_trip_id';
   static const String _keyRatingDoneByTripId = 'rating_done_by_trip_id';
 
   static const String _keyDriverCacheByTripId = 'driver_cache_by_trip_id';
   static const String _keyActiveTripUiSnapshot = 'active_trip_ui_snapshot';
+  static const String _keyLastKnownStatusByTripId =
+      'last_known_status_by_trip_id';
 
   static Future<void> saveActiveTripId(String tripId) async {
-    await _storage.write(key: _keyActiveTripId, value: tripId);
+    await PassengerSecureStorage.write(_keyActiveTripId, tripId);
   }
 
   static Future<String?> getActiveTripId() async {
-    return _storage.read(key: _keyActiveTripId);
+    try {
+      return await PassengerSecureStorage.read(
+        _keyActiveTripId,
+        timeout: const Duration(seconds: 3),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   static Future<void> clearActiveTripId() async {
-    await _storage.delete(key: _keyActiveTripId);
-    await _storage.delete(key: _keyActiveTripUiSnapshot);
+    await PassengerSecureStorage.delete(_keyActiveTripId);
+    await PassengerSecureStorage.delete(_keyActiveTripUiSnapshot);
+  }
+
+  /// Último status conocido (accepted/arrived/…) para rehidratar UI sin flash de búsqueda.
+  static Future<void> saveLastKnownStatus({
+    required String tripId,
+    required String status,
+  }) async {
+    final raw = await PassengerSecureStorage.read(_keyLastKnownStatusByTripId);
+    Map<String, dynamic> map = {};
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          map = decoded.map((key, value) => MapEntry(key.toString(), value));
+        }
+      } catch (_) {}
+    }
+    map[tripId] = status;
+    await PassengerSecureStorage.write(
+      _keyLastKnownStatusByTripId,
+      jsonEncode(map),
+    );
+  }
+
+  static Future<String?> getLastKnownStatus(String tripId) async {
+    final raw = await PassengerSecureStorage.read(_keyLastKnownStatusByTripId);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return null;
+      final value = decoded[tripId]?.toString().trim();
+      if (value == null || value.isEmpty) return null;
+      return value;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Contexto de UI del viaje activo (O/D, cotización) para rehidratar al reabrir.
@@ -57,11 +100,11 @@ class TripSessionStorage {
       'quote': quote.toJson(),
       'selectedServiceTypeId': selectedOption.serviceTypeId,
     };
-    await _storage.write(key: _keyActiveTripUiSnapshot, value: jsonEncode(map));
+    await PassengerSecureStorage.write(_keyActiveTripUiSnapshot, jsonEncode(map));
   }
 
   static Future<Map<String, dynamic>?> getActiveTripUiSnapshot() async {
-    final raw = await _storage.read(key: _keyActiveTripUiSnapshot);
+    final raw = await PassengerSecureStorage.read(_keyActiveTripUiSnapshot);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
@@ -76,7 +119,7 @@ class TripSessionStorage {
   }
 
   static Future<bool> isRatingDone(String tripId) async {
-    final raw = await _storage.read(key: _keyRatingDoneByTripId);
+    final raw = await PassengerSecureStorage.read(_keyRatingDoneByTripId);
     if (raw == null || raw.isEmpty) return false;
     try {
       final decoded = jsonDecode(raw);
@@ -92,7 +135,7 @@ class TripSessionStorage {
   }
 
   static Future<void> setRatingDone(String tripId, bool done) async {
-    final raw = await _storage.read(key: _keyRatingDoneByTripId);
+    final raw = await PassengerSecureStorage.read(_keyRatingDoneByTripId);
     Map<String, dynamic> map = {};
     if (raw != null && raw.isNotEmpty) {
       try {
@@ -103,17 +146,17 @@ class TripSessionStorage {
       } catch (_) {}
     }
     map[tripId] = done;
-    await _storage.write(key: _keyRatingDoneByTripId, value: jsonEncode(map));
+    await PassengerSecureStorage.write(_keyRatingDoneByTripId, jsonEncode(map));
   }
 
   static Future<void> clearRatingForTrip(String tripId) async {
-    final raw = await _storage.read(key: _keyRatingDoneByTripId);
+    final raw = await PassengerSecureStorage.read(_keyRatingDoneByTripId);
     if (raw == null || raw.isEmpty) return;
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return;
       decoded.remove(tripId);
-      await _storage.write(key: _keyRatingDoneByTripId, value: jsonEncode(decoded));
+      await PassengerSecureStorage.write(_keyRatingDoneByTripId, jsonEncode(decoded));
     } catch (_) {}
   }
 
@@ -129,7 +172,7 @@ class TripSessionStorage {
     int? driverRatingsCount,
     String? currencyCode,
   }) async {
-    final raw = await _storage.read(key: _keyDriverCacheByTripId);
+    final raw = await PassengerSecureStorage.read(_keyDriverCacheByTripId);
     Map<String, dynamic> map = {};
     if (raw != null && raw.isNotEmpty) {
       try {
@@ -151,11 +194,11 @@ class TripSessionStorage {
       'driverRatingsCount': driverRatingsCount?.toString(),
       'currencyCode': currencyCode,
     };
-    await _storage.write(key: _keyDriverCacheByTripId, value: jsonEncode(map));
+    await PassengerSecureStorage.write(_keyDriverCacheByTripId, jsonEncode(map));
   }
 
   static Future<Map<String, String?>?> getCachedDriverInfo(String tripId) async {
-    final raw = await _storage.read(key: _keyDriverCacheByTripId);
+    final raw = await PassengerSecureStorage.read(_keyDriverCacheByTripId);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);

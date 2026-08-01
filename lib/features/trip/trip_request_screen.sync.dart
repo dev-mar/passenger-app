@@ -58,31 +58,14 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     }
     _d._lastPassengerEnRouteCameraFitAt = now;
 
-    final minLat = from.latitude < to.latitude ? from.latitude : to.latitude;
-    final maxLat = from.latitude > to.latitude ? from.latitude : to.latitude;
-    final minLng = from.longitude < to.longitude
-        ? from.longitude
-        : to.longitude;
-    final maxLng = from.longitude > to.longitude
-        ? from.longitude
-        : to.longitude;
-    final latSpan = (maxLat - minLat).abs();
-    final lngSpan = (maxLng - minLng).abs();
-    if (latSpan < 0.00035 && lngSpan < 0.00035) {
-      unawaited(
-        c.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(target: from, zoom: 16.2),
-          ),
+    // Prioridad visual: pin del vehículo al centro (la ruta se mantiene dibujada).
+    unawaited(
+      c.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: from, zoom: 15.6),
         ),
-      );
-      return;
-    }
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
+      ),
     );
-    unawaited(c.animateCamera(CameraUpdate.newLatLngBounds(bounds, 88)));
   }
 
   bool get _lowBatteryModeActive =>
@@ -132,7 +115,8 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     final now = DateTime.now();
     final rt = ref.read(passengerRealtimeProvider);
     final trackingDriver = passengerTripIsTrackingDriver(rt.status);
-    // Si la URL firmada de la foto est├í por expirar o ya expir├│, refrescamos
+    final awaitingMatch = passengerTripIsAwaitingDriverMatch(rt.status);
+    // Si la URL firmada de la foto está por expirar o ya expiró, refrescamos
     // el GET de inmediato para evitar avatar roto al cargar de red.
     final expiresAt = rt.driverPhotoExpiresAt;
     final photoExpiryBuffer = const Duration(seconds: 45);
@@ -140,20 +124,30 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
         trackingDriver &&
         expiresAt != null &&
         !now.isBefore(expiresAt.subtract(photoExpiryBuffer));
-    // En seguimiento al conductor: polling m├ís frecuente (coordenadas v├¡a GET + socket).
-    final minGap = trackingDriver
-        ? const Duration(seconds: 10)
-        : const Duration(seconds: 55);
+    // Matching: poll agresivo (WS sin replay; si se pierde trip:accepted no esperar 60s).
+    // Tracking: poll medio. Idle/otros: holgado.
+    final Duration minGap;
+    if (awaitingMatch || trackingDriver) {
+      // Matching + tracking: poll corto (WS sin replay / foto REST lenta).
+      minGap = const Duration(seconds: 3);
+    } else {
+      minGap = const Duration(seconds: 55);
+    }
     if (!mustRefreshPhotoNow &&
         now.difference(_d._lastTripStatusSyncAt) < minGap) {
       return;
     }
+    // No bloquear si un GET lento (firma foto) sigue en vuelo.
+    if (_d._tripStatusSyncInFlight) return;
     _d._tripStatusSyncInFlight = true;
     _d._lastTripStatusSyncAt = now;
     try {
       await ref
           .read(passengerRealtimeProvider.notifier)
-          .syncTripStatusFromApi(tripId: tripId);
+          .syncTripStatusFromApi(tripId: tripId, force: true)
+          .timeout(const Duration(seconds: 9));
+    } catch (_) {
+      // Timeout/red: el próximo tick reintenta; no congelar UI.
     } finally {
       _d._tripStatusSyncInFlight = false;
     }

@@ -138,12 +138,18 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     });
 
     final isSearchingDriver =
-        effectiveTripId != null &&
-        (passengerTripIsAwaitingDriverMatch(rtState.status) ||
-            (rtState.connecting &&
-                passengerTripIsAwaitingDriverMatch(rtState.status)));
+        _d._searchingHoldUi ||
+        (effectiveTripId != null &&
+            passengerTripIsAwaitingDriverMatch(rtState.status));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncSearchingNearbyPolling(isSearchingDriver);
+    });
     final isRecoveringActiveTrip =
-        effectiveTripId != null && rtState.status == null;
+        effectiveTripId != null &&
+        rtState.status == null &&
+        !isSearchingDriver &&
+        rtState.errorCode == null;
     final isTripActive =
         effectiveTripId != null &&
         (passengerTripIsTrackingDriver(rtState.status) ||
@@ -170,12 +176,12 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     if (shouldPeriodicSync) {
       final resolvedTripId = effectiveTripId;
       final trackingDriver = passengerTripIsTrackingDriver(rtState.status);
-      _startTripStatusPeriodicSync(
-        resolvedTripId,
-        interval: trackingDriver
-            ? const Duration(seconds: 15)
-            : const Duration(seconds: 60),
-      );
+      final awaitingMatch = passengerTripIsAwaitingDriverMatch(rtState.status);
+      // Matching/tracking: 4s (aceptación, arrived, started, completed).
+      final Duration syncInterval = (awaitingMatch || trackingDriver)
+          ? const Duration(seconds: 4)
+          : const Duration(seconds: 60);
+      _startTripStatusPeriodicSync(resolvedTripId, interval: syncInterval);
     } else {
       _stopTripStatusPeriodicSync();
     }
@@ -267,30 +273,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
         (rtState.status == 'cancelled' || rtState.status == 'expired')) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _d._routeRequestToken++;
-        ref.read(passengerRealtimeProvider.notifier).disconnect();
-        clearTripRecoverySnackTracking(ref);
-        ref.read(tripRequestProvider.notifier).reset();
-        unawaited(() async {
-          await TripSessionStorage.clearActiveTripId();
-        }());
-        _d._passengerEnRouteRouteDebounce?.cancel();
-        setState(() {
-          _d._destination = null;
-          _d._destinationDisplayLabel = null;
-          _d._routePoints = null;
-          _d._passengerEnRouteToDestPoints = null;
-          _d._loadingRoute = false;
-          _d._originConfirmed = false;
-          _d._pickingOrigin = false;
-          _d._pickingDestination = false;
-          _d._error = null;
-          if (_d._origin != null) {
-            _d._pickingOrigin = true;
-            _d._activeStop = ActiveStop.none;
-          }
-        });
-        unawaited(_recenterMapToDeviceGpsAfterTripEnd());
+        unawaited(_resetTripSessionToDraftHome(tripIdForGuard: effectiveTripId));
       });
     }
 
@@ -347,6 +330,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 buildingsEnabled: false,
                 indoorViewEnabled: false,
                 trafficEnabled: false,
+                // Deja el pin/radar visibles sobre el card de matching.
+                padding: EdgeInsets.only(
+                  bottom: isSearchingDriver ? 168 : 0,
+                ),
                 style: isTripActive ? _activeTripMapStyleFor(brightness) : null,
                 myLocationEnabled: _d._mapMyLocationDotEnabled,
                 // Recentrado unificado en barra superior (mismo c├¡rculo que idioma/perfil); evita duplicar el FAB nativo.
@@ -402,23 +389,63 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           ? const Offset(0.5, 0.5)
                           : const Offset(0.5, 1.0),
                     ),
+                  // Matching: solo autos reales a ≤2 km (API nearby). Sin inventar pines.
+                  if (isSearchingDriver)
+                    ..._d._searchingNearbyDrivers.map(
+                      (d) => Marker(
+                        markerId: MarkerId('nearby_${d.driverId}'),
+                        position: LatLng(d.lat, d.lng),
+                        icon: _d._driverOnTripIcon ?? _d._driverFallbackIcon,
+                        flat: true,
+                        anchor: _d._driverOnTripIcon != null
+                            ? const Offset(0.5, 0.5)
+                            : const Offset(0.5, 1.0),
+                        zIndexInt: 2,
+                      ),
+                    ),
                 },
-                circles: showDriverPulse
-                    ? {
-                        Circle(
-                          circleId: const CircleId('driver_pulse'),
-                          center: animatedDriver,
-                          radius: 18 + (10 * _d._driverPulseController.value),
-                          fillColor: AppColors.primary.withValues(
-                            alpha: 0.11 - (_d._driverPulseController.value * 0.05),
-                          ),
-                          strokeColor: AppColors.primary.withValues(
-                            alpha: 0.34 - (_d._driverPulseController.value * 0.14),
-                          ),
-                          strokeWidth: 2,
-                        ),
-                      }
-                    : const {},
+                circles: {
+                  if (showDriverPulse)
+                    Circle(
+                      circleId: const CircleId('driver_pulse'),
+                      center: animatedDriver,
+                      radius: 18 + (10 * _d._driverPulseController.value),
+                      fillColor: AppColors.primary.withValues(
+                        alpha: 0.11 - (_d._driverPulseController.value * 0.05),
+                      ),
+                      strokeColor: AppColors.primary.withValues(
+                        alpha: 0.34 - (_d._driverPulseController.value * 0.14),
+                      ),
+                      strokeWidth: 2,
+                    ),
+                  // Radar expansivo en origen durante matching (con o sin nearby).
+                  if (isSearchingDriver && _d._origin != null) ...[
+                    Circle(
+                      circleId: const CircleId('search_radar_outer'),
+                      center: _d._origin!,
+                      radius: 180 +
+                          (420 * _d._searchingMapRadarController.value),
+                      fillColor: const Color(0xFF4FC3F7).withValues(
+                        alpha: 0.07 *
+                            (1 - _d._searchingMapRadarController.value),
+                      ),
+                      strokeColor: const Color(0xFFFFC107).withValues(
+                        alpha: 0.35 *
+                            (1 - _d._searchingMapRadarController.value * 0.6),
+                      ),
+                      strokeWidth: 2,
+                    ),
+                    Circle(
+                      circleId: const CircleId('search_radar_core'),
+                      center: _d._origin!,
+                      radius: 55,
+                      fillColor: const Color(0xFFFFC107).withValues(alpha: 0.12),
+                      strokeColor:
+                          const Color(0xFFFFC107).withValues(alpha: 0.45),
+                      strokeWidth: 1,
+                    ),
+                  ],
+                },
                 polylines:
                     _d._destination != null && mapRoutePolylinePoints.length >= 2
                     ? {
@@ -444,24 +471,69 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     : {},
               ),
             ),
-            // Barra superior: en borrador, cabecera a ancho casi completo y men├║/recentrar en esquina.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    10,
-                    6,
-                    10,
-                    6 +
-                        (draftSearchPriorityMode
-                            ? 0
-                            : MediaQuery.of(context).viewInsets.bottom * 0.2),
+            // Aguja debajo del chrome de borrador/sugerencias para no tapar la lista.
+            if (isMapConfirmMode)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: SizedBox(
+                      key: _d._needleRenderKey,
+                      width: 56,
+                      height: 72,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          Transform.translate(
+                            offset: const Offset(0, 3),
+                            child: Container(
+                              width: 16,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.22),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          Transform.translate(
+                            offset: const Offset(0, -27),
+                            child: Icon(
+                              confirmingOrigin
+                                  ? Icons.place_rounded
+                                  : Icons.location_on_rounded,
+                              size: 52,
+                              color: confirmingOrigin
+                                  ? const Color(0xFFF9AB00)
+                                  : const Color(0xFF111111),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: IgnorePointer(
+                ),
+              ),
+            // Barra superior: draft header, o chat/seguridad en viaje activo.
+            // Menú y GPS del mapa se retiraron; viven en draft chrome / otras pantallas.
+            if (!isSearchingDriver)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      10,
+                      6,
+                      10,
+                      6 +
+                          (draftSearchPriorityMode
+                              ? 0
+                              : MediaQuery.of(context).viewInsets.bottom * 0.2),
+                    ),
+                    child: IgnorePointer(
                     ignoring: draftChromeHiddenWhileDragging,
                     child: AnimatedSlide(
                       duration: AppMotion.draftSearchChromeReveal,
@@ -520,6 +592,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                                 highlightDestination:
                                     isMapConfirmMode && !confirmingOrigin,
                                 searchPriorityMode: draftSearchPriorityMode,
+                                searchRole: _draftSearchPhase,
+                                searchCollapseToken:
+                                    _d._draftSearchCollapseToken,
                                 onEditOrigin: _d._originConfirmed
                                     ? _onDraftEditOriginPressed
                                     : null,
@@ -541,39 +616,75 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                                 saveDestinationFavoritesTooltip:
                                     l10n.tripDraftSaveDestinationShortcut,
                               )
-                            : Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Spacer(),
-                                  Column(
-                                    mainAxisSize: MainAxisSize.min,
+                            : (isTripActive && !isMapConfirmMode)
+                                ? Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.center,
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      TripCircleButton(
-                                        icon: Icons.menu_rounded,
-                                        onPressed: () =>
-                                            _showProfileMenu(context),
-                                      ),
-                                      if (!hasConnectionError) ...[
-                                        const SizedBox(height: AppSpacing.sm),
-                                        Tooltip(
-                                          message: l10n.tripMapRecenterShort,
-                                          child: TripCircleButton(
-                                            icon: Icons.my_location_rounded,
-                                            isLoading: _d._recenterInProgress,
-                                            onPressed: () =>
-                                                _recenterMapForPassenger(
-                                                  driverLat: driverLat,
-                                                  driverLng: driverLng,
+                                      const Spacer(),
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (passengerTripChatPhaseActive(
+                                            rtState.status,
+                                          ))
+                                            AnimatedBuilder(
+                                              animation: _d
+                                                  ._chatAttentionController,
+                                              builder: (context, _) {
+                                                return _MapChatActionButton(
+                                                  unread:
+                                                      _d._tripChatUnreadCount,
+                                                  pulse: _d
+                                                      ._chatAttentionController
+                                                      .value,
+                                                  tooltip:
+                                                      l10n.passengerTripChatTitle,
+                                                  onPressed: () => unawaited(
+                                                    _openTripChatSheet(
+                                                      tripId: effectiveTripId,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          if (passengerTripChatPhaseActive(
+                                                rtState.status,
+                                              ) &&
+                                              passengerTripIsEnRouteToDestination(
+                                                rtState.status,
+                                              ))
+                                            const SizedBox(
+                                              height: AppSpacing.sm,
+                                            ),
+                                          if (passengerTripIsEnRouteToDestination(
+                                            rtState.status,
+                                          ))
+                                            Tooltip(
+                                              message: l10n.menuSupportHelp,
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  customBorder:
+                                                      const CircleBorder(),
+                                                  onTap: () => context
+                                                      .pushNamed(
+                                                    AppRouter.safetyHub,
+                                                  ),
+                                                  child: Image.asset(
+                                                    AppAssets.safetyButton,
+                                                    width: 52,
+                                                    height: 52,
+                                                    fit: BoxFit.contain,
+                                                  ),
                                                 ),
-                                          ),
-                                        ),
-                                      ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ],
-                                  ),
-                                ],
-                              ),
+                                  )
+                                : const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -626,169 +737,48 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   ),
                 ),
               ),
-            if (isTripActive &&
-                passengerTripChatPhaseActive(rtState.status) &&
-                _d._tripChatUnreadCount > 0 &&
-                !isMapConfirmMode)
-              Positioned(
-                // Debajo de la columna de men├║/GPS.
-                top: 112,
-                right: 14,
-                child: SafeArea(
-                  bottom: false,
-                  child: Transform.scale(
-                    scale: 1 + (_d._chatAttentionController.value * 0.06),
-                    child: Material(
-                      color: AppColors.surface,
-                      elevation: 4,
-                      shadowColor: AppColors.primary.withValues(
-                        alpha: 0.22 + (_d._chatAttentionController.value * 0.2),
-                      ),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () =>
-                            unawaited(_openTripChatSheet(tripId: effectiveTripId)),
-                        child: SizedBox(
-                          width: 52,
-                          height: 52,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.center,
-                            children: [
-                              const Icon(
-                                Icons.mark_chat_unread_rounded,
-                                color: AppColors.primary,
-                                size: 24,
-                              ),
-                              Positioned(
-                                right: 4,
-                                top: 5,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.error,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // Aguja: el centro del mapa (_d._mapCenter) debe coincidir con la *punta* del pin,
-            // igual que los Marker por defecto (ancla inferior). Subimos el ├¡cono para alinear.
-            if (isMapConfirmMode)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: SizedBox(
-                      key: _d._needleRenderKey,
-                      width: 56,
-                      height: 72,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.center,
-                        children: [
-                          // Sombra en el suelo, en el punto del mapa (centro de la c├ímara).
-                          Transform.translate(
-                            offset: const Offset(0, 3),
-                            child: Container(
-                              width: 16,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.22),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          // El Icon se dibuja centrado en su caja; la punta visual va ~medio tama├▒o por debajo ÔåÆ subimos.
-                          Transform.translate(
-                            // size 52 ÔåÆ centro del widget ~26 px sobre la punta; alineamos punta con el target del mapa.
-                            offset: const Offset(0, -27),
-                            child: Icon(
-                              confirmingOrigin
-                                  ? Icons.place_rounded
-                                  : Icons.location_on_rounded,
-                              size: 52,
-                              color: confirmingOrigin
-                                  ? const Color(0xFFF9AB00)
-                                  : const Color(0xFF111111),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             // Overlay "Buscando conductor" en el mismo mapa (sin cambiar de pantalla)
             if (isSearchingDriver)
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: AppSafeScrolling.systemNavBottom(context),
+                bottom: 0,
                 child: TripSearchingDriverOverlay(
+                  key: ValueKey(
+                    'searching_${_d._searchingOverlayGeneration}_'
+                    '${_d._searchingHoldUi ? 'hold' : 'live'}',
+                  ),
+                  l10n: l10n,
+                  initialStage: _d._searchingHoldUi ? 3 : 1,
                   onCancel: () => unawaited(_cancelSearchingTrip()),
-                  searchingTitle: l10n.searchingTitle,
-                  searchingSubtitle: l10n.searchingSubtitle,
-                  searchingPatienceHint: l10n.tripSearchingPatienceHint,
-                  searchingLongWaitTitle: l10n.tripSearchingLongWaitTitle,
-                  searchingLongWaitBody: l10n.tripSearchingLongWaitBody,
-                  keepSearchingLabel: l10n.tripSearchingKeepWaitingCta,
-                  onKeepSearching: _onSearchingKeepWaitingSoftRetry,
-                  cancelLabel: l10n.commonCancel,
+                  onContinue: () =>
+                      unawaited(_restartSearchingTripAfterTimeout()),
+                  onStage3Reached: _d._searchingHoldUi
+                      ? null
+                      : () => unawaited(_onSearchingStage3Reached()),
                 ),
               ),
             if (isRecoveringActiveTrip && !isSearchingDriver)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16 + AppSafeScrolling.systemNavBottom(context),
-                child: Material(
-                  color: AppColors.surface,
-                  elevation: 6,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            l10n.tripRecoveringStateTitle,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              PassengerTripRecoveryPanel(
+                onRetry: () {
+                  final quote = tripState.quote;
+                  unawaited(() async {
+                    await ref
+                        .read(passengerRealtimeProvider.notifier)
+                        .syncTripStatusFromApi(
+                          tripId: effectiveTripId,
+                          force: true,
+                        );
+                    if (!mounted) return;
+                    final rt = ref.read(passengerRealtimeProvider);
+                    if (!rt.connected && !rt.connecting) {
+                      ref.read(passengerRealtimeProvider.notifier).connect(
+                            tripId: effectiveTripId,
+                            quote: quote,
+                          );
+                    }
+                  }());
+                },
               ),
             // Panel retr├íctil de estado del viaje + datos del conductor y del viaje
             if (isTripActive && !isSearchingDriver && rtState.status != null)
@@ -883,9 +873,13 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           finishedCloseLabel: rtState.status == 'completed'
                               ? l10n.tripFinishedBackToHome
                               : null,
+                          onShareTrip: null,
+                          shareTripLabel: null,
                           onOpenChat:
                               passengerTripChatPhaseActive(rtState.status)
-                              ? () => _openTripChatSheet(tripId: effectiveTripId)
+                              ? () => unawaited(
+                                    _openTripChatSheet(tripId: effectiveTripId),
+                                  )
                               : null,
                           chatLabel: l10n.tripSecureChat,
                           unreadChatCount: _d._tripChatUnreadCount,
@@ -912,9 +906,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                         .read(passengerRealtimeProvider.notifier)
                         .connect(tripId: effectiveTripId, quote: quote);
                   },
-                  onCancel: () => unawaited(_cancelSearchingTrip()),
+                  onCancel: isSearchingDriver
+                      ? () => unawaited(_cancelSearchingTrip())
+                      : null,
                   retryLabel: l10n.homeRetry,
-                  cancelLabel: l10n.commonCancel,
+                  cancelLabel: isSearchingDriver ? l10n.commonCancel : null,
                 ),
               ),
             // Borrador: barra inferior (confirmar en mapa / cotizaci├│n / solicitar). GPS y guardados van en la cabecera.
@@ -975,8 +971,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                             !isMapConfirmMode,
                         onCancelDraft: _cancelQuoteDraft,
                         cancelDraftLabel: l10n.tripCancelQuoteDraft,
-                        onMenuPressed: () => _showProfileMenu(context),
-                        menuTooltip: l10n.homeProfileQuickAccess,
+                        onMenuPressed: (anchor) =>
+                            _showProfileMenu(context, anchor: anchor),
+                        menuTooltip: l10n.menuOpenTooltip,
                       ),
                     ),
                   ),
@@ -989,6 +986,111 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Chat en mapa: icono moderno tipo “mensaje” con badge de no leídos.
+class _MapChatActionButton extends StatelessWidget {
+  const _MapChatActionButton({
+    required this.unread,
+    required this.pulse,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final int unread;
+  final double pulse;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasUnread = unread > 0;
+    final scale = hasUnread ? 1 + (pulse * 0.06) : 1.0;
+
+    return Tooltip(
+      message: tooltip,
+      child: Transform.scale(
+        scale: scale,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: Ink(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.surface,
+                border: Border.all(
+                  color: AppColors.primary.withValues(
+                    alpha: hasUnread ? 0.45 : 0.18,
+                  ),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(
+                      alpha: 0.16 + (hasUnread ? pulse * 0.18 : 0),
+                    ),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Icon(
+                    hasUnread
+                        ? Icons.mark_unread_chat_alt_rounded
+                        : Icons.forum_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: unread > 9
+                            ? const EdgeInsets.symmetric(horizontal: 4)
+                            : EdgeInsets.zero,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          unread > 9 ? '9+' : '$unread',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -4,9 +4,38 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Marcador de navegación moderno (rombo/flecha alargada), orientable con `rotation` del mapa.
+/// Asset del marcador del vehículo en mapa (pasajero).
+///
+/// El PNG debe mirar **hacia arriba** (frente del auto = bearing 0).
+const String kPassengerDriverOnTripMapIconAsset =
+    'assets/icons/map_driver_car.png';
+
+/// Tamaño lógico del auto en mapa.
+///
+/// Los pines origen/destino se dibujan a 56 px; el auto top-down llena más
+/// el lienzo, así que 48 mantiene paridad visual sin saturar el mapa.
+const double kPassengerDriverOnTripMapIconLogicalSize = 48;
+
+/// Marcador del conductor en viaje: PNG personalizado, orientable con `rotation`.
 Future<BitmapDescriptor> buildPassengerDriverOnTripMapIcon({
-  double logicalSize = 56,
+  double logicalSize = kPassengerDriverOnTripMapIconLogicalSize,
+}) async {
+  try {
+    return await BitmapDescriptor.asset(
+      const ImageConfiguration(),
+      kPassengerDriverOnTripMapIconAsset,
+      width: logicalSize,
+      height: logicalSize,
+      bitmapScaling: MapBitmapScaling.auto,
+    );
+  } catch (_) {
+    return _buildPassengerDriverOnTripMapIconFallback(logicalSize: logicalSize);
+  }
+}
+
+/// Fallback vectorial (rombo) si el asset no carga.
+Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
+  double logicalSize = kPassengerDriverOnTripMapIconLogicalSize,
   Color fill = const Color(0xFF1565C0),
   Color stroke = const Color(0xFFFFFFFF),
 }) async {
@@ -81,7 +110,11 @@ Future<BitmapDescriptor> buildPassengerDriverOnTripMapIcon({
   if (bd == null) {
     return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
   }
-  return BitmapDescriptor.bytes(bd.buffer.asUint8List());
+  return BitmapDescriptor.bytes(
+    bd.buffer.asUint8List(),
+    width: logicalSize,
+    height: logicalSize,
+  );
 }
 
 Future<BitmapDescriptor> buildPassengerWaypointMapPinIcon({
@@ -161,5 +194,9 @@ Future<BitmapDescriptor> buildPassengerWaypointMapPinIcon({
   if (bd == null) {
     return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
   }
-  return BitmapDescriptor.bytes(bd.buffer.asUint8List());
+  return BitmapDescriptor.bytes(
+    bd.buffer.asUint8List(),
+    width: logicalSize,
+    height: logicalSize,
+  );
 }

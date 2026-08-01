@@ -211,6 +211,42 @@ class TripsApi {
     await _dio.post('/passengers/trips/$tripId/cancel');
   }
 
+  /// POST /passengers/trips/:tripId/share-link — reutiliza token activo.
+  Future<PassengerTripShareLink> createOrReuseTripShareLink({
+    required String tripId,
+  }) async {
+    try {
+      final response = await _dio.post('/passengers/trips/$tripId/share-link');
+      final body = response.data is Map
+          ? Map<String, dynamic>.from(response.data as Map)
+          : <String, dynamic>{};
+      final data = body['data'] is Map
+          ? Map<String, dynamic>.from(body['data'] as Map)
+          : body;
+      final shareUrl = data['shareUrl']?.toString() ?? '';
+      if (shareUrl.isEmpty) {
+        throw StateError('SHARE_URL_EMPTY');
+      }
+      return PassengerTripShareLink(
+        token: data['token']?.toString() ?? '',
+        shareUrl: shareUrl,
+        expiresAt: data['expiresAt']?.toString(),
+      );
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final code = data is Map
+          ? (data['code'] ?? data['error']?.toString())
+          : null;
+      final message = data is Map
+          ? (data['message'] ?? data['error']?['message'])
+          : null;
+      throw StateError(
+        'SHARE_LINK_FAILED status=${e.response?.statusCode} '
+        'code=${code ?? e.type} msg=${message ?? e.message}',
+      );
+    }
+  }
+
   Future<void> submitPassengerTripRating({
     required String tripId,
     required int stars,
@@ -573,6 +609,19 @@ class CreateTripResponse {
       currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
     );
   }
+}
+
+/// Enlace público de seguimiento (compartir viaje).
+class PassengerTripShareLink {
+  const PassengerTripShareLink({
+    required this.token,
+    required this.shareUrl,
+    this.expiresAt,
+  });
+
+  final String token;
+  final String shareUrl;
+  final String? expiresAt;
 }
 
 /// Respuesta mínima de `GET /passengers/trips/:tripId`.

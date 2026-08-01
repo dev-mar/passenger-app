@@ -6,6 +6,9 @@ abstract final class AppMotion {
 
   static const Duration sheetEntrance = Duration(milliseconds: 600);
 
+  /// Entrada suave de pantallas de auth (login / OTP / perfil).
+  static const Duration screenEntrance = Duration(milliseconds: 700);
+
   /// Colapso / expansión del buscador borrador (cabecera viaje).
   static const Duration draftSearchChromeReveal = Duration(milliseconds: 280);
 

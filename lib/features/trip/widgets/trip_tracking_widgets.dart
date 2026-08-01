@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -9,296 +7,23 @@ import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../driver_avatar_premium.dart';
 
-class TripSearchingDriverOverlay extends StatefulWidget {
-  const TripSearchingDriverOverlay({
-    super.key,
-    required this.onCancel,
-    required this.searchingTitle,
-    required this.searchingSubtitle,
-    required this.cancelLabel,
-    this.searchingPatienceHint,
-    this.searchingLongWaitTitle,
-    this.searchingLongWaitBody,
-    this.keepSearchingLabel,
-    this.onKeepSearching,
-  });
-
-  /// Tras este tiempo se muestra un texto de calma adicional (no modal).
-  static const Duration patienceAt = Duration(seconds: 60);
-
-  /// Tras este tiempo se muestra tarjeta informativa con CTA «Seguir buscando».
-  static const Duration longWaitAt = Duration(seconds: 90);
-
-  final VoidCallback onCancel;
-  final String searchingTitle;
-  final String searchingSubtitle;
-  final String cancelLabel;
-
-  /// ~60 s: mensaje secundario bajo el subtítulo.
-  final String? searchingPatienceHint;
-
-  /// ~90 s: título de la tarjeta de espera prolongada.
-  final String? searchingLongWaitTitle;
-
-  /// ~90 s: cuerpo de la tarjeta (cancelar sigue disponible abajo).
-  final String? searchingLongWaitBody;
-
-  final String? keepSearchingLabel;
-
-  /// Refresco suave: sync REST y reconexión socket si hace falta (padre).
-  final VoidCallback? onKeepSearching;
-
-  @override
-  State<TripSearchingDriverOverlay> createState() =>
-      _TripSearchingDriverOverlayState();
-}
-
-class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulseController;
-  Timer? _patienceTimer;
-  Timer? _longWaitTimer;
-  bool _showPatience = false;
-  bool _showLongWait = false;
-  bool _longWaitDismissed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: AppDurations.searchingPulse,
-    )..repeat();
-    if (widget.searchingPatienceHint != null &&
-        widget.searchingPatienceHint!.trim().isNotEmpty) {
-      _patienceTimer = Timer(TripSearchingDriverOverlay.patienceAt, () {
-        if (!mounted) return;
-        setState(() => _showPatience = true);
-      });
-    }
-    if (widget.searchingLongWaitBody != null &&
-        widget.searchingLongWaitBody!.trim().isNotEmpty) {
-      _longWaitTimer = Timer(TripSearchingDriverOverlay.longWaitAt, () {
-        if (!mounted) return;
-        setState(() => _showLongWait = true);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _patienceTimer?.cancel();
-    _longWaitTimer?.cancel();
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(
-          AppSpacing.sheetH,
-          AppSpacing.md,
-          AppSpacing.sheetH,
-          AppSpacing.sheetV,
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.section,
-          vertical: AppSpacing.sheetBodyV,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadii.sheetTop),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            width: AppBorders.thin,
-          ),
-          boxShadow: AppShadows.overlayFloating,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: AppSizes.searchingRadarArea,
-              child: Center(
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ...List.generate(3, (i) {
-                          final t = (_pulseController.value + i * 0.33) % 1.0;
-                          final scale = 0.45 + t * 0.55;
-                          final opacity = (1 - t) * 0.4;
-                          return Container(
-                            width: AppSizes.searchingBase * scale,
-                            height: AppSizes.searchingBase * scale,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primary.withValues(
-                                  alpha: opacity,
-                                ),
-                                width: AppBorders.radarRing,
-                              ),
-                            ),
-                          );
-                        }),
-                        Container(
-                          width: AppSizes.searchingInnerCircle,
-                          height: AppSizes.searchingInnerCircle,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.22),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                                blurRadius: AppSpacing.xl,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.directions_car_rounded,
-                            size: AppIconSizes.hero,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sheetV),
-            Text(
-              widget.searchingTitle,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.2,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              widget.searchingSubtitle,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            if (_showPatience &&
-                widget.searchingPatienceHint != null &&
-                widget.searchingPatienceHint!.trim().isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                widget.searchingPatienceHint!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.35,
-                      fontWeight: FontWeight.w600,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (_showLongWait &&
-                !_longWaitDismissed &&
-                widget.searchingLongWaitBody != null &&
-                widget.searchingLongWaitBody!.trim().isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (widget.searchingLongWaitTitle != null &&
-                        widget.searchingLongWaitTitle!.trim().isNotEmpty)
-                      Text(
-                        widget.searchingLongWaitTitle!,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.2,
-                            ),
-                      ),
-                    if (widget.searchingLongWaitTitle != null &&
-                        widget.searchingLongWaitTitle!.trim().isNotEmpty)
-                      const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      widget.searchingLongWaitBody!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                            height: 1.35,
-                          ),
-                    ),
-                    if (widget.keepSearchingLabel != null &&
-                        widget.keepSearchingLabel!.trim().isNotEmpty)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TexiScalePress(
-                          minScale: 0.98,
-                          child: TextButton(
-                            onPressed: () {
-                              setState(() => _longWaitDismissed = true);
-                              widget.onKeepSearching?.call();
-                            },
-                            child: Text(widget.keepSearchingLabel!),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.section),
-            SizedBox(
-              width: double.infinity,
-              child: TexiScalePress(
-                minScale: 0.98,
-                child: TextButton(
-                  onPressed: widget.onCancel,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.xxl,
-                    ),
-                  ),
-                  child: Text(widget.cancelLabel),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+export 'passenger_trip_searching_overlay.dart' show TripSearchingDriverOverlay;
 
 class TripConnectionErrorOverlay extends StatelessWidget {
   const TripConnectionErrorOverlay({
     super.key,
     required this.message,
     required this.onRetry,
-    required this.onCancel,
+    this.onCancel,
     required this.retryLabel,
-    required this.cancelLabel,
+    this.cancelLabel,
   });
 
   final String message;
   final VoidCallback onRetry;
-  final VoidCallback onCancel;
+  final VoidCallback? onCancel;
   final String retryLabel;
-  final String cancelLabel;
+  final String? cancelLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -340,15 +65,19 @@ class TripConnectionErrorOverlay extends StatelessWidget {
             const SizedBox(height: AppSpacing.sheetV),
             Row(
               children: [
-                Expanded(
-                  child: TexiScalePress(
-                    child: OutlinedButton(
-                      onPressed: onCancel,
-                      child: Text(cancelLabel),
+                if (onCancel != null &&
+                    cancelLabel != null &&
+                    cancelLabel!.trim().isNotEmpty) ...[
+                  Expanded(
+                    child: TexiScalePress(
+                      child: OutlinedButton(
+                        onPressed: onCancel,
+                        child: Text(cancelLabel!),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.xl),
+                  const SizedBox(width: AppSpacing.xl),
+                ],
                 Expanded(
                   child: TexiScalePress(
                     child: FilledButton(
@@ -391,6 +120,8 @@ class TripStatusCard extends StatelessWidget {
     required this.statusKmLabel,
     this.onFinishedClose,
     this.finishedCloseLabel,
+    this.onShareTrip,
+    this.shareTripLabel,
     this.onOpenChat,
     this.chatLabel,
     this.unreadChatCount = 0,
@@ -420,6 +151,8 @@ class TripStatusCard extends StatelessWidget {
   /// Al completar el viaje: permite salir del panel y volver a pedir otro viaje.
   final VoidCallback? onFinishedClose;
   final String? finishedCloseLabel;
+  final VoidCallback? onShareTrip;
+  final String? shareTripLabel;
   final VoidCallback? onOpenChat;
   final String? chatLabel;
   final int unreadChatCount;
@@ -832,8 +565,23 @@ class TripStatusCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (onOpenChat != null) ...[
+            if (onShareTrip != null) ...[
               const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onShareTrip,
+                  icon: const Icon(Icons.ios_share_rounded),
+                  label: Text(shareTripLabel ?? l10n.tripShareRide),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                  ),
+                ),
+              ),
+            ],
+            if (onOpenChat != null) ...[
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

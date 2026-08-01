@@ -10,4 +10,20 @@ class AppAssets {
 
   /// Fondo geométrico oscuro de la pantalla de login.
   static const String loginBackground = 'assets/images/backgrount_texi1.jpg';
+
+  /// Ilustraciones de tipos de servicio (cotización).
+  static const String serviceTypeStandard =
+      'assets/images/service_types/estandar.png';
+  static const String serviceTypeMoto = 'assets/images/service_types/moto.png';
+  static const String serviceTypeComfort =
+      'assets/images/service_types/confort.png';
+  static const String serviceTypePremium =
+      'assets/images/service_types/premium.png';
+
+  /// Logo escudo hub Seguridad.
+  static const String safetyShieldLogo =
+      'assets/images/safety/seguridad-texi.png';
+
+  /// Botón flotante / menú Seguridad.
+  static const String safetyButton = 'assets/images/safety/boton-seguridad.png';
 }

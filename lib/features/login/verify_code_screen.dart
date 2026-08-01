@@ -20,6 +20,7 @@ import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import 'login_controller.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 /// Pantalla para ingresar el código de 6 dígitos y activar al pasajero.
@@ -50,6 +51,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   String? _errorMessage;
   Timer? _waPollTimer;
   bool _waWaiting = false;
+  bool _waExpired = false;
+  bool _waOutboundLoading = false;
 
   bool get _isWhatsAppInbound =>
       widget.verificationChannel == 'whatsapp_inbound' &&
@@ -103,7 +106,17 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       final rawData = body['data'];
       if (rawData is! Map) return;
       final data = Map<String, dynamic>.from(rawData);
-      if (data['status']?.toString() != 'verified') return;
+      final status = data['status']?.toString();
+      if (status == 'expired') {
+        _waPollTimer?.cancel();
+        if (!mounted) return;
+        setState(() {
+          _waWaiting = false;
+          _waExpired = data['fallback_channel'] == 'whatsapp_outbound';
+        });
+        return;
+      }
+      if (status != 'verified') return;
 
       _waPollTimer?.cancel();
       if (!mounted) return;
@@ -136,6 +149,49 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     }
   }
 
+  Future<void> _requestWhatsAppOutboundCode() async {
+    if (!_isWhatsAppInbound || _waOutboundLoading) return;
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _waOutboundLoading = true;
+      _errorMessage = null;
+    });
+    final cc = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final fullPhone = '$cc$phoneDigits';
+    final next = await ref.read(loginControllerProvider.notifier).requestWhatsAppOutbound(
+          countryCode: widget.countryCode,
+          phoneNumber: widget.phoneNumber,
+          fullPhone: fullPhone,
+        );
+    if (!mounted) return;
+    setState(() => _waOutboundLoading = false);
+    if (next == LoginNextStep.stepUp) {
+      context.goNamed(
+        'auth_step_up',
+        queryParameters: {'cc': widget.countryCode, 'phone': widget.phoneNumber},
+      );
+      return;
+    }
+    if (next == LoginNextStep.verifyCode) {
+      context.goNamed(
+        'verify_code',
+        queryParameters: {
+          'cc': widget.countryCode,
+          'phone': widget.phoneNumber,
+          'channel': 'whatsapp_outbound',
+        },
+      );
+      return;
+    }
+    setState(() {
+      _errorMessage = ref.read(loginControllerProvider).errorMessage ??
+          l10n.verifyCodeWaOutboundFailed;
+    });
+  }
+
   @override
   void dispose() {
     _waPollTimer?.cancel();
@@ -156,6 +212,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     try {
       final clientMeta = await passengerAuthClientMeta();
+      final googleLinkToken =
+          ref.read(loginControllerProvider).googleLinkToken?.trim();
       final response = await _api.postPublic<Map<String, dynamic>>(
         path: AppConfig.authUsersPath,
         data: <String, dynamic>{
@@ -164,6 +222,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
           'alias_name': '',
           'profile_picture': null,
           'reuse_driver_profile': true,
+          if (googleLinkToken != null && googleLinkToken.isNotEmpty)
+            'google_link_token': googleLinkToken,
         },
       );
 
@@ -452,7 +512,28 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                       color: AppColors.textSecondary.withValues(alpha: 0.85),
                     ),
               ),
+              if (_waExpired) ...[
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: _waOutboundLoading ? null : _requestWhatsAppOutboundCode,
+                  child: Text(l10n.verifyCodeWaRequestOutbound),
+                ),
+              ],
             ],
+            if (_isWhatsAppInbound && _errorMessage != null) ...[
+              const SizedBox(height: 12),
+              PremiumStateView(
+                icon: Icons.error_outline_rounded,
+                title: l10n.loginReviewDataTitle,
+                message: _errorMessage!,
+                actionLabel: l10n.homeRetry,
+                onAction: () {
+                  setState(() => _errorMessage = null);
+                  _pollWhatsAppChallenge();
+                },
+              ),
+            ],
+            if (!_isWhatsAppInbound) ...[
             const SizedBox(height: 22),
             PassengerAuthGlassCard(
               child: Column(
@@ -532,6 +613,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                   ),
               textAlign: TextAlign.center,
             ),
+            ],
           ],
         ),
       ),

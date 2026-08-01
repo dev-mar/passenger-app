@@ -4,6 +4,7 @@ import 'passenger_app_environment.dart';
 ///
 /// Entorno dev/prod: `--dart-define=TEXI_APP_ENV=dev|prod`
 /// Override URL: `--dart-define=TEXI_BACKEND_BASE_URL=...`
+/// Humo WA en dev: `--dart-define=TEXI_PASSENGER_MULTICHANNEL_AUTH=true`
 class AppConfig {
   AppConfig._();
 
@@ -35,6 +36,12 @@ class AppConfig {
   /// `GET` polling estado challenge WA inbound (`phone_e164`, `challenge_id`).
   static const String authChallengeStatusPath = '/auth/challenge-status';
 
+  /// Fase 2 — emisión código email step-up anti-abuso.
+  static const String authStepUpEmailChallengePath = '/auth/step-up/email-challenge';
+
+  /// Fase 2 — completar step-up (email + captcha).
+  static const String authStepUpCompletePath = '/auth/step-up/complete';
+
   /// `POST` completar nombre + foto opcional; devuelve `token` + `refresh_token` + `expires_in`.
   static const String authUsersPath = '/auth/users';
 
@@ -50,6 +57,9 @@ class AppConfig {
   static String supportTicketDetailPath(String ticketId) => '/support/tickets/$ticketId';
   static String supportTicketAttachmentPresignPath(String ticketId) => '/support/tickets/$ticketId/attachments/presign';
   static String supportTicketAttachmentRegisterPath(String ticketId) => '/support/tickets/$ticketId/attachments';
+
+  /// `POST` Google Sign-In pasajero — body `{ id_token }`.
+  static const String authGooglePath = '/auth/google';
 
   /// URL completa de login.
   static String get loginUrl => '$baseUrlAuth$loginPath';
@@ -70,4 +80,14 @@ class AppConfig {
   /// Fuerza visibilidad de rutas labs (p. ej. CI); no sustituye auth.
   static bool get passengerInternalToolsVisible =>
       PassengerAppEnvironment.showsInternalToolsByDefault;
+
+  /// Web client ID de OAuth (Firebase/Google Cloud) para `google_sign_in` + backend.
+  /// `--dart-define=GOOGLE_OAUTH_SERVER_CLIENT_ID=...`
+  static String? get googleOAuthServerClientId {
+    const raw = String.fromEnvironment('GOOGLE_OAUTH_SERVER_CLIENT_ID', defaultValue: '');
+    final trimmed = raw.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  static bool get googleAuthEnabled => googleOAuthServerClientId != null;
 }

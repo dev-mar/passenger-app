@@ -3,6 +3,7 @@
 #
 # Ejemplos:
 #   .\scripts\build-channel.ps1 -Channel preprod -Mode apk
+#   .\scripts\build-channel.ps1 -Channel preprod -Mode apk -MultichannelAuth
 #   .\scripts\build-channel.ps1 -Channel prod -Mode appbundle
 
 param(
@@ -14,6 +15,7 @@ param(
 
   [string]$MapsApiKey,
   [string]$BackendBaseUrl,
+  [switch]$MultichannelAuth,
   [string]$Flavor,
   [string]$Target = "lib/main.dart"
 )
@@ -24,12 +26,18 @@ $environment = if ($Channel -eq "prod") { "prod" } else { "dev" }
 
 Write-Host "Canal: $Channel -> Environment=$environment | Mode=$Mode" -ForegroundColor Cyan
 
-& (Join-Path $PSScriptRoot "run-with-maps-key.ps1") `
-  -Mode $Mode `
-  -Environment $environment `
-  -MapsApiKey $MapsApiKey `
-  -BackendBaseUrl $BackendBaseUrl `
-  -Flavor $Flavor `
-  -Target $Target
+$runArgs = @{
+  Mode            = $Mode
+  Environment     = $environment
+  MapsApiKey      = $MapsApiKey
+  BackendBaseUrl  = $BackendBaseUrl
+  Flavor          = $Flavor
+  Target          = $Target
+}
+if ($MultichannelAuth.IsPresent) {
+  $runArgs.MultichannelAuth = $true
+}
+
+& (Join-Path $PSScriptRoot "run-with-maps-key.ps1") @runArgs
 
 exit $LASTEXITCODE

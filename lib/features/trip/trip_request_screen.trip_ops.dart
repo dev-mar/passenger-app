@@ -149,6 +149,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     // el recordatorio al reabrir la app.
     await TripSessionStorage.setRatingDone(tripId, true);
     await TripSessionStorage.clearActiveTripId();
+    PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
     final latestProviderTripId = ref.read(tripRequestProvider).tripId;
     if (!mounted ||
         (latestProviderTripId != null && latestProviderTripId != tripId)) {
@@ -178,6 +179,56 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._draftEditTarget = PassengerDraftEditTarget.none;
         if (_d._origin != null) {
           // Para el siguiente viaje, empezamos forzando confirmaci├│n del origen.
+          _d._pickingOrigin = true;
+          _d._activeStop = ActiveStop.none;
+        }
+      });
+    }
+    _d._tripEndResetInProgress = false;
+    await _recenterMapToDeviceGpsAfterTripEnd();
+    unawaited(_loadRecentPlaces());
+    unawaited(_loadSavedPlaces());
+  }
+
+  /// Reset tras cancelación/expiración (sin rating): vuelve al borrador limpio.
+  Future<void> _resetTripSessionToDraftHome({String? tripIdForGuard}) async {
+    if (!mounted) return;
+    if (tripIdForGuard != null) {
+      final providerTripId = ref.read(tripRequestProvider).tripId;
+      if (providerTripId != null && providerTripId != tripIdForGuard) return;
+    }
+
+    _d._tripEndResetInProgress = true;
+    _d._routeRequestToken++;
+    _d._passengerEnRouteRouteDebounce?.cancel();
+    await TripSessionStorage.clearActiveTripId();
+    if (tripIdForGuard != null) {
+      PassengerNotificationService.clearArrivedNotificationDedupe(tripIdForGuard);
+    }
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
+    clearTripRecoverySnackTracking(ref);
+    ref.read(tripRequestProvider.notifier).reset();
+    ref.read(passengerTripMapUiResetTickProvider.notifier).state++;
+    _d._completedStaleAutoResetTripId = null;
+    if (mounted) {
+      setState(() {
+        _d._ratingDoneTripId = null;
+        _d._ratingDone = false;
+        _d._ratingSheetShownForTripId = null;
+        _d._destination = null;
+        _d._destinationDisplayLabel = null;
+        _d._routePoints = null;
+        _d._passengerEnRouteToDestPoints = null;
+        _d._loadingRoute = false;
+        _d._originConfirmed = false;
+        _d._pickingOrigin = false;
+        _d._pickingDestination = false;
+        _d._error = null;
+        _d._searchingHoldUi = false;
+        _d._searchingStage3CancelInFlight = false;
+        _d._searchingOriginCameraDone = false;
+        _d._draftEditTarget = PassengerDraftEditTarget.none;
+        if (_d._origin != null) {
           _d._pickingOrigin = true;
           _d._activeStop = ActiveStop.none;
         }
@@ -293,28 +344,265 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       ),
     );
   }
-  void _onSearchingKeepWaitingSoftRetry() {
-    final tid = ref.read(tripRequestProvider).tripId;
-    if (tid == null || tid.isEmpty) return;
-    final quote = ref.read(tripRequestProvider).quote;
-    unawaited(() async {
-      await ref
-          .read(passengerRealtimeProvider.notifier)
-          .syncTripStatusFromApi(tripId: tid, force: true);
-      if (!mounted) return;
-      final rt = ref.read(passengerRealtimeProvider);
-      if (!rt.connected || rt.errorCode != null) {
-        ref
-            .read(passengerRealtimeProvider.notifier)
-            .connect(tripId: tid, quote: quote);
+  Future<void> _shareActiveTrip({
+    required String tripId,
+    String? driverName,
+    String? plate,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(l10n.tripShareError)),
+        );
       }
-    }());
+      return;
+    }
+    try {
+      final link = await TripsApi(token: token).createOrReuseTripShareLink(
+        tripId: tripId,
+      );
+      if (!mounted) return;
+      if (link.shareUrl.isEmpty) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(l10n.tripShareError)),
+        );
+        return;
+      }
+      final who = (driverName ?? '').trim().isEmpty
+          ? l10n.tripDriverNameFallback
+          : driverName!.trim();
+      final plateLabel = (plate ?? '').trim().isEmpty
+          ? l10n.commonEmptyDash
+          : plate!.trim();
+      final message = l10n.tripShareMessage(link.shareUrl, who, plateLabel);
+      await SharePlus.instance.share(ShareParams(text: message));
+    } catch (e, st) {
+      debugPrint('[ShareTrip] $e\n$st');
+      if (mounted) {
+        final detail = e.toString();
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              detail.contains('SHARE_LINK_FAILED')
+                  ? '${l10n.tripShareError}\n$detail'
+                  : l10n.tripShareError,
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
-  /// Cancela la b├║squeda: **POST /passengers/trips/:id/cancel** para invalidar ofertas en servidor
+  /// Stage 3: invalida ofertas en servidor y mantiene el overlay (Continuar / Cancelar).
+  Future<void> _onSearchingStage3Reached() async {
+    if (_d._searchingStage3CancelInFlight || _d._searchingHoldUi) return;
+    // Hold UI ANTES de limpiar tripId: evita un frame sin overlay (remount → reinicio visual).
+    setState(() {
+      _d._searchingHoldUi = true;
+      _d._searchingStage3CancelInFlight = true;
+    });
+    final tripId = ref.read(tripRequestProvider).tripId;
+    final rtStatus = ref.read(passengerRealtimeProvider).status;
+    if (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed') {
+      if (mounted) {
+        setState(() {
+          _d._searchingHoldUi = false;
+          _d._searchingStage3CancelInFlight = false;
+        });
+      }
+      return;
+    }
+    final token = await AuthService.getValidToken();
+    if (tripId != null &&
+        tripId.isNotEmpty &&
+        token != null &&
+        token.isNotEmpty) {
+      try {
+        await TripsApi(token: token).cancelPassengerTrip(tripId: tripId);
+      } catch (e, st) {
+        debugPrint('[SearchStage3Cancel] $e\n$st');
+      }
+    }
+    if (!mounted) return;
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
+    ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
+    await TripSessionStorage.clearActiveTripId();
+    if (tripId != null) {
+      PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
+    }
+    if (mounted) {
+      setState(() => _d._searchingStage3CancelInFlight = false);
+    }
+  }
+
+  /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
+  Future<void> _restartSearchingTripAfterTimeout() async {
+    final tripState = ref.read(tripRequestProvider);
+    final q = tripState.quote;
+    final opt = tripState.selectedOption;
+    if (q == null ||
+        opt == null ||
+        _d._origin == null ||
+        _d._destination == null) {
+      return;
+    }
+
+    // Por si aún hubiera tripId (race antes de stage3 cancel).
+    final lingeringId = tripState.tripId;
+    if (lingeringId != null && lingeringId.isNotEmpty) {
+      final token = await AuthService.getValidToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await TripsApi(token: token).cancelPassengerTrip(tripId: lingeringId);
+        } catch (_) {}
+      }
+      ref.read(passengerRealtimeProvider.notifier).disconnect();
+      ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
+      await TripSessionStorage.clearActiveTripId();
+    }
+
+    if (!mounted) return;
+    setState(() => _d._submittingTrip = true);
+    final l10n = AppLocalizations.of(context)!;
+    final originAddress =
+        (_d._originDisplayLabel != null &&
+            _d._originDisplayLabel!.trim().isNotEmpty)
+        ? _d._originDisplayLabel!.trim()
+        : '${_d._origin!.latitude.toStringAsFixed(6)},${_d._origin!.longitude.toStringAsFixed(6)}';
+    final destinationAddress =
+        (_d._destinationDisplayLabel != null &&
+            _d._destinationDisplayLabel!.trim().isNotEmpty)
+        ? _d._destinationDisplayLabel!.trim()
+        : '${_d._destination!.latitude.toStringAsFixed(6)},${_d._destination!.longitude.toStringAsFixed(6)}';
+
+    final result = await submitPassengerTripFromQuote(
+      ref: ref,
+      context: context,
+      quote: q,
+      option: opt,
+      originLat: _d._origin!.latitude,
+      originLng: _d._origin!.longitude,
+      destinationLat: _d._destination!.latitude,
+      destinationLng: _d._destination!.longitude,
+      originAddress: originAddress,
+      destinationAddress: destinationAddress,
+      routeOverviewEncoded: _d._routeOverviewEncoded,
+      ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
+    );
+    if (!mounted) return;
+    setState(() {
+      _d._submittingTrip = false;
+      if (result.kind == PassengerTripSubmitResultKind.success ||
+          result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
+        _d._searchingHoldUi = false;
+        _d._searchingOriginCameraDone = false;
+        _d._searchingOverlayGeneration += 1;
+      }
+    });
+    if (result.kind == PassengerTripSubmitResultKind.error) {
+      final msg = result.message ?? l10n.commonError;
+      if (msg == l10n.tripNoDriversAvailable) {
+        PassengerTripToast.show(
+          context,
+          message: msg,
+          icon: Icons.directions_car_outlined,
+        );
+        return;
+      }
+      PassengerTripToast.show(
+        context,
+        message: msg,
+        icon: Icons.error_outline_rounded,
+        accent: AppColors.error,
+      );
+    }
+  }
+
+  void _syncSearchingNearbyPolling(bool isSearching) {
+    if (!isSearching) {
+      _d._searchingNearbyTimer?.cancel();
+      _d._searchingNearbyTimer = null;
+      _d._searchingOriginCameraDone = false;
+      if (_d._searchingNearbyDrivers.isNotEmpty) {
+        setState(() => _d._searchingNearbyDrivers = const []);
+      }
+      if (_d._searchingMapRadarController.isAnimating) {
+        _d._searchingMapRadarController.stop();
+        _d._searchingMapRadarController.reset();
+      }
+      return;
+    }
+    if (!_d._searchingMapRadarController.isAnimating) {
+      _d._searchingMapRadarController.repeat();
+    }
+    // Centrar mapa en origen una sola vez al entrar en matching.
+    if (!_d._searchingOriginCameraDone && _d._origin != null) {
+      _d._searchingOriginCameraDone = true;
+      final o = _d._origin!;
+      unawaited(
+        _d._controller?.animateCamera(
+              CameraUpdate.newLatLngZoom(o, 15.6),
+            ) ??
+            Future<void>.value(),
+      );
+    }
+    if (_d._searchingNearbyTimer != null) return;
+    unawaited(_refreshSearchingNearbyDrivers());
+    _d._searchingNearbyTimer = Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => unawaited(_refreshSearchingNearbyDrivers()),
+    );
+  }
+
+  Future<void> _refreshSearchingNearbyDrivers() async {
+    if (!mounted) return;
+    final origin = _d._origin;
+    if (origin == null) return;
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    try {
+      final res = await TripsApi(token: token).getNearbyDrivers(
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radiusKm: 2,
+        limit: 12,
+      );
+      if (!mounted) return;
+      final within = res.drivers
+          .where((d) => d.distanceKm <= 2.0)
+          .toList(growable: false);
+      setState(() => _d._searchingNearbyDrivers = within);
+    } catch (_) {}
+  }
+
+  /// Cancela la búsqueda: **POST /passengers/trips/:id/cancel** para invalidar ofertas en servidor
   /// y que los conductores no sigan viendo la solicitud. Si falla la red, no limpiamos estado.
+  /// Nunca cancela un viaje ya aceptado/en curso (protección ante overlay erróneo).
   Future<void> _cancelSearchingTrip() async {
     final tripId = ref.read(tripRequestProvider).tripId;
+    final holdOnly = _d._searchingHoldUi && (tripId == null || tripId.isEmpty);
+    final rtStatus = ref.read(passengerRealtimeProvider).status;
+    if (!holdOnly &&
+        (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed')) {
+      if (kDebugMode) {
+        debugPrint(
+          '[CancelTrip] bloqueado: viaje activo status=$rtStatus tripId=$tripId',
+        );
+      }
+      if (mounted) {
+        final loc = AppLocalizations.of(context);
+        if (loc != null) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(content: Text(loc.tripCancelBlockedActiveBody)),
+          );
+        }
+      }
+      return;
+    }
     final token = await AuthService.getValidToken();
     if (tripId != null &&
         tripId.isNotEmpty &&
@@ -336,33 +624,10 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       }
     }
     if (!mounted) return;
-    _d._routeRequestToken++;
-    ref.read(passengerRealtimeProvider.notifier).disconnect();
-    clearTripRecoverySnackTracking(ref);
-    ref.read(tripRequestProvider.notifier).reset();
-    ref.read(passengerTripMapUiResetTickProvider.notifier).state++;
-    unawaited(TripSessionStorage.clearActiveTripId());
-    _d._passengerEnRouteRouteDebounce?.cancel();
-    setState(() {
-      _d._ratingDoneTripId = null;
-      _d._ratingDone = false;
-      _d._ratingSheetShownForTripId = null;
-      _d._destination = null;
-      _d._destinationDisplayLabel = null;
-      _d._routePoints = null;
-      _d._passengerEnRouteToDestPoints = null;
-      _d._loadingRoute = false;
-      _d._originConfirmed = false;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
-      _d._error = null;
-      _d._draftEditTarget = PassengerDraftEditTarget.none;
-      if (_d._origin != null) {
-        _d._pickingOrigin = true;
-        _d._activeStop = ActiveStop.none;
-      }
-    });
-    unawaited(_recenterMapToDeviceGpsAfterTripEnd());
+    if (tripId != null) {
+      PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
+    }
+    await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
   }
 
   Future<void> _ensureTripNotificationDisclosure() async {

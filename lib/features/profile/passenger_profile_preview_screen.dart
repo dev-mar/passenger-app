@@ -11,7 +11,6 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../gen_l10n/app_localizations.dart';
-import '../support/widgets/passenger_support_center_sheet.dart';
 import 'passenger_profile_models.dart';
 import 'widgets/passenger_profile_edit_sheet.dart';
 import 'widgets/passenger_profile_legal_section.dart';
@@ -59,51 +58,85 @@ class _PassengerProfilePreviewScreenState
   }
 
   Future<void> _openSupportCenter() async {
-    await showPassengerSupportCenterSheet(context: context, ref: ref);
+    if (!mounted) return;
+    context.pushNamed(AppRouter.supportHelp);
   }
 
-  void _openLanguageMenu() {
+  void _openSettingsSheet() {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                l10n.settingsLanguage,
-                style: Theme.of(ctx).textTheme.titleMedium,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(ctx).bottom + 12,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  l10n.profileSettingsTitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(l10n.languageSpanish),
-              onTap: () {
-                ProviderScope.containerOf(
-                  ctx,
-                  listen: false,
-                ).read(localeProvider.notifier).state = const Locale('es');
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.translate),
-              title: Text(l10n.languageEnglish),
-              onTap: () {
-                ProviderScope.containerOf(
-                  ctx,
-                  listen: false,
-                ).read(localeProvider.notifier).state = const Locale('en');
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text(
+                  l10n.settingsLanguage,
+                  style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.translate, color: AppColors.primary),
+                title: Text(l10n.languageSpanish),
+                onTap: () {
+                  ProviderScope.containerOf(
+                    ctx,
+                    listen: false,
+                  ).read(localeProvider.notifier).state = const Locale('es');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.translate, color: AppColors.primary),
+                title: Text(l10n.languageEnglish),
+                onTap: () {
+                  ProviderScope.containerOf(
+                    ctx,
+                    listen: false,
+                  ).read(localeProvider.notifier).state = const Locale('en');
+                },
+              ),
+              const Divider(height: 24),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  l10n.profileSectionPreferences,
+                  style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                child: _PreferencesCard(l10n: l10n),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -181,7 +214,7 @@ class _PassengerProfilePreviewScreenState
             onRefresh: _reload,
             onEditInfo: () => _openEditProfile(snap.data!),
             onSupport: _openSupportCenter,
-            onLanguage: _openLanguageMenu,
+            onLanguage: _openSettingsSheet,
           );
         },
       ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +22,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _intro;
   late Animation<double> _opacity;
   late Animation<double> _scale;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -34,6 +36,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       CurvedAnimation(parent: _intro, curve: Curves.easeOutBack),
     );
     _intro.forward();
+    // ignore: discarded_futures
     _navigateAfterDelay();
   }
 
@@ -43,41 +46,90 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
-  /// Mínimo amortiguador para que la animación de marca no parpadee si la
-  /// resolución de sesión termina en pocos ms. Antes: 1800 ms secuenciales fijos.
+  /// Mínimo amortiguador para que la animación de marca no parpadee.
   static const Duration _minBrandDwell = Duration(milliseconds: 400);
-  static const Duration _sessionResolveTimeout = Duration(seconds: 6);
 
-  Future<String?> _resolveSessionToken() async {
+  /// Tope duro del splash: nunca quedarse pegado en release.
+  static const Duration _bootHardDeadline = Duration(seconds: 6);
+  static const Duration _sessionResolveTimeout = Duration(seconds: 3);
+  static const Duration _storageReadTimeout = Duration(seconds: 3);
+
+  Future<bool> _resolveHasSession() async {
     try {
-      return await AuthService.getValidToken().timeout(
+      return await AuthService.hasStoredSession().timeout(
         _sessionResolveTimeout,
+        onTimeout: () => false,
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Splash] hasStoredSession: $e');
+      }
+      return false;
+    }
+  }
+
+  Future<String?> _resolveStoredTripId() async {
+    try {
+      return await TripSessionStorage.getActiveTripId().timeout(
+        _storageReadTimeout,
         onTimeout: () => null,
       );
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Splash] getActiveTripId: $e');
+      }
       return null;
     }
   }
 
+  void _goLogin() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+    context.goNamed('login');
+  }
+
+  void _goTripRequest() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+    context.goNamed('trip_request');
+  }
+
   Future<void> _navigateAfterDelay() async {
-    // Token y trip_id activo se piden en paralelo: ambos viven en SecureStorage y
-    // no compiten por red. Cuando no hay token, el storedId simplemente se ignora.
-    final results = await Future.wait<Object?>([
-      _resolveSessionToken(),
-      TripSessionStorage.getActiveTripId(),
-      Future<void>.delayed(_minBrandDwell),
-    ]);
-    if (!mounted) return;
-    final token = results[0] as String?;
-    final storedId = results[1] as String?;
-    if (token != null && token.isNotEmpty) {
+    try {
+      await _resolveAndNavigate().timeout(
+        _bootHardDeadline,
+        onTimeout: () {
+          if (kDebugMode) {
+            debugPrint('[Splash] hard deadline → login');
+          }
+          _goLogin();
+        },
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Splash] boot error → login: $e');
+      }
+      _goLogin();
+    }
+  }
+
+  Future<void> _resolveAndNavigate() async {
+    // No refrescar token aquí: evita red + lecturas extra de KeyStore en release prod.
+    final brandWait = Future<void>.delayed(_minBrandDwell);
+    final hasSession = await _resolveHasSession();
+    final storedId = hasSession ? await _resolveStoredTripId() : null;
+    await brandWait;
+    if (!mounted || _navigated) return;
+
+    if (hasSession) {
       if (storedId != null && storedId.isNotEmpty) {
         ref.read(tripRequestProvider.notifier).setTripId(storedId);
       }
-      context.goNamed('trip_request');
-    } else {
-      context.goNamed('login');
+      _goTripRequest();
+      return;
     }
+
+    _goLogin();
   }
 
   @override
@@ -115,7 +167,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 const AppLogo(width: 120, height: 120),
                 const SizedBox(height: 24),
                 Text(
-                  AppLocalizations.of(context)!.appName,
+                  AppLocalizations.of(context)?.appName ?? 'TEXIAPP',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,

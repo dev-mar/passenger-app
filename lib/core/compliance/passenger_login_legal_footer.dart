@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,11 +9,11 @@ import 'passenger_legal_links.dart';
 
 /// Aviso legal sutil en login / onboarding (Play Store: privacidad accesible sin sesión).
 ///
-/// Variante [PassengerLegalNoticeTone.compact]: una línea + enlaces inline.
-/// Variante [PassengerLegalNoticeTone.emphasized]: bloque suave (p. ej. cierre de registro).
+/// Variante [PassengerLegalNoticeTone.compact]: una sola línea inline.
+/// Variante [PassengerLegalNoticeTone.emphasized]: mismo inline (cierre de registro).
 enum PassengerLegalNoticeTone { compact, emphasized }
 
-class PassengerLoginLegalFooter extends StatelessWidget {
+class PassengerLoginLegalFooter extends StatefulWidget {
   const PassengerLoginLegalFooter({
     super.key,
     this.textColor,
@@ -23,147 +24,83 @@ class PassengerLoginLegalFooter extends StatelessWidget {
   final PassengerLegalNoticeTone tone;
 
   @override
+  State<PassengerLoginLegalFooter> createState() =>
+      _PassengerLoginLegalFooterState();
+}
+
+class _PassengerLoginLegalFooterState extends State<PassengerLoginLegalFooter> {
+  late final TapGestureRecognizer _privacyTap;
+  late final TapGestureRecognizer _termsTap;
+
+  @override
+  void initState() {
+    super.initState();
+    _privacyTap = TapGestureRecognizer()
+      ..onTap = () {
+        HapticFeedback.selectionClick();
+        openPassengerPrivacyPolicy(context);
+      };
+    _termsTap = TapGestureRecognizer()
+      ..onTap = () {
+        HapticFeedback.selectionClick();
+        openPassengerTerms(context);
+      };
+  }
+
+  @override
+  void dispose() {
+    _privacyTap.dispose();
+    _termsTap.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final secondary = textColor ?? AppColors.textSecondary;
-    final linkColor = AppColors.primary;
+    final secondary = widget.textColor ?? AppColors.textSecondary.withValues(alpha: 0.92);
+    final linkColor = AppColors.primary.withValues(alpha: 0.92);
+    final emphasized = widget.tone == PassengerLegalNoticeTone.emphasized;
 
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          tone == PassengerLegalNoticeTone.emphasized
-              ? l10n.passengerLegalRegistrationHint
-              : l10n.passengerLegalLoginHint,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: secondary,
-                height: 1.4,
-                fontSize: AppTypography.bodySmall,
-                fontWeight: FontWeight.w400,
-              ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        _LegalLinkRow(
-          privacyLabel: l10n.passengerLegalPrivacyPolicy,
-          termsLabel: l10n.passengerLegalTermsOfService,
-          linkColor: linkColor,
-          onPrivacy: () {
-            HapticFeedback.selectionClick();
-            openPassengerPrivacyPolicy(context);
-          },
-          onTerms: () {
-            HapticFeedback.selectionClick();
-            openPassengerTerms(context);
-          },
-        ),
-      ],
+    final baseStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: secondary,
+          height: 1.35,
+          fontSize: emphasized ? 12.5 : AppTypography.captionAlt,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.1,
+        );
+
+    final linkStyle = baseStyle?.copyWith(
+      color: linkColor,
+      fontWeight: FontWeight.w600,
+      decoration: TextDecoration.underline,
+      decorationColor: linkColor.withValues(alpha: 0.35),
+      decorationThickness: 1,
     );
 
-    if (tone == PassengerLegalNoticeTone.compact) {
-      return body;
-    }
+    final prefix = emphasized
+        ? l10n.passengerLegalRegistrationPrefix
+        : l10n.passengerLegalLoginPrefix;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.55),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xxx,
-          AppSpacing.xxxx,
-          AppSpacing.xxx,
-          AppSpacing.xxxx,
-        ),
-        child: body,
-      ),
-    );
-  }
-}
-
-class _LegalLinkRow extends StatelessWidget {
-  const _LegalLinkRow({
-    required this.privacyLabel,
-    required this.termsLabel,
-    required this.linkColor,
-    required this.onPrivacy,
-    required this.onTerms,
-  });
-
-  final String privacyLabel;
-  final String termsLabel;
-  final Color linkColor;
-  final VoidCallback onPrivacy;
-  final VoidCallback onTerms;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: AppSpacing.md,
-      runSpacing: AppSpacing.sm,
-      children: [
-        _LinkChip(label: privacyLabel, color: linkColor, onTap: onPrivacy),
-        Text(
-          '·',
-          style: TextStyle(
-            color: AppColors.textSecondary.withValues(alpha: 0.55),
-            fontWeight: FontWeight.w600,
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: prefix, style: baseStyle),
+          TextSpan(
+            text: l10n.passengerLegalPrivacyPolicy,
+            style: linkStyle,
+            recognizer: _privacyTap,
           ),
-        ),
-        _LinkChip(label: termsLabel, color: linkColor, onTap: onTerms),
-      ],
-    );
-  }
-}
-
-class _LinkChip extends StatelessWidget {
-  const _LinkChip({
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadii.sm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
+          TextSpan(text: l10n.passengerLegalLoginConjunction, style: baseStyle),
+          TextSpan(
+            text: l10n.passengerLegalTermsOfService,
+            style: linkStyle,
+            recognizer: _termsTap,
           ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-            child: Center(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w600,
-                      fontSize: AppTypography.captionAlt,
-                      decoration: TextDecoration.underline,
-                      decorationColor: color.withValues(alpha: 0.45),
-                      decorationThickness: 1.2,
-                      height: 1.2,
-                    ),
-              ),
-            ),
-          ),
-        ),
+          TextSpan(text: '.', style: baseStyle),
+        ],
       ),
+      textAlign: TextAlign.center,
+      softWrap: true,
     );
   }
 }

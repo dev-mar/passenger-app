@@ -15,6 +15,18 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
           if (_d._animatedDriverLatLng == null) return;
           setState(() {});
         });
+    _d._searchingMapRadarController =
+        AnimationController(
+          vsync: _d,
+          duration: const Duration(milliseconds: 2600),
+        )..addListener(() {
+          if (!mounted) return;
+          // Solo rebuild cuando hay matching (evita trabajo en idle).
+          final tid = ref.read(tripRequestProvider).tripId;
+          final st = ref.read(passengerRealtimeProvider).status;
+          if (tid == null || !passengerTripIsAwaitingDriverMatch(st)) return;
+          setState(() {});
+        });
     _d._chatAttentionController = AnimationController(
       vsync: _d,
       duration: const Duration(milliseconds: 1350),
@@ -108,6 +120,21 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
         _d._ratingDone = await TripSessionStorage.isRatingDone(storedTripId);
         if (!mounted) return;
         setState(() {});
+
+        final lastStatus =
+            await TripSessionStorage.getLastKnownStatus(storedTripId);
+        if (!mounted) return;
+        if (lastStatus != null &&
+            (passengerTripIsTrackingDriver(lastStatus) ||
+                lastStatus == 'completed' ||
+                passengerTripIsAwaitingDriverMatch(lastStatus))) {
+          ref
+              .read(passengerRealtimeProvider.notifier)
+              .hydrateStatusHintFromLocalCache(
+                tripId: storedTripId,
+                status: lastStatus,
+              );
+        }
 
         final uiSnap = await TripSessionStorage.getActiveTripUiSnapshot();
         if (!mounted) return;
@@ -239,7 +266,9 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
   void disposeTripRequestScreen() {
     _d._passengerEnRouteRouteDebounce?.cancel();
     _d._driverMotionTimer?.cancel();
+    _d._searchingNearbyTimer?.cancel();
     _d._driverPulseController.dispose();
+    _d._searchingMapRadarController.dispose();
     _d._chatAttentionController.dispose();
     _d._draftSearchDebounce?.cancel();
     _d._mapConfirmIdleTimer?.cancel();

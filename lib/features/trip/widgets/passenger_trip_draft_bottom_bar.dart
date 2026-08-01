@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
-import '../../../core/utils/money_formatter.dart';
 import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import 'passenger_quote_service_option_card.dart';
 
 /// Barra fija inferior del borrador: cotización, CTA y confirmación en mapa.
 /// GPS / mapa / guardados viven en la cabecera junto al buscador (sin fila de acciones aquí).
@@ -56,7 +56,7 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
   final bool showCancelDraft;
   final VoidCallback onCancelDraft;
   final String cancelDraftLabel;
-  final VoidCallback onMenuPressed;
+  final ValueChanged<Offset> onMenuPressed;
   final String menuTooltip;
 
   @override
@@ -65,6 +65,12 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final quoteData = quote;
+    final selectedName = selectedQuoteOption == null
+        ? null
+        : displayServiceTypeName(selectedQuoteOption!.serviceTypeName, l10n);
+    final requestLabel = (selectedName != null && selectedName.isNotEmpty)
+        ? l10n.confirmRequestRideWithService(selectedName)
+        : l10n.confirmRequestRide;
 
     final panel = Container(
       width: double.infinity,
@@ -239,120 +245,37 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                 ],
-                SizedBox(
-                  height: 84,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: quoteData.options.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: AppSpacing.sm),
-                    itemBuilder: (context, index) {
-                      final option = quoteData.options[index];
-                      final selected =
-                          selectedQuoteOption?.serviceTypeId ==
-                          option.serviceTypeId;
-                      final name = displayServiceTypeName(
-                        option.serviceTypeName,
-                        l10n,
-                      );
-                      final price = formatMoney(
-                        option.estimatedPrice,
-                        currencyCode: option.currencyCode,
-                        decimals: 1,
-                      );
-                      return TexiScalePress(
-                        child: Material(
-                          color: selected
-                              ? AppColors.primary.withValues(alpha: 0.2)
-                              : AppColors.background.withValues(alpha: 0.65),
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                          child: InkWell(
-                            onTap: () => onSelectQuoteOption(option),
-                            borderRadius: BorderRadius.circular(AppRadii.lg),
-                            child: Container(
-                              width: 140,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.lg,
-                                ),
-                                border: Border.all(
-                                  color: selected
-                                      ? AppColors.primary
-                                      : AppColors.border.withValues(alpha: 0.4),
-                                  width: selected ? 1.6 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? AppColors.primary.withValues(
-                                              alpha: 0.22,
-                                            )
-                                          : AppColors.textSecondary.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                      borderRadius: BorderRadius.circular(
-                                        AppRadii.sm,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      serviceTypeIconData(option.serviceTypeName),
-                                      color: selected
-                                          ? AppColors.primary
-                                          : AppColors.textSecondary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          name,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.labelLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                color: selected
-                                                    ? AppColors.primary
-                                                    : AppColors.textPrimary,
-                                              ),
-                                        ),
-                                        const SizedBox(height: AppSpacing.xs),
-                                        Text(
-                                          '$price $quotePerTripLabel',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.textSecondary,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                Builder(
+                  builder: (context) {
+                    final options = List<QuoteOption>.from(quoteData.options)
+                      ..sort(
+                        (a, b) => serviceTypeCarouselSortKey(a.serviceTypeName)
+                            .compareTo(
+                              serviceTypeCarouselSortKey(b.serviceTypeName),
                             ),
-                          ),
-                        ),
                       );
-                    },
-                  ),
+                    return SizedBox(
+                      height: 78,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: options.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(width: AppSpacing.sm),
+                        itemBuilder: (context, index) {
+                          final option = options[index];
+                          final selected =
+                              selectedQuoteOption?.serviceTypeId ==
+                              option.serviceTypeId;
+                          return PassengerQuoteServiceOptionCard(
+                            option: option,
+                            selected: selected,
+                            onTap: () => onSelectQuoteOption(option),
+                            etaMinutes: quoteData.durationMinutes,
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
@@ -388,10 +311,12 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            l10n.confirmRequestRide,
+                            requestLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: AppTypography.title,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                   ),
@@ -429,37 +354,53 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
             top: -28,
             child: Tooltip(
               message: menuTooltip,
-              child: Material(
-                elevation: 12,
-                shadowColor: Colors.black.withValues(alpha: 0.45),
-                shape: const CircleBorder(),
-                color: AppColors.surface,
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onMenuPressed,
-                  child: Ink(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primary, width: 2.5),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.surface,
-                          AppColors.background.withValues(alpha: 0.9),
-                        ],
+              child: Builder(
+                builder: (btnCtx) {
+                  return Material(
+                    elevation: 14,
+                    shadowColor: AppColors.primary.withValues(alpha: 0.55),
+                    shape: const CircleBorder(),
+                    color: Colors.transparent,
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () {
+                        final box = btnCtx.findRenderObject() as RenderBox?;
+                        final anchor = box == null
+                            ? Offset.zero
+                            : box.localToGlobal(box.size.center(Offset.zero));
+                        onMenuPressed(anchor);
+                      },
+                      child: Ink(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primary,
+                              AppColors.primary.withValues(alpha: 0.82),
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.35),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.grid_view_rounded,
+                          size: 26,
+                          color: AppColors.onPrimary,
+                        ),
                       ),
                     ),
-                    child: Icon(
-                      Icons.apps_rounded,
-                      size: 30,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ),

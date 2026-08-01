@@ -151,7 +151,11 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
     ref.read(passengerRealtimeProvider.notifier).disconnect();
     ref
         .read(passengerRealtimeProvider.notifier)
-        .connect(tripId: result.tripId, quote: quote);
+        .connect(
+          tripId: result.tripId,
+          quote: quote,
+          assumeAwaitingDriver: true,
+        );
 
     return const PassengerTripSubmitResult(PassengerTripSubmitResultKind.success);
   } catch (e) {

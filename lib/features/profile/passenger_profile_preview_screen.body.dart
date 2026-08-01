@@ -138,6 +138,18 @@ class _ProfileBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final hasName = profile.displayName.trim().isNotEmpty;
+    final hasPhone = profile.phone.trim().isNotEmpty;
+    final hasEmail = profile.email != null && profile.email!.trim().isNotEmpty;
+    final hasPhoto =
+        profile.profilePhotoUrl != null &&
+        profile.profilePhotoUrl!.trim().isNotEmpty;
+    final completed =
+        [hasName, hasPhone, hasEmail, hasPhoto].where((e) => e).length;
+    final missing = 4 - completed;
+    final completion = ((completed / 4) * 100).round();
+    final name =
+        profile.displayName.isEmpty ? profile.phone : profile.displayName;
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -147,16 +159,318 @@ class _ProfileBody extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
-            child: _ProfileHero(
-              profile: profile,
-              l10n: l10n,
-              onRefresh: onRefresh,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            TexiUiFeedback.lightTap();
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.goNamed(AppRouter.home);
+                            }
+                          },
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          color: AppColors.primary,
+                        ),
+                        Expanded(
+                          child: Text(
+                            l10n.profileBrandTitle,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: 1.1,
+                                ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: l10n.profileSettingsTitle,
+                          onPressed: onLanguage,
+                          icon: const Icon(Icons.settings_rounded),
+                          color: AppColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 88,
+                              height: 88,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: hasPhoto
+                                    ? Image.network(
+                                        profile.profilePhotoUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            _ProfileInitialsAvatar(
+                                          name: name,
+                                          size: 82,
+                                        ),
+                                      )
+                                    : _ProfileInitialsAvatar(
+                                        name: name,
+                                        size: 82,
+                                      ),
+                              ),
+                            ),
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.background,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.verified_user_rounded,
+                                  size: 16,
+                                  color: AppColors.onPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.textPrimary,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.phone_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      profile.phone.isEmpty
+                                          ? l10n.commonEmptyDash
+                                          : profile.phone,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    profile.isVerified
+                                        ? Icons.verified_rounded
+                                        : Icons.info_outline_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    profile.isVerified
+                                        ? l10n.profileVerifiedUserLabel
+                                        : l10n.profileSectionSecurity,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF141414),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: AppColors.border.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.profileCompletenessTitle,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                ),
+                              ),
+                              Text(
+                                '$completion%',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: completed / 4,
+                              minHeight: 8,
+                              backgroundColor: Colors.white12,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            missing == 0
+                                ? l10n.profileCompletenessDone
+                                : l10n.profileCompletenessMissing(missing),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                          ),
+                          if (missing > 0) ...[
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              height: AppSizes.buttonHeight,
+                              child: FilledButton(
+                                onPressed: onEditInfo,
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.onPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  l10n.profileCompleteInfoCta,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      l10n.profileQuickActions,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _QuickTile(
+                            icon: Icons.edit_outlined,
+                            label: l10n.profileActionEditInfo,
+                            onTap: onEditInfo,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _QuickTile(
+                            icon: Icons.headset_mic_rounded,
+                            label: l10n.profileActionSupport,
+                            onTap: onSupport,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _QuickTile(
+                            icon: Icons.settings_rounded,
+                            label: l10n.profileSettingsTitle,
+                            onTap: onLanguage,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _QuickTile(
+                            icon: Icons.refresh_rounded,
+                            label: l10n.profileRefreshTooltip,
+                            onTap: () {
+                              TexiUiFeedback.lightTap();
+                              onRefresh();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xxx,
-              0,
+              AppSpacing.section,
               AppSpacing.xxx,
               AppSpacing.sheetBodyV,
             ),
@@ -164,54 +478,6 @@ class _ProfileBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _ProfileHighlights(profile: profile, l10n: l10n),
-                  const SizedBox(height: AppSpacing.section),
-                  _QuickActionsPanel(
-                    l10n: l10n,
-                    onEditInfo: onEditInfo,
-                    onSupport: onSupport,
-                    onLanguage: onLanguage,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  _ModernSectionTitle(label: l10n.profileSectionBasics),
-                  const SizedBox(height: AppSpacing.xl),
-                  _GlassCard(
-                    child: Column(
-                      children: [
-                        _DataRow(
-                          icon: Icons.badge_outlined,
-                          label: l10n.profileFieldFullName,
-                          value: profile.displayName.isEmpty ? l10n.commonEmptyDash : profile.displayName,
-                        ),
-                        const Divider(height: 1),
-                        _DataRow(
-                          icon: Icons.smartphone_rounded,
-                          label: l10n.profileFieldPhone,
-                          value: profile.phone.isEmpty ? l10n.commonEmptyDash : profile.phone,
-                        ),
-                        if (profile.email != null && profile.email!.isNotEmpty) ...[
-                          const Divider(height: 1),
-                          _DataRow(
-                            icon: Icons.alternate_email_rounded,
-                            label: l10n.profileFieldEmail,
-                            value: profile.email!,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.section),
-                  _ModernSectionTitle(label: l10n.profileSectionPreferences),
-                  const SizedBox(height: AppSpacing.xl),
-                  _PreferencesCard(l10n: l10n),
-                  const SizedBox(height: AppSpacing.section),
-                  _ModernSectionTitle(label: l10n.profileSectionSecurity),
-                  const SizedBox(height: AppSpacing.xl),
-                  _SecurityCard(
-                    l10n: l10n,
-                    profile: profile,
-                  ),
-                  const SizedBox(height: AppSpacing.section),
                   _ModernSectionTitle(label: l10n.passengerLegalSectionTitle),
                   const SizedBox(height: AppSpacing.xl),
                   const PassengerProfileLegalSection(showTitle: false),
@@ -225,185 +491,115 @@ class _ProfileBody extends StatelessWidget {
   }
 }
 
-class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({
-    required this.profile,
-    required this.l10n,
-    required this.onRefresh,
+class _ProfileInitialsAvatar extends StatelessWidget {
+  const _ProfileInitialsAvatar({
+    required this.name,
+    required this.size,
   });
 
-  final PassengerProfileVm profile;
-  final AppLocalizations l10n;
-  final Future<void> Function() onRefresh;
+  final String name;
+  final double size;
+
+  String _initials() {
+    String firstChar(String s) {
+      final t = s.trim();
+      if (t.isEmpty) return '';
+      return t.substring(0, 1).toUpperCase();
+    }
+
+    final cleaned = name.trim();
+    if (cleaned.isEmpty) return 'TX';
+    final parts = cleaned
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList(growable: false);
+    if (parts.length >= 2) {
+      return '${firstChar(parts[0])}${firstChar(parts[1])}';
+    }
+    if (cleaned.length >= 2) {
+      return cleaned.substring(0, 2).toUpperCase();
+    }
+    return firstChar(cleaned);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final name = profile.displayName.isEmpty ? profile.phone : profile.displayName;
-    final subtitle = profile.displayName.isEmpty ? l10n.profileTaglinePassenger : profile.phone;
-    final hasEmail = profile.email != null && profile.email!.trim().isNotEmpty;
+    final initials = _initials();
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xxx,
-        0,
-        AppSpacing.xxx,
-        AppSpacing.section,
-      ),
-      decoration: BoxDecoration(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.black.withValues(alpha: 0.28),
-            AppColors.surface.withValues(alpha: 0.82),
-            AppColors.background.withValues(alpha: 0.92),
+            Color(0xFF2E3A4A),
+            Color(0xFF1E2733),
           ],
-          stops: const [0.0, 0.62, 1.0],
         ),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    TexiUiFeedback.lightTap();
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.goNamed(AppRouter.home);
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  color: AppColors.onPrimary,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black.withValues(alpha: 0.22),
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: l10n.profileRefreshTooltip,
-                  onPressed: () async {
-                    TexiUiFeedback.lightTap();
-                    await onRefresh();
-                  },
-                  icon: const Icon(Icons.refresh_rounded),
-                  color: AppColors.onPrimary,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black.withValues(alpha: 0.22),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                    height: 1.2,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              alignment: WrapAlignment.center,
-              children: [
-                _ChipPill(
-                  icon: profile.isVerified
-                      ? Icons.verified_rounded
-                      : Icons.info_outline_rounded,
-                  label: profile.isVerified
-                      ? l10n.profileVerifiedBadge
-                      : l10n.profileSectionSecurity,
-                  foreground: profile.isVerified
-                      ? AppColors.success
-                      : AppColors.textSecondary,
-                ),
-                if (hasEmail)
-                  _ChipPill(
-                    icon: Icons.alternate_email_rounded,
-                    label: profile.email ?? '',
-                    foreground: AppColors.textSecondary,
-                  ),
-                if (profile.accountStatus != null &&
-                    profile.accountStatus!.isNotEmpty)
-                  _ChipPill(
-                    icon: Icons.shield_outlined,
-                    label:
-                        '${l10n.profileAccountLabel}: ${profile.accountStatus}',
-                    foreground: AppColors.textSecondary,
-                  ),
-              ],
-            ),
-          ],
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: AppColors.onPrimary.withValues(alpha: 0.98),
+          fontSize: size * 0.32,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
 }
 
-class _ChipPill extends StatelessWidget {
-  const _ChipPill({
+class _QuickTile extends StatelessWidget {
+  const _QuickTile({
     required this.icon,
     required this.label,
-    required this.foreground,
+    required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final Color foreground;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.42)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: foreground),
-          const SizedBox(width: AppSpacing.xs),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+    return Material(
+      color: const Color(0xFF141414),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          TexiUiFeedback.lightTap();
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+          child: Column(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 24),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                    ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
+
 
 class _ModernSectionTitle extends StatelessWidget {
   const _ModernSectionTitle({required this.label});
@@ -449,399 +645,6 @@ class _GlassCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: child,
-      ),
-    );
-  }
-}
-
-class _DataRow extends StatelessWidget {
-  const _DataRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xxx,
-        vertical: AppSpacing.xl,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 22, color: AppColors.primary.withValues(alpha: 0.9)),
-          const SizedBox(width: AppSpacing.xl),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        height: 1.25,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileHighlights extends StatelessWidget {
-  const _ProfileHighlights({
-    required this.profile,
-    required this.l10n,
-  });
-
-  final PassengerProfileVm profile;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    String cleanPhotoLabel(String value) =>
-        value.replaceAll('(servidor)', '').replaceAll('(server)', '').trim();
-    final hasName = profile.displayName.trim().isNotEmpty;
-    final hasPhone = profile.phone.trim().isNotEmpty;
-    final hasEmail = profile.email != null && profile.email!.trim().isNotEmpty;
-    final hasPhoto = profile.profilePhotoUrl != null && profile.profilePhotoUrl!.trim().isNotEmpty;
-    final completed = [hasName, hasPhone, hasEmail, hasPhoto].where((e) => e).length;
-    final completion = ((completed / 4) * 100).round();
-
-    return _GlassCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.profileSectionBasics,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                  ),
-                ),
-                Text(
-                  '$completion%',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primary,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              child: LinearProgressIndicator(
-                minHeight: 8,
-                value: completion / 100,
-                color: AppColors.primary,
-                backgroundColor: AppColors.border.withValues(alpha: 0.45),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: _StatItem(
-                    icon: Icons.verified_user_outlined,
-                    label: l10n.profileAccountLabel,
-                    value: profile.isVerified ? 'OK' : l10n.commonEmptyDash,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: _StatItem(
-                    icon: Icons.contact_page_outlined,
-                    label: l10n.profileFieldFullName,
-                    value: hasName ? 'OK' : l10n.commonEmptyDash,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: _StatItem(
-                    icon: Icons.image_outlined,
-                    label: cleanPhotoLabel(l10n.profilePhotoFromServer),
-                    value: hasPhoto ? 'OK' : l10n.commonEmptyDash,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickActionsPanel extends StatelessWidget {
-  const _QuickActionsPanel({
-    required this.l10n,
-    required this.onEditInfo,
-    required this.onSupport,
-    required this.onLanguage,
-  });
-
-  final AppLocalizations l10n;
-  final VoidCallback onEditInfo;
-  final VoidCallback onSupport;
-  final VoidCallback onLanguage;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.border.withValues(alpha: 0.55)),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: AppColors.textSecondary,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    l10n.profileQuickActions,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.profileTaglinePassenger,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Column(
-              children: [
-                _ActionCard(
-                  icon: Icons.edit_outlined,
-                  label: l10n.profileActionEditInfo,
-                  subtitle: l10n.profileSectionBasics,
-                  onTap: onEditInfo,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _ActionCard(
-                  icon: Icons.support_agent_rounded,
-                  label: l10n.profileActionSupport,
-                  subtitle: l10n.profileSectionSecurity,
-                  onTap: onSupport,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _ActionCard(
-                  icon: Icons.language_rounded,
-                  label: l10n.settingsLanguage,
-                  subtitle: l10n.homeTooltipLanguage,
-                  onTap: onLanguage,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatefulWidget {
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  State<_ActionCard> createState() => _ActionCardState();
-}
-
-class _ActionCardState extends State<_ActionCard> {
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _pressed ? 0.987 : 1,
-      duration: const Duration(milliseconds: 110),
-      child: InkWell(
-        onTap: widget.onTap,
-        onHighlightChanged: (v) => setState(() => _pressed = v),
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.xl,
-          ),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.surface.withValues(alpha: 0.92),
-                AppColors.background.withValues(alpha: 0.55),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                  border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                ),
-                child: Icon(
-                  widget.icon,
-                  size: 18,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -928,45 +731,3 @@ class _PreferencesCardState extends State<_PreferencesCard> {
   }
 }
 
-class _SecurityCard extends StatelessWidget {
-  const _SecurityCard({
-    required this.l10n,
-    required this.profile,
-  });
-
-  final AppLocalizations l10n;
-  final PassengerProfileVm profile;
-
-  String _formatLastAccess() {
-    final dt = profile.lastAccessAt;
-    if (dt == null) return l10n.profileSecurityNotAvailable;
-    final mm = dt.month.toString().padLeft(2, '0');
-    final dd = dt.day.toString().padLeft(2, '0');
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return '${dt.year}-$mm-$dd $hh:$mi';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassCard(
-      child: Column(
-        children: [
-          _DataRow(
-            icon: Icons.fingerprint_rounded,
-            label: l10n.profileFieldBiometrics,
-            value: profile.biometricsEnabled
-                ? l10n.commonEnabled
-                : l10n.commonDisabled,
-          ),
-          const Divider(height: 1),
-          _DataRow(
-            icon: Icons.schedule_rounded,
-            label: l10n.profileFieldLastAccess,
-            value: _formatLastAccess(),
-          ),
-        ],
-      ),
-    );
-  }
-}

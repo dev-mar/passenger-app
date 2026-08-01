@@ -131,6 +131,18 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       return;
     }
     try {
+      // Viaje activo: prioridad el pin del vehículo (no forzar GPS si falla).
+      final animated = _m._animatedDriverLatLng;
+      if (animated != null || (driverLat != null && driverLng != null)) {
+        final driver = animated ?? LatLng(driverLat!, driverLng!);
+        await c.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: driver, zoom: 15.8),
+          ),
+        );
+        return;
+      }
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 6));
@@ -140,30 +152,13 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         setState(() => _m._deviceGpsFixOk = true);
       }
 
-      // Si tenemos conductor, encuadramos ambos puntos para dar contexto.
-      if (driverLat != null && driverLng != null) {
-        final driver = LatLng(driverLat, driverLng);
-        final mid = LatLng(
-          (passenger.latitude + driver.latitude) / 2.0,
-          (passenger.longitude + driver.longitude) / 2.0,
-        );
-        final distKm = tripRequestDistanceKm(passenger, driver);
-        final zoom = tripRequestEstimateZoomForDistanceKm(distKm);
-        await c.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(target: mid, zoom: zoom),
-          ),
-        );
-        return;
-      }
-
       await c.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(target: passenger, zoom: 16),
         ),
       );
     } catch (_) {
-      // Silencioso: es una acciÃ³n de conveniencia.
+      // Silencioso: es una acción de conveniencia (no forzar mapa en reconnect).
     } finally {
       if (mounted) setState(() => _m._recenterInProgress = false);
     }
@@ -535,7 +530,30 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _animateDriverMarkerTo(target);
+      if (passengerTripIsTrackingDriver(status)) {
+        _centerCameraOnDriverPin(target);
+      }
     });
+  }
+
+  /// Viaje activo: el pin del vehículo es el ancla visual del mapa.
+  void _centerCameraOnDriverPin(LatLng driver) {
+    final c = _m._controller;
+    if (c == null || !_m._appInForeground) return;
+    final now = DateTime.now();
+    if (_m._lastPassengerEnRouteCameraFitAt != null &&
+        now.difference(_m._lastPassengerEnRouteCameraFitAt!) <
+            TripRouteTrackingPolicy.navigationCameraMinGap) {
+      return;
+    }
+    _m._lastPassengerEnRouteCameraFitAt = now;
+    unawaited(
+      c.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: driver, zoom: 15.8),
+        ),
+      ),
+    );
   }
 
   void _animateDriverMarkerTo(LatLng target) {
@@ -592,8 +610,24 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     _m._mapCenter = position.target;
     if (_computeIsDraftMapConfirmMode()) {
       _m._mapConfirmIdleTimer?.cancel();
-      if (!_m._mapConfirmInstructionHiddenWhileDragging) {
-        setState(() => _m._mapConfirmInstructionHiddenWhileDragging = true);
+      final shouldHideChrome = !_m._mapConfirmInstructionHiddenWhileDragging;
+      final shouldCollapseSearch = _m._draftSearchFocus.hasFocus ||
+          _m._draftSearchController.text.isNotEmpty;
+      if (shouldHideChrome || shouldCollapseSearch) {
+        setState(() {
+          if (shouldHideChrome) {
+            _m._mapConfirmInstructionHiddenWhileDragging = true;
+          }
+          if (shouldCollapseSearch) {
+            _m._draftSearchCollapseToken++;
+            _m._draftSearchFocus.unfocus();
+            if (_m._draftSearchController.text.isNotEmpty) {
+              _m._draftSearchController.clear();
+              _m._draftSuggestions = const <PlaceSuggestion>[];
+              _m._loadingDraftSuggestions = false;
+            }
+          }
+        });
       }
     }
     // Si solo falta confirmar destino (origen listo, destino nulo) y el usuario

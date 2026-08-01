@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../config/app_config.dart';
 import '../network/passenger_client_meta.dart';
 import '../network/passenger_http_resilience.dart';
 import '../notifications/passenger_push_token_service.dart';
+import '../storage/passenger_secure_storage.dart';
 import '../storage/trip_session_storage.dart';
 
 /// Claves de almacenamiento seguro.
@@ -28,7 +28,6 @@ const int _expiryMarginSeconds = 300; // 5 minutos
 /// - Si una petición devuelve 401, se llama [logout] y [onSessionExpired] para desloguear y llevar a login.
 class AuthService {
   AuthService._();
-  static const _storage = FlutterSecureStorage();
 
   /// Callback que la app debe asignar al arrancar (main). Se invoca cuando el backend
   /// responde 401 (token expirado/inválido) para cerrar sesión y redirigir a login.
@@ -42,9 +41,7 @@ class AuthService {
   /// está vencido o por vencer, intenta refrescar. Retorna null si no hay sesión o el refresh falla.
   static Future<String?> _readSecure(String key) async {
     try {
-      return await _storage
-          .read(key: key)
-          .timeout(const Duration(seconds: 4));
+      return await PassengerSecureStorage.read(key);
     } catch (_) {
       return null;
     }
@@ -77,17 +74,17 @@ class AuthService {
     String? refreshToken,
     int? expiresInSeconds,
   }) async {
-    await _storage.write(key: _keyAuthToken, value: token);
+    await PassengerSecureStorage.write(_keyAuthToken, token);
     if (refreshToken != null && refreshToken.isNotEmpty) {
-      await _storage.write(key: _keyRefreshToken, value: refreshToken);
+      await PassengerSecureStorage.write(_keyRefreshToken, refreshToken);
     } else {
-      await _storage.delete(key: _keyRefreshToken);
+      await PassengerSecureStorage.delete(_keyRefreshToken);
     }
     if (expiresInSeconds != null && expiresInSeconds > 0) {
       final expiresAt = (DateTime.now().millisecondsSinceEpoch ~/ 1000) + expiresInSeconds;
-      await _storage.write(key: _keyExpiresAt, value: expiresAt.toString());
+      await PassengerSecureStorage.write(_keyExpiresAt, expiresAt.toString());
     } else {
-      await _storage.delete(key: _keyExpiresAt);
+      await PassengerSecureStorage.delete(_keyExpiresAt);
     }
     if (onSessionEstablished != null) {
       try {
@@ -99,11 +96,11 @@ class AuthService {
   /// Cierra sesión: borra token y refresh.
   static Future<void> logout() async {
     await PassengerPushTokenService.instance.revokeAllOnServerIfPossible();
-    await _storage.delete(key: _keyAuthToken);
-    await _storage.delete(key: _keyRefreshToken);
-    await _storage.delete(key: _keyExpiresAt);
-    await _storage.delete(key: _keyPassengerDisplayName);
-    await _storage.delete(key: _keyPassengerLoginPhoneE164);
+    await PassengerSecureStorage.delete(_keyAuthToken);
+    await PassengerSecureStorage.delete(_keyRefreshToken);
+    await PassengerSecureStorage.delete(_keyExpiresAt);
+    await PassengerSecureStorage.delete(_keyPassengerDisplayName);
+    await PassengerSecureStorage.delete(_keyPassengerLoginPhoneE164);
     // Viaje activo vive en secure storage aparte; si no se limpia, al volver a entrar se rehidrata el card colgado.
     await TripSessionStorage.clearActiveTripId();
   }
@@ -112,39 +109,39 @@ class AuthService {
   static Future<void> persistLoginPhoneE164(String rawPhone) async {
     final d = rawPhone.replaceAll(RegExp(r'\D'), '');
     if (d.length < 8) return;
-    await _storage.write(key: _keyPassengerLoginPhoneE164, value: d);
+    await PassengerSecureStorage.write(_keyPassengerLoginPhoneE164, d);
   }
 
   static Future<String?> readLoginPhoneE164Digits() async {
-    return _storage.read(key: _keyPassengerLoginPhoneE164);
+    return PassengerSecureStorage.read(_keyPassengerLoginPhoneE164);
   }
 
   /// Guarda el nombre visible del pasajero localmente (simulación de perfil).
   static Future<void> savePassengerDisplayName(String name) async {
-    await _storage.write(key: _keyPassengerDisplayName, value: name);
+    await PassengerSecureStorage.write(_keyPassengerDisplayName, name);
   }
 
   static Future<String?> getPassengerDisplayName() async {
-    return _storage.read(key: _keyPassengerDisplayName);
+    return PassengerSecureStorage.read(_keyPassengerDisplayName);
   }
 
   static Future<void> savePassengerPreferences({
     required bool notificationsEnabled,
     required bool darkModeEnabled,
   }) async {
-    await _storage.write(
-      key: _keyPassengerPrefNotifications,
-      value: notificationsEnabled ? 'true' : 'false',
+    await PassengerSecureStorage.write(
+      _keyPassengerPrefNotifications,
+      notificationsEnabled ? 'true' : 'false',
     );
-    await _storage.write(
-      key: _keyPassengerPrefDarkMode,
-      value: darkModeEnabled ? 'true' : 'false',
+    await PassengerSecureStorage.write(
+      _keyPassengerPrefDarkMode,
+      darkModeEnabled ? 'true' : 'false',
     );
   }
 
   static Future<({bool notificationsEnabled, bool darkModeEnabled})> getPassengerPreferences() async {
-    final n = await _storage.read(key: _keyPassengerPrefNotifications);
-    final d = await _storage.read(key: _keyPassengerPrefDarkMode);
+    final n = await PassengerSecureStorage.read(_keyPassengerPrefNotifications);
+    final d = await PassengerSecureStorage.read(_keyPassengerPrefDarkMode);
     final notificationsEnabled = n == null ? true : n == 'true';
     final darkModeEnabled = d == null ? false : d == 'true';
     return (
@@ -155,21 +152,26 @@ class AuthService {
 
   /// Indica si hay al menos un token guardado (puede estar vencido).
   static Future<bool> hasStoredSession() async {
-    final token = await _storage.read(key: _keyAuthToken);
+    final token = await _readSecure(_keyAuthToken);
     return token != null && token.isNotEmpty;
   }
 
   static Future<String?> _refresh(String refreshToken) async {
     try {
       final path = AppConfig.refreshPath;
-      final meta = await passengerAuthClientMeta();
-      final response = await _dio.post(
-        path,
-        data: <String, dynamic>{
-          ...meta,
-          'refresh_token': refreshToken,
-        },
+      final meta = await passengerAuthClientMeta().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => const <String, dynamic>{},
       );
+      final response = await _dio
+          .post(
+            path,
+            data: <String, dynamic>{
+              ...meta,
+              'refresh_token': refreshToken,
+            },
+          )
+          .timeout(const Duration(seconds: 8));
       final data = response.data;
       if (data is! Map) return null;
 

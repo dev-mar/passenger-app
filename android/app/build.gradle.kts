@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("kotlin-android")
     id("com.google.gms.google-services")
@@ -48,7 +48,7 @@ android {
         }
         create("prod") {
             dimension = "environment"
-            resValue("string", "app_name", "Texi")
+            resValue("string", "app_name", "TEXIAPP")
         }
     }
 

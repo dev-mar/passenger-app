@@ -1,20 +1,24 @@
 ﻿import 'dart:async';
+import 'dart:io' show Platform, exit;
+
 import 'package:battery_plus/battery_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform, kIsWeb;
+    show defaultTargetPlatform, TargetPlatform, kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/config/locale_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_ui_tokens.dart';
-import '../../core/ui/texi_scale_press.dart';
+import '../../core/constants/app_assets.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
@@ -24,11 +28,13 @@ import '../../core/network/geocoding_service.dart';
 import '../../core/network/passenger_map_telemetry_service.dart';
 import '../../core/network/places_autocomplete_service.dart';
 import '../../data/models/quote_response.dart';
+import '../../data/models/nearby_driver.dart';
 import '../../core/router/app_router.dart';
 import '../../core/notifications/passenger_fcm_navigation.dart'
     show
         passengerTripChatOpenBump,
         takePendingPassengerChatTripIdFromNotification;
+import '../../core/notifications/passenger_notification_service.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/compliance/passenger_play_permission_disclosures.dart';
@@ -45,13 +51,15 @@ import 'passenger_realtime_controller.dart'
 import 'trip_recovery_feedback.dart';
 import 'passenger_trip_chat_l10n.dart';
 import 'passenger_trip_submit_helper.dart';
+import 'widgets/passenger_trip_toast.dart';
 import 'widgets/passenger_rating_sheet.dart';
-import 'widgets/passenger_profile_menu_action_tile.dart';
+import 'widgets/passenger_fan_menu.dart';
 import 'widgets/passenger_trip_quote_bottom_sheet.dart';
 import 'widgets/passenger_trip_draft_bottom_bar.dart';
 import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
+import 'widgets/passenger_trip_recovery_panel.dart';
 import 'trip_driver_marker.dart';
 import 'trip_request_route_service.dart';
 import 'trip_request_trip_phase_helpers.dart';
@@ -144,6 +152,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   Timer? _mapConfirmIdleTimer;
   bool _mapConfirmInstructionHiddenWhileDragging = false;
   String? _mapNeedleAddressPreview;
+  /// Incrementar para forzar colapso de la lupa expandida (mapa, editar, etc.).
+  int _draftSearchCollapseToken = 0;
   int _autoQuoteRouteGeneration = 0;
   bool _submittingTrip = false;
   List<TripRecentPlaceItem> _recentOriginPlaces = const <TripRecentPlaceItem>[];
@@ -200,7 +210,18 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   BitmapDescriptor? _originOnTripIcon;
   BitmapDescriptor? _destinationOnTripIcon;
   late final AnimationController _driverPulseController;
+  /// Pulso de radar en mapa solo durante matching.
+  late final AnimationController _searchingMapRadarController;
   Timer? _driverMotionTimer;
+  Timer? _searchingNearbyTimer;
+  List<NearbyDriver> _searchingNearbyDrivers = const [];
+  /// Overlay de matching visible tras cancelar por stage-3 / antes de Continuar.
+  bool _searchingHoldUi = false;
+  /// Regenera el overlay (etapas 0) al reintentar búsqueda.
+  int _searchingOverlayGeneration = 0;
+  bool _searchingStage3CancelInFlight = false;
+  /// Evita recentrar el mapa en origen en cada rebuild durante matching.
+  bool _searchingOriginCameraDone = false;
   LatLng? _animatedDriverLatLng;
   double? _lastDriverRawLat;
   double? _lastDriverRawLng;

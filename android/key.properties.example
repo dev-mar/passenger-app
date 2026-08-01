@@ -1,4 +1,5 @@
-﻿storePassword=CHANGE_ME
+﻿# Copia a android/key.properties y reemplaza CHANGE_ME (no commitear key.properties).
+storePassword=CHANGE_ME
 keyPassword=CHANGE_ME
-keyAlias=upload
-storeFile=../upload-keystore.jks
+keyAlias=CHANGE_ME
+storeFile=../keystore/texi_passenger_upload.jks

@@ -26,6 +26,18 @@ class PassengerAppEnvironment {
     defaultValue: false,
   );
 
+  /// Humo QA: activa WA inbound en build dev contra `api.dev` (no usar en release prod).
+  static const bool multichannelAuthDartDefine = bool.fromEnvironment(
+    'TEXI_PASSENGER_MULTICHANNEL_AUTH',
+    defaultValue: false,
+  );
+
+  /// Cloudflare Turnstile site key (pública) — Fase 2 step-up.
+  static const String turnstileSiteKey = String.fromEnvironment(
+    'TURNSTILE_SITE_KEY',
+    defaultValue: '',
+  );
+
   static const String devBackendDefault = 'https://api.dev.taxitexi.com';
 
   /// API prod canónica (REST + Socket.IO). No confundir con `api-prod` (panel admin).
@@ -59,17 +71,17 @@ class PassengerAppEnvironment {
     if (isDev) {
       return devBackendDefault;
     }
-    throw StateError(
-      'Falta TEXI_BACKEND_BASE_URL en build prod. '
-      'Usa --dart-define=TEXI_BACKEND_BASE_URL=https://HOST_API_PROD',
-    );
+    // Fallback canónico: evita crash/splash colgado si el define no llegó al APK.
+    // El script de build debe inyectar TEXI_BACKEND_BASE_URL; esto es red de seguridad.
+    return prodBackendCanonical;
   }
 
   static bool get showsInternalToolsByDefault =>
       internalToolsDartDefine || isDev;
 
-  /// Auth multicanal (WA inbound Fase 1): activo en prod; dev mantiene OTP manual.
-  static bool get multichannelAuthEnabled => isProd;
+  /// Auth multicanal (WA inbound Fase 1): prod siempre; dev solo con override QA compile-time.
+  static bool get multichannelAuthEnabled =>
+      isProd || multichannelAuthDartDefine;
 
   static String get firebaseAndroidApplicationId => isDev
       ? 'com.taxitexi.texi_passenger_app.dev'

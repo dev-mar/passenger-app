@@ -92,6 +92,16 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
     state = state.copyWith(tripId: tripId).clearError();
   }
 
+  /// Limpia solo el tripId (p. ej. matching expirado antes de reintentar).
+  void clearTripIdKeepingRoute() {
+    state = TripRequestState(
+      origin: state.origin,
+      destination: state.destination,
+      quote: state.quote,
+      selectedOption: state.selectedOption,
+    );
+  }
+
   void setError(String message) {
     state = state.copyWith(error: message);
   }

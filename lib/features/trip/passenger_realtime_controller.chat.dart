@@ -3,15 +3,16 @@ part of 'passenger_realtime_controller.dart';
 mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
   PassengerRealtimeController get _rt => this as PassengerRealtimeController;
 
-  void sendTripChatTemplate({
+  Future<void> sendTripChatTemplate({
     required String tripId,
     required String templateCode,
-  }) {
+  }) async {
     if (!passengerTripChatPhaseActive(state.status)) {
       state = state.copyWith(tripChatErrorCode: 'TRIP_CHAT_NOT_AVAILABLE');
       return;
     }
-    if (_rt._socket == null || !state.connected) {
+    final live = await _rt.ensureSocketConnected(tripId: tripId);
+    if (!live) {
       state = state.copyWith(tripChatErrorCode: 'SOCKET');
       return;
     }
@@ -22,14 +23,18 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
     });
   }
 
-  void sendTripChatText({required String tripId, required String text}) {
+  Future<void> sendTripChatText({
+    required String tripId,
+    required String text,
+  }) async {
     final sanitized = text.trim();
     if (sanitized.isEmpty) return;
     if (!passengerTripChatPhaseActive(state.status)) {
       state = state.copyWith(tripChatErrorCode: 'TRIP_CHAT_NOT_AVAILABLE');
       return;
     }
-    if (_rt._socket == null || !state.connected) {
+    final live = await _rt.ensureSocketConnected(tripId: tripId);
+    if (!live) {
       state = state.copyWith(tripChatErrorCode: 'SOCKET');
       return;
     }
@@ -38,6 +43,36 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       'messageKind': 'text',
       'messageText': sanitized,
     });
+  }
+
+  /// Hidrata chat desde FCM solo si el WS no puede entregar `trip:chat:new`.
+  /// Con socket vivo no insertamos: el push y el WS llegaban a la vez con ids
+  /// distintos (`fcm-…` vs UUID) y se veían dos burbujas con horas desfasadas.
+  void ingestChatFromPush({
+    required String tripId,
+    required String messageText,
+    String senderRole = 'driver',
+  }) {
+    if (_rt._socketLive) return;
+    final text = messageText.trim();
+    if (text.isEmpty) return;
+    var body = text;
+    final prefixes = <String>['Conductor:', 'Driver:', 'Pasajero:', 'Passenger:'];
+    for (final p in prefixes) {
+      if (body.toLowerCase().startsWith(p.toLowerCase())) {
+        body = body.substring(p.length).trim();
+        break;
+      }
+    }
+    if (body.isEmpty) body = text;
+    _handleTripChatNew({
+      'tripId': tripId,
+      'id': 'fcm-${tripId.hashCode}-${body.hashCode}',
+      'senderRole': senderRole,
+      'messageKind': 'text',
+      'messageText': body,
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
+    }, tripId);
   }
 
   void _handleTripArrivalReminder(Map data, String tripId) {
@@ -68,11 +103,60 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
     }
   }
 
+  DateTime? _parseTripChatCreatedAt(Object? raw) {
+    final parsed = DateTime.tryParse(raw?.toString() ?? '');
+    return parsed?.toLocal();
+  }
+
+  bool _isSyntheticFcmChatId(String id) => id.startsWith('fcm-');
+
+  /// Misma burbuja lógica aunque FCM y WS usen ids distintos.
+  bool _isSameTripChatContent(TripChatMessage a, {
+    required String tripId,
+    required String senderRole,
+    required String messageText,
+    required String? templateCode,
+    required DateTime? createdAt,
+  }) {
+    if (a.tripId != tripId || a.senderRole != senderRole) return false;
+    final codeA = (a.templateCode ?? '').trim();
+    final codeB = (templateCode ?? '').trim();
+    final textMatch = codeA.isNotEmpty && codeB.isNotEmpty
+        ? codeA == codeB
+        : a.messageText.trim() == messageText.trim();
+    if (!textMatch) return false;
+    // Ventana corta: evita colapsar dos “ok” legítimos minutos después.
+    final aAt = a.createdAt;
+    final bAt = createdAt;
+    if (aAt == null || bAt == null) return true;
+    return aAt.difference(bAt).abs() <= const Duration(minutes: 2);
+  }
+
   void _handleTripChatNew(Map data, String tripId) {
     try {
-      if (!passengerTripChatPhaseActive(state.status)) return;
       final eventTripId = data['tripId']?.toString();
       if (eventTripId == null || eventTripId != tripId) return;
+
+      // No descartar por lag de status: FCM puede llegar mientras el UI sigue en
+      // "searching". Un mensaje de chat implica viaje operativo (accepted+).
+      if (!passengerTripChatPhaseActive(state.status)) {
+        if (passengerTripIsAwaitingDriverMatch(state.status) ||
+            state.status == null) {
+          state = state.copyWith(status: 'accepted', activeTripId: eventTripId);
+          unawaited(
+            TripSessionStorage.saveLastKnownStatus(
+              tripId: eventTripId,
+              status: 'accepted',
+            ),
+          );
+          unawaited(_rt.syncTripStatusFromApi(tripId: eventTripId, force: true));
+        } else if (!passengerTripIsTrackingDriver(state.status)) {
+          // completed/cancelled/expired: no acumular chat.
+          return;
+        }
+        // started/in_trip: aún se muestra historial si llega retraso de WS.
+      }
+
       final id =
           data['id']?.toString() ??
           '${DateTime.now().millisecondsSinceEpoch}-${state.chatMessages.length}';
@@ -81,9 +165,41 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       final templateCode = data['templateCode']?.toString();
       final messageText = data['messageText']?.toString().trim() ?? '';
       if (messageText.isEmpty) return;
-      final createdAt = DateTime.tryParse(
-        data['createdAt']?.toString() ?? '',
+
+      // Deduplicar por id (reentregas WS).
+      if (state.chatMessages.any((m) => m.id == id)) return;
+
+      final createdAt = _parseTripChatCreatedAt(data['createdAt']);
+      final dupIndex = state.chatMessages.indexWhere(
+        (m) => _isSameTripChatContent(
+          m,
+          tripId: eventTripId,
+          senderRole: senderRole,
+          messageText: messageText,
+          templateCode: templateCode,
+          createdAt: createdAt,
+        ),
       );
+      if (dupIndex >= 0) {
+        final existing = state.chatMessages[dupIndex];
+        // Preferir UUID del WS sobre id sintético FCM; actualizar createdAt del server.
+        final upgrade =
+            _isSyntheticFcmChatId(existing.id) && !_isSyntheticFcmChatId(id);
+        if (!upgrade) return;
+        final next = List<TripChatMessage>.from(state.chatMessages);
+        next[dupIndex] = TripChatMessage(
+          id: id,
+          tripId: eventTripId,
+          senderRole: senderRole,
+          messageKind: messageKind,
+          templateCode: templateCode ?? existing.templateCode,
+          messageText: messageText,
+          createdAt: createdAt ?? existing.createdAt,
+        );
+        state = state.copyWith(chatMessages: next, tripChatErrorCode: null);
+        return;
+      }
+
       final next = List<TripChatMessage>.from(state.chatMessages)
         ..add(
           TripChatMessage(

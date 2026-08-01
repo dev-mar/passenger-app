@@ -6,6 +6,7 @@ import '../auth/auth_service.dart';
 import '../config/passenger_app_environment.dart';
 import '../session/passenger_internal_tools_gate.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/login/auth_step_up_screen.dart';
 import '../../features/login/login_screen.dart';
 import '../../features/login/verify_code_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
@@ -29,6 +30,7 @@ class AppRouter {
   static const String splash = 'splash';
   static const String login = 'login';
   static const String verifyCode = 'verify_code';
+  static const String authStepUp = 'auth_step_up';
   static const String profileSetup = 'profile_setup';
   static const String home = 'home';
   static const String passengerProfile = 'passenger_profile';
@@ -51,6 +53,7 @@ class AppRouter {
     '/',
     '/login',
     '/auth/verify',
+    '/auth/step-up',
     '/auth/profile',
   };
 
@@ -73,9 +76,7 @@ class AppRouter {
       return await AuthService.hasStoredSession()
           .timeout(const Duration(seconds: 3));
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[AppRouter] Error leyendo sesión: $e');
-      }
+      debugPrint('[AppRouter] Error leyendo sesión: $e');
       return false;
     }
   }
@@ -108,7 +109,7 @@ class AppRouter {
       final hasSession = await _hasStoredSession();
 
       if (location == '/login' && hasSession) {
-        return '/home';
+        return '/trip/request';
       }
 
       if (_isProtectedPath(location) && !hasSession) {
@@ -130,7 +131,14 @@ class AppRouter {
       GoRoute(
         path: '/login',
         name: login,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return LoginScreen(
+            initialCountryCode: q['cc'],
+            initialPhone: q['phone'],
+            stepUpCompleted: q['step_up_done'] == '1',
+          );
+        },
       ),
       GoRoute(
         path: '/auth/verify',
@@ -145,6 +153,17 @@ class AppRouter {
             verificationChannel: q['channel'],
             challengeId: q['challenge_id'],
             waDeepLink: q['wa_deep_link'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/auth/step-up',
+        name: authStepUp,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return AuthStepUpScreen(
+            countryCode: q['cc'] ?? '+591',
+            phoneNumber: q['phone'] ?? '',
           );
         },
       ),

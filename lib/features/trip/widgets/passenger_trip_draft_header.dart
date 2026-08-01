@@ -41,6 +41,8 @@ class PassengerTripDraftHeader extends StatelessWidget {
     required this.highlightOrigin,
     required this.highlightDestination,
     required this.searchPriorityMode,
+    required this.searchRole,
+    this.searchCollapseToken = 0,
     this.onEditOrigin,
     this.onEditDestination,
     required this.editStopLabel,
@@ -79,6 +81,10 @@ class PassengerTripDraftHeader extends StatelessWidget {
   final bool highlightOrigin;
   final bool highlightDestination;
   final bool searchPriorityMode;
+  /// Cambia origen↔destino: la lupa vuelve a modo compacto.
+  final PassengerDraftSearchRole searchRole;
+  /// Incrementar al mover el mapa / refrescar UI para colapsar la caja de búsqueda.
+  final int searchCollapseToken;
   final VoidCallback? onEditOrigin;
   final VoidCallback? onEditDestination;
   final String editStopLabel;
@@ -234,155 +240,26 @@ class PassengerTripDraftHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppSpacing.sm),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AnimatedBuilder(
-                        animation: searchController,
-                        builder: (context, _) {
-                          return TextField(
-                            controller: searchController,
-                            focusNode: searchFocusNode,
-                            onChanged: onSearchChanged,
-                            textInputAction: TextInputAction.search,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              filled: true,
-                              fillColor: AppColors.surface,
-                              hintText: searchFieldHint,
-                              hintStyle: TextStyle(
-                                color: AppColors.textSecondary.withValues(
-                                  alpha: 0.85,
-                                ),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 40,
-                                maxWidth: 40,
-                                minHeight: 40,
-                                maxHeight: 40,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                color: AppColors.primary.withValues(alpha: 0.9),
-                                size: 22,
-                              ),
-                              suffixIcon: searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      tooltip: MaterialLocalizations.of(
-                                        context,
-                                      ).clearButtonTooltip,
-                                      icon: Icon(
-                                        Icons.close_rounded,
-                                        color: AppColors.textSecondary,
-                                        size: AppIconSizes.md,
-                                      ),
-                                      onPressed: () {
-                                        searchController.clear();
-                                        onSearchChanged('');
-                                      },
-                                    )
-                                  : null,
-                              contentPadding: const EdgeInsets.fromLTRB(
-                                6,
-                                AppSpacing.md,
-                                AppSpacing.sm,
-                                AppSpacing.md,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.lg,
-                                ),
-                                borderSide: BorderSide(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.12,
-                                  ),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.lg,
-                                ),
-                                borderSide: BorderSide(
-                                  color: AppColors.border.withValues(
-                                    alpha: 0.35,
-                                  ),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadii.lg,
-                                ),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primary,
-                                  width: 1.4,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    // Tamaño 42x42 para uniformar con la altura efectiva del
-                    // search field (~40-44 px con `contentPadding` vertical
-                    // = `AppSpacing.md`). Antes: 46x46 (sobresalían).
-                    Tooltip(
-                      message: myLocationTooltip,
-                      child: Material(
-                        color: AppColors.surface,
-                        shape: const CircleBorder(),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: onMyLocationIconTap,
-                          child: const SizedBox(
-                            width: 42,
-                            height: 42,
-                            child: Icon(
-                              Icons.my_location_rounded,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Tooltip(
-                      message: savedPlacesTooltip,
-                      child: Material(
-                        color: AppColors.surface,
-                        shape: const CircleBorder(),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: onSavedIconTap,
-                          child: const SizedBox(
-                            width: 42,
-                            height: 42,
-                            child: Icon(
-                              Icons.bookmark_rounded,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                _CollapsibleDraftSearchRow(
+                  searchRole: searchRole,
+                  searchCollapseToken: searchCollapseToken,
+                  searchController: searchController,
+                  searchFocusNode: searchFocusNode,
+                  onSearchChanged: onSearchChanged,
+                  searchFieldHint: searchFieldHint,
+                  onMyLocationIconTap: onMyLocationIconTap,
+                  onSavedIconTap: onSavedIconTap,
+                  myLocationTooltip: myLocationTooltip,
+                  savedPlacesTooltip: savedPlacesTooltip,
                 ),
                 if (showSuggestionsPanel) ...[
                   const SizedBox(height: AppSpacing.sm),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 220),
                     child: Material(
-                      elevation: 2,
-                      shadowColor: Colors.black.withValues(alpha: 0.14),
+                      // Por encima del pin/aguja del mapa (overlay hermano en el Stack).
+                      elevation: 12,
+                      shadowColor: Colors.black.withValues(alpha: 0.28),
                       borderRadius: BorderRadius.circular(AppRadii.md),
                       color: AppColors.surface,
                       clipBehavior: Clip.antiAlias,
@@ -500,6 +377,293 @@ class PassengerTripDraftHeader extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Fila de acciones a la derecha: lupa compacta (+ GPS + favoritos).
+/// Al pulsar la lupa aparece el TextField; [searchRole]/[searchCollapseToken]
+/// vuelven al modo compacto.
+class _CollapsibleDraftSearchRow extends StatefulWidget {
+  const _CollapsibleDraftSearchRow({
+    required this.searchRole,
+    required this.searchCollapseToken,
+    required this.searchController,
+    required this.searchFocusNode,
+    required this.onSearchChanged,
+    required this.searchFieldHint,
+    required this.onMyLocationIconTap,
+    required this.onSavedIconTap,
+    required this.myLocationTooltip,
+    required this.savedPlacesTooltip,
+  });
+
+  final PassengerDraftSearchRole searchRole;
+  final int searchCollapseToken;
+  final TextEditingController searchController;
+  final FocusNode searchFocusNode;
+  final ValueChanged<String> onSearchChanged;
+  final String searchFieldHint;
+  final VoidCallback onMyLocationIconTap;
+  final VoidCallback onSavedIconTap;
+  final String myLocationTooltip;
+  final String savedPlacesTooltip;
+
+  @override
+  State<_CollapsibleDraftSearchRow> createState() =>
+      _CollapsibleDraftSearchRowState();
+}
+
+class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late final AnimationController _appearController;
+  late final CurvedAnimation _appearCurved;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.searchFocusNode.addListener(_onFocusChanged);
+    _appearController = AnimationController(
+      vsync: this,
+      duration: AppMotion.draftSearchChromeReveal,
+    );
+    _appearCurved = CurvedAnimation(
+      parent: _appearController,
+      curve: AppMotion.standard,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _CollapsibleDraftSearchRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.searchFocusNode != widget.searchFocusNode) {
+      oldWidget.searchFocusNode.removeListener(_onFocusChanged);
+      widget.searchFocusNode.addListener(_onFocusChanged);
+    }
+    if (oldWidget.searchRole != widget.searchRole ||
+        oldWidget.searchCollapseToken != widget.searchCollapseToken) {
+      _collapse(clearText: true, unfocus: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.searchFocusNode.removeListener(_onFocusChanged);
+    _appearCurved.dispose();
+    _appearController.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (!mounted) return;
+    if (!widget.searchFocusNode.hasFocus && _expanded) {
+      _collapse(clearText: true, unfocus: false);
+    }
+  }
+
+  void _collapse({required bool clearText, required bool unfocus}) {
+    final wasExpanded = _expanded;
+    if (wasExpanded) {
+      _appearController.reverse().whenComplete(() {
+        if (!mounted) return;
+        if (_appearController.value <= 0) {
+          setState(() => _expanded = false);
+        }
+      });
+    }
+    if (unfocus && widget.searchFocusNode.hasFocus) {
+      widget.searchFocusNode.unfocus();
+    }
+    if (clearText && widget.searchController.text.isNotEmpty) {
+      widget.searchController.clear();
+      widget.onSearchChanged('');
+    }
+  }
+
+  void _expand() {
+    if (_expanded && _appearController.value >= 1) {
+      widget.searchFocusNode.requestFocus();
+      return;
+    }
+    setState(() => _expanded = true);
+    _appearController.forward(from: _appearController.value);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_expanded) return;
+      widget.searchFocusNode.requestFocus();
+    });
+  }
+
+  Widget _circleAction({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        // Mismo fondo oscuro que GPS / favoritos (TripCircleButton / surface).
+        color: AppColors.surface,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: Icon(
+              icon,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchField(ThemeData theme) {
+    return AnimatedBuilder(
+      animation: widget.searchController,
+      builder: (context, _) {
+        return TextField(
+          controller: widget.searchController,
+          focusNode: widget.searchFocusNode,
+          onChanged: widget.onSearchChanged,
+          textInputAction: TextInputAction.search,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            filled: true,
+            fillColor: AppColors.surface,
+            hintText: widget.searchFieldHint,
+            hintStyle: TextStyle(
+              color: AppColors.textSecondary.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w400,
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 40,
+              maxWidth: 40,
+              minHeight: 40,
+              maxHeight: 40,
+            ),
+            prefixIcon: Icon(
+              Icons.search_rounded,
+              color: AppColors.primary.withValues(alpha: 0.9),
+              size: 22,
+            ),
+            suffixIcon: widget.searchController.text.isNotEmpty
+                ? IconButton(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).clearButtonTooltip,
+                    icon: Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textSecondary,
+                      size: AppIconSizes.md,
+                    ),
+                    onPressed: () {
+                      widget.searchController.clear();
+                      widget.onSearchChanged('');
+                    },
+                  )
+                : IconButton(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).closeButtonTooltip,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.textSecondary,
+                      size: AppIconSizes.md,
+                    ),
+                    onPressed: () =>
+                        _collapse(clearText: true, unfocus: true),
+                  ),
+            contentPadding: const EdgeInsets.fromLTRB(
+              6,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              borderSide: BorderSide(
+                color: AppColors.primary.withValues(alpha: 0.12),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              borderSide: BorderSide(
+                color: AppColors.border.withValues(alpha: 0.35),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.4,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AnimatedBuilder(
+      animation: _appearController,
+      builder: (context, _) {
+        final showFieldNow = _expanded || _appearController.value > 0;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: showFieldNow
+                  ? FadeTransition(
+                      opacity: _appearCurved,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.06, 0),
+                          end: Offset.zero,
+                        ).animate(_appearCurved),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: AppSpacing.xs),
+                          child: _buildSearchField(theme),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+            if (!showFieldNow)
+              _circleAction(
+                tooltip: widget.searchFieldHint,
+                icon: Icons.search_rounded,
+                onTap: _expand,
+              ),
+            if (!showFieldNow) const SizedBox(width: AppSpacing.xs),
+            _circleAction(
+              tooltip: widget.myLocationTooltip,
+              icon: Icons.my_location_rounded,
+              onTap: widget.onMyLocationIconTap,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            _circleAction(
+              tooltip: widget.savedPlacesTooltip,
+              icon: Icons.bookmark_rounded,
+              onTap: widget.onSavedIconTap,
+            ),
+          ],
+        );
+      },
     );
   }
 }

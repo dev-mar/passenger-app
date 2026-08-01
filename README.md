@@ -21,6 +21,8 @@ flutter run \
   --dart-define=GOOGLE_MAPS_API_KEY=YOUR_KEY
 ```
 
+> **Prod:** usar key Maps **propia del pasajero** (package `com.taxitexi.texi_passenger_app` + SHA-1 upload pasajero). No reutilizar la key prod del conductor — ver [`passenger-app-credentials-matrix.md`](../.cursor/functional-modules/passenger-trip-request/passenger-app-credentials-matrix.md).
+
 ## Estructura (`lib/`)
 
 | Área | Ruta | Rol |

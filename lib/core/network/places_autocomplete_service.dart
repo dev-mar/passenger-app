@@ -31,7 +31,7 @@ class PlaceDetailsResult {
 }
 
 /// Cliente para Google Places Autocomplete + Place Details.
-/// Requiere habilitar "Places API" en Google Cloud.
+/// Requiere habilitar "Places API" (legacy) en Google Cloud.
 class PlacesAutocompleteService {
   PlacesAutocompleteService() : _dio = passengerGoogleMapsHttpClient();
 
@@ -49,6 +49,9 @@ class PlacesAutocompleteService {
   static const _detailsUrl =
       'https://maps.googleapis.com/maps/api/place/details/json';
 
+  /// Mínimo de caracteres antes de consultar Places (control de peticiones).
+  static const int minQueryLength = 3;
+
   Future<List<PlaceSuggestion>> fetchSuggestions({
     required String query,
     required String sessionToken,
@@ -56,7 +59,7 @@ class PlacesAutocompleteService {
     double? nearLng,
   }) async {
     final q = query.trim();
-    if (q.length < 2) return const [];
+    if (q.length < minQueryLength) return const [];
     final locationBucket = nearLat != null && nearLng != null
         ? '${nearLat.toStringAsFixed(3)},${nearLng.toStringAsFixed(3)}'
         : 'none';
@@ -70,11 +73,15 @@ class PlacesAutocompleteService {
             'key': AppConfig.googleMapsApiKey,
             'language': 'es',
             'sessiontoken': sessionToken,
+            // Bolivia; el bias de ubicación prioriza la zona del mapa.
+            'components': 'country:bo',
           };
           if (nearLat != null && nearLng != null) {
             params['location'] = '$nearLat,$nearLng';
-            params['radius'] = 25000;
+            // Bias suave (sin strictbounds): ranking local sin descartar POIs útiles.
+            params['radius'] = 50000;
           }
+          // Sin `types=geocode`: permite direcciones + establecimientos / puntos.
 
           final response = await _dio.get<Map<String, dynamic>>(
             _autocompleteUrl,
@@ -84,6 +91,11 @@ class PlacesAutocompleteService {
           if (data == null || data['status'] != 'OK') return const [];
           final preds = data['predictions'] as List<dynamic>?;
           if (preds == null || preds.isEmpty) return const [];
+          final queryLower = q.toLowerCase();
+          final tokens = queryLower
+              .split(RegExp(r'\s+'))
+              .where((t) => t.length >= 2)
+              .toList(growable: false);
           return preds
               .map((raw) {
                 final item = raw as Map<String, dynamic>;
@@ -101,6 +113,16 @@ class PlacesAutocompleteService {
                 );
               })
               .where((e) => e.placeId.isNotEmpty)
+              .where((e) {
+                // Filtro suave: al menos un token relevante (Google ya rankea).
+                final hay =
+                    '${e.mainText} ${e.secondaryText} ${e.fullText}'
+                        .toLowerCase();
+                if (tokens.isEmpty) {
+                  return hay.contains(queryLower);
+                }
+                return tokens.any((t) => hay.contains(t));
+              })
               .toList(growable: false);
         } catch (_) {
           return const [];

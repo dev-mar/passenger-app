@@ -10,7 +10,9 @@ void main() {
         child: TexiApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.byType(MaterialApp), findsOneWidget);
+    // Splash + AuthService._readSecure (3× timeout 4 s) pueden dejar timers pendientes.
+    await tester.pump(const Duration(seconds: 12));
   });
 }

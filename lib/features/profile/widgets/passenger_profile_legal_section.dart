@@ -99,9 +99,17 @@ Future<void> _runPassengerAccountDeletionSchedule(
       context.goNamed(AppRouter.login);
     case PassengerAccountDeletionCancelled():
       break;
-    case PassengerAccountDeletionFailure(:final message):
+    case PassengerAccountDeletionFailure failure:
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(
+            localizedPassengerAccountDeletionFailure(
+              l10n,
+              failure,
+              flow: PassengerAccountDeletionFlow.schedule,
+            ),
+          ),
+        ),
       );
   }
 }
@@ -142,9 +150,17 @@ Future<void> _runPassengerAccountDeletionCancel(
       );
     case PassengerAccountDeletionScheduled():
       break;
-    case PassengerAccountDeletionFailure(:final message):
+    case PassengerAccountDeletionFailure failure:
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(
+            localizedPassengerAccountDeletionFailure(
+              l10n,
+              failure,
+              flow: PassengerAccountDeletionFlow.cancel,
+            ),
+          ),
+        ),
       );
   }
 }

@@ -43,6 +43,7 @@ void main() {
               highlightOrigin: false,
               highlightDestination: false,
               searchPriorityMode: false,
+              searchRole: PassengerDraftSearchRole.origin,
               editStopLabel: '',
             ),
           ),
@@ -51,23 +52,34 @@ void main() {
       await tester.pump();
     }
 
-    testWidgets('muestra origen, destino y buscador vía l10n (es)', (tester) async {
+    testWidgets('muestra origen, destino y lupa compacta vía l10n (es)', (tester) async {
       await pumpDraftOriginStep(tester);
       final l10n = l10nFromTester(tester, Scaffold);
 
       expect(find.text(l10n.tripOrigin.toUpperCase()), findsOneWidget);
       expect(find.text(l10n.tripWhereTo.toUpperCase()), findsOneWidget);
       expect(find.text(l10n.tripTapMapDestination), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+    });
+
+    testWidgets('al pulsar la lupa se expande el campo de búsqueda', (tester) async {
+      await pumpDraftOriginStep(tester);
+
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
       expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('muestra origen, destino y buscador vía l10n (en)', (tester) async {
+    testWidgets('muestra origen, destino y lupa compacta vía l10n (en)', (tester) async {
       await pumpDraftOriginStep(tester, locale: const Locale('en'));
       final l10n = l10nFromTester(tester, Scaffold);
 
       expect(find.text(l10n.tripOrigin.toUpperCase()), findsOneWidget);
       expect(find.text(l10n.tripWhereTo.toUpperCase()), findsOneWidget);
       expect(find.text(l10n.tripTapMapDestination), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
     });
   });
 }

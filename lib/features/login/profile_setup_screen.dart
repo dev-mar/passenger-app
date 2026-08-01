@@ -14,7 +14,7 @@ import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/ui/app_safe_scrolling.dart';
+import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -22,6 +22,8 @@ import '../../core/compliance/passenger_login_legal_footer.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import 'login_controller.dart';
+import 'widgets/passenger_auth_shell.dart';
 
 /// Tercera pantalla del onboarding:
 /// - Nombre obligatorio
@@ -50,6 +52,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String? _errorMessage;
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final googleName =
+          ref.read(loginControllerProvider).googleDisplayName?.trim();
+      if (googleName != null &&
+          googleName.isNotEmpty &&
+          _nameController.text.trim().isEmpty) {
+        _nameController.text = googleName;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -100,6 +117,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     try {
       final clientMeta = await passengerAuthClientMeta();
+      final googleLinkToken =
+          ref.read(loginControllerProvider).googleLinkToken?.trim();
       final response = await _api.postPublic<Map<String, dynamic>>(
         path: AppConfig.authUsersPath,
         data: <String, dynamic>{
@@ -108,6 +127,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           'alias_name': name,
           // Foto opcional: si no hay imagen, enviamos null explícito.
           'profile_picture': _profileImageBase64,
+          if (googleLinkToken != null && googleLinkToken.isNotEmpty)
+            'google_link_token': googleLinkToken,
         },
       );
 
@@ -214,164 +235,208 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final maskedPhone =
         '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}';
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
+    return PassengerAuthShell(
+      loading: _saving,
+      loadingMessage: l10n.commonLoading,
+      leading: Align(
+        alignment: Alignment.centerLeft,
+        child: IconButton(
+          onPressed: _saving
+              ? null
+              : () => context.goNamed(
+                    'verify_code',
+                    queryParameters: {
+                      'cc': widget.countryCode,
+                      'phone': widget.phoneNumber,
+                    },
+                  ),
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: AppColors.textPrimary,
+          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  l10n.profileSetupTitle,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.profileSetupSubtitle(maskedPhone),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                ),
-                const SizedBox(height: 28),
-                Center(
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 42,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                        backgroundImage: _profileImageBytes != null
-                            ? MemoryImage(_profileImageBytes!)
-                            : null,
-                        child: _profileImageBytes == null
-                            ? const Icon(
-                                Icons.person_rounded,
-                                size: 44,
-                                color: AppColors.primary,
-                              )
-                            : null,
-                      ),
-                      Material(
-                        color: AppColors.surface,
-                        shape: const CircleBorder(),
-                        child: IconButton(
-                          onPressed: () {
-                            TexiUiFeedback.lightTap();
-                            showModalBottomSheet<void>(
-                              context: context,
-                              backgroundColor: AppColors.surface,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.vertical(top: Radius.circular(24)),
-                              ),
-                              builder: (ctx) => SafeArea(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading:
-                                          const Icon(Icons.camera_alt_rounded),
-                                      title: Text(l10n.profilePhotoTake),
-                                      onTap: () {
-                                        Navigator.pop(ctx);
-                                        _pickProfilePhoto(ImageSource.camera);
-                                      },
+      child: PassengerAuthEntrance(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.profileSetupTitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppColors.textPrimary.withValues(alpha: 0.95),
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.profileSetupSubtitle(maskedPhone),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary.withValues(alpha: 0.95),
+                      height: 1.4,
+                      fontSize: 13.5,
+                    ),
+              ),
+              const SizedBox(height: 22),
+              PassengerAuthGlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          CircleAvatar(
+                            radius: 42,
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.15),
+                            backgroundImage: _profileImageBytes != null
+                                ? MemoryImage(_profileImageBytes!)
+                                : null,
+                            child: _profileImageBytes == null
+                                ? const Icon(
+                                    Icons.person_rounded,
+                                    size: 44,
+                                    color: AppColors.primary,
+                                  )
+                                : null,
+                          ),
+                          Material(
+                            color: AppColors.background.withValues(alpha: 0.9),
+                            shape: const CircleBorder(),
+                            child: IconButton(
+                              onPressed: () {
+                                TexiUiFeedback.lightTap();
+                                showModalBottomSheet<void>(
+                                  context: context,
+                                  backgroundColor: AppColors.surface,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(AppRadii.dialog),
                                     ),
-                                    ListTile(
-                                      leading: const Icon(Icons.photo_library_rounded),
-                                      title: Text(l10n.profilePhotoGallery),
-                                      onTap: () {
-                                        Navigator.pop(ctx);
-                                        _pickProfilePhoto(ImageSource.gallery);
-                                      },
+                                  ),
+                                  builder: (ctx) => SafeArea(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.camera_alt_rounded,
+                                          ),
+                                          title: Text(l10n.profilePhotoTake),
+                                          onTap: () {
+                                            Navigator.pop(ctx);
+                                            _pickProfilePhoto(
+                                              ImageSource.camera,
+                                            );
+                                          },
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.photo_library_rounded,
+                                          ),
+                                          title: Text(l10n.profilePhotoGallery),
+                                          onTap: () {
+                                            Navigator.pop(ctx);
+                                            _pickProfilePhoto(
+                                              ImageSource.gallery,
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.camera_alt_rounded,
+                                size: 20,
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.camera_alt_rounded, size: 20),
-                        ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: AppSpacing.xxx),
+                      PremiumStateView(
+                        icon: Icons.warning_amber_rounded,
+                        title: l10n.loginReviewDataTitle,
+                        message: _errorMessage!,
+                        actionLabel: l10n.profileAcknowledge,
+                        onAction: () => setState(() => _errorMessage = null),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (_errorMessage != null) ...[
-                  PremiumStateView(
-                    icon: Icons.warning_amber_rounded,
-                    title: l10n.loginReviewDataTitle,
-                    message: _errorMessage!,
-                    actionLabel: l10n.profileAcknowledge,
-                    onAction: () => setState(() => _errorMessage = null),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                TextFormField(
-                  controller: _nameController,
-                  focusNode: _nameFocusNode,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: l10n.profileSetupNameLabel,
-                    hintText: l10n.profileSetupNameHint,
-                    filled: true,
-                    fillColor: AppColors.surface,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: AppSpacing.xxx),
+                    TextFormField(
+                      controller: _nameController,
+                      focusNode: _nameFocusNode,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.done,
+                      decoration: passengerAuthFieldDecoration(
+                        label: l10n.profileSetupNameLabel,
+                        hint: l10n.profileSetupNameHint,
+                      ),
+                      validator: (v) {
+                        final value = v?.trim() ?? '';
+                        if (value.isEmpty) return l10n.profileSetupNameRequired;
+                        if (value.length < 2) {
+                          return l10n.profileSetupNameTooShort;
+                        }
+                        return null;
+                      },
+                      onFieldSubmitted: (_) => _save(),
                     ),
-                  ),
-                  validator: (v) {
-                    final value = v?.trim() ?? '';
-                    if (value.isEmpty) return l10n.profileSetupNameRequired;
-                    if (value.length < 2) return l10n.profileSetupNameTooShort;
-                    return null;
-                  },
-                  onFieldSubmitted: (_) => _save(),
-                ),
-                const Spacer(),
-                SizedBox(
-                  height: 48,
-                  width: double.infinity,
-                  child: TexiScalePress(
-                    child: FilledButton(
-                      onPressed: _saving
-                          ? null
-                          : () {
-                              TexiUiFeedback.lightTap();
-                              _save();
-                            },
-                      child: _saving
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(l10n.profileSetupContinue),
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      height: 52,
+                      width: double.infinity,
+                      child: TexiScalePress(
+                        child: FilledButton(
+                          onPressed: _saving
+                              ? null
+                              : () {
+                                  TexiUiFeedback.lightTap();
+                                  _save();
+                                },
+                          style: FilledButton.styleFrom(
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadii.lg),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                l10n.profileSetupContinue,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15.5,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 18,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                const PassengerLoginLegalFooter(
-                  tone: PassengerLegalNoticeTone.emphasized,
-                ),
-                SizedBox(
-                  height: 16 + AppSafeScrolling.systemNavBottom(context),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 18),
+              PassengerLoginLegalFooter(
+                tone: PassengerLegalNoticeTone.emphasized,
+                textColor: AppColors.textSecondary.withValues(alpha: 0.85),
+              ),
+            ],
           ),
         ),
       ),

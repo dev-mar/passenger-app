@@ -22,6 +22,124 @@ class AppLocalizationsEs extends AppLocalizations {
       'Ingresa tu número para iniciar sesión o crear tu cuenta.';
 
   @override
+  String get loginMethodChoiceTitle => 'Tu viaje empieza aquí';
+
+  @override
+  String get loginMethodChoiceSubtitle =>
+      'Elegí cómo querés ingresar. Rápido, seguro y sin complicaciones.';
+
+  @override
+  String get loginMethodPhoneTitle => 'Número de celular';
+
+  @override
+  String get loginMethodPhoneSubtitle =>
+      'Verificamos tu identidad por WhatsApp';
+
+  @override
+  String get loginMethodGoogleTitle => 'Continuar con Google';
+
+  @override
+  String get loginMethodGoogleSubtitle => 'Accedé con tu cuenta Gmail';
+
+  @override
+  String get loginMethodGoogleBadge => 'Próximamente';
+
+  @override
+  String get loginGoogleComingSoon =>
+      'Inicio con Google estará disponible muy pronto.';
+
+  @override
+  String get loginBackToMethods => 'Volver a métodos de ingreso';
+
+  @override
+  String get loginPhoneStepTitle => '¿Cuál es tu número?';
+
+  @override
+  String get loginPhoneStepSubtitle =>
+      'Ingresá tu número. Luego confirmás que sos humano y elegís cómo verificarlo.';
+
+  @override
+  String get loginCaptchaTitle => 'Confirmá que sos humano';
+
+  @override
+  String get loginCaptchaSubtitle =>
+      'Un paso rápido de seguridad antes de continuar. Solo la primera vez en esta sesión.';
+
+  @override
+  String get loginGoogleCaptchaTitle => 'Verificá tu acceso con Google';
+
+  @override
+  String get loginGoogleCaptchaSubtitle =>
+      'Completá el captcha para proteger tu cuenta y continuar con Google.';
+
+  @override
+  String get loginCaptchaLoading => 'Cargando verificación…';
+
+  @override
+  String get loginCaptchaInteractiveHint =>
+      'Marcá la casilla de seguridad para continuar.';
+
+  @override
+  String get loginCaptchaReady => 'Verificación completada.';
+
+  @override
+  String get loginCaptchaLoadFailed =>
+      'No pudimos cargar el captcha. Revisá tu conexión.';
+
+  @override
+  String get loginCaptchaReadyHint =>
+      'Listo. Podés continuar con el siguiente paso.';
+
+  @override
+  String get loginCaptchaDevPlaceholder =>
+      'En producción aparece Cloudflare Turnstile aquí. Configurá TURNSTILE_SITE_KEY en el build del APK.';
+
+  @override
+  String get loginVerifyMethodTitle => '¿Cómo querés verificar?';
+
+  @override
+  String loginVerifyMethodSubtitle(String phoneMasked) {
+    return 'Elegí la opción más cómoda para confirmar $phoneMasked.';
+  }
+
+  @override
+  String get loginVerifyMethodRecommendedBadge => 'Recomendado';
+
+  @override
+  String get loginVerifyMethodWaInboundTitle =>
+      'Enviar clave segura desde WhatsApp';
+
+  @override
+  String get loginVerifyMethodWaInboundSubtitle =>
+      'Rápida y segura. Abrimos WhatsApp con el mensaje listo para enviar.';
+
+  @override
+  String get loginVerifyMethodOrDivider => 'o';
+
+  @override
+  String get loginVerifyMethodCodeTitle => 'Recibir código de verificación';
+
+  @override
+  String get loginVerifyMethodCodeSubtitle =>
+      'Te enviamos un código de 6 dígitos por WhatsApp para ingresarlo en la app.';
+
+  @override
+  String get loginVerifyMethodCodeComingSoon =>
+      'Recibir código estará disponible muy pronto.';
+
+  @override
+  String get loginVerifyMethodLoadingWa => 'Preparando verificación…';
+
+  @override
+  String loginPhoneStepSubtitleGoogle(String email) {
+    return 'Google verificado ($email). Ahora confirmá tu número por WhatsApp.';
+  }
+
+  @override
+  String get loginGoogleError =>
+      'No se pudo iniciar sesión con Google. Intenta de nuevo.';
+
+  @override
   String get loginCode => 'Código';
 
   @override
@@ -41,6 +159,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo iniciar sesión. Revisa tu número.';
 
   @override
+  String get loginErrorOtpRateLimit =>
+      'Demasiados intentos. Esperá unos minutos e intentá de nuevo.';
+
+  @override
   String get loginErrorPhoneRegisteredAsDriver =>
       'Este número ya está registrado como conductor. Para la app de pasajero, usa otro número o inicia sesión en la app de conductor con el mismo número.';
 
@@ -55,6 +177,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get loginErrorVerificationServiceUnavailable =>
       'Servicio de verificación no disponible. Intenta más tarde.';
+
+  @override
+  String get loginErrorWhatsAppVerificationUnavailable =>
+      'Verificación por WhatsApp no está disponible. Contactá soporte o probá más tarde.';
 
   @override
   String get loginErrorSessionSuperseded =>
@@ -772,7 +898,88 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get verifyCodeWaFallbackHint =>
-      '¿Problemas? Podés ingresar el código manualmente abajo.';
+      'Si WhatsApp no se abrió, tocá el botón de arriba para reintentar.';
+
+  @override
+  String get verifyCodeWaRequestOutbound => 'Recibir código por WhatsApp';
+
+  @override
+  String get verifyCodeWaOutboundFailed =>
+      'No pudimos enviar el código por WhatsApp. Intentá de nuevo.';
+
+  @override
+  String get stepUpTitle => 'Verificación adicional';
+
+  @override
+  String get stepUpSubtitle =>
+      'Por seguridad, confirmá tu correo y completá el captcha para continuar.';
+
+  @override
+  String get stepUpEmailLabel => 'Correo electrónico';
+
+  @override
+  String get stepUpEmailHint => 'tu@correo.com';
+
+  @override
+  String get stepUpUseGoogleEmail =>
+      'Usar correo de Google en este dispositivo';
+
+  @override
+  String get stepUpSendEmailCode => 'Enviar código al correo';
+
+  @override
+  String stepUpEmailSentBanner(String email) {
+    return 'Enviamos un código de 6 dígitos a $email';
+  }
+
+  @override
+  String get stepUpResendCode => 'Reenviar código';
+
+  @override
+  String get stepUpSecurityLabel => 'Verificación de seguridad';
+
+  @override
+  String get stepUpEmailCodeLabel => 'Código del correo';
+
+  @override
+  String get stepUpConfirmButton => 'Confirmar y continuar';
+
+  @override
+  String get stepUpCompleteContinueLogin =>
+      'Verificación adicional completada. Continuá con WhatsApp para verificar tu número.';
+
+  @override
+  String get stepUpEmailInvalid => 'Ingresá un correo válido.';
+
+  @override
+  String get stepUpCodeInvalid => 'Ingresá el código de 6 dígitos del correo.';
+
+  @override
+  String get stepUpCaptchaRequired => 'Completá el captcha antes de continuar.';
+
+  @override
+  String get stepUpCaptchaLoadFailed =>
+      'No pudimos cargar el captcha. Revisá tu conexión e intentá de nuevo.';
+
+  @override
+  String get stepUpCaptchaLoading => 'Cargando verificación de seguridad…';
+
+  @override
+  String get stepUpCaptchaInteractiveHint =>
+      'Completá el checkbox de Cloudflare arriba.';
+
+  @override
+  String get stepUpCaptchaReady => 'Verificación de seguridad completada.';
+
+  @override
+  String get stepUpCaptchaRetry => 'Reintentar captcha';
+
+  @override
+  String get stepUpEmailSendFailed => 'No pudimos enviar el código al correo.';
+
+  @override
+  String get stepUpCompleteFailed =>
+      'No se pudo completar la verificación adicional.';
 
   @override
   String get verifyCodeConfirm => 'Confirmar código';

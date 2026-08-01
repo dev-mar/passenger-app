@@ -61,6 +61,20 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     });
   }
 
+  /// Aplica status desde push FCM de inmediato (sin esperar REST lento).
+  void applyStatusHintFromPush({
+    required String tripId,
+    required String status,
+  }) {
+    final s = status.trim().toLowerCase();
+    if (s.isEmpty) return;
+    if (state.activeTripId != null && state.activeTripId != tripId) return;
+    state = state.copyWith(activeTripId: tripId, status: s, errorCode: null);
+    unawaited(
+      TripSessionStorage.saveLastKnownStatus(tripId: tripId, status: s),
+    );
+  }
+
   Future<void> syncTripStatusFromApi({
     required String tripId,
     bool force = false,
@@ -76,7 +90,10 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
       if (token == null || token.isEmpty) return;
       final previousStatus = state.status;
       final api = TripsApi(token: token);
-      final res = await api.getPassengerTripStatus(tripId: tripId);
+      // Timeout: el GET puede tardar por firma de foto; no bloquear el flujo.
+      final res = await api
+          .getPassengerTripStatus(tripId: tripId)
+          .timeout(const Duration(seconds: 8));
       final mergedPhoto =
           normalizeDriverPhotoUrl(res.driverPhotoUrl) ?? state.driverPhotoUrl;
       final mergedPhotoExpiresAt =
@@ -106,7 +123,15 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
         chatMessages: chatOk ? state.chatMessages : const [],
         tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
       );
-      if (res.status == 'arrived' && previousStatus != 'arrived') {
+      unawaited(
+        TripSessionStorage.saveLastKnownStatus(
+          tripId: tripId,
+          status: res.status,
+        ),
+      );
+      if (res.status == 'arrived' &&
+          previousStatus != 'arrived' &&
+          previousStatus != null) {
         final fg = PassengerAppVisibility.isInForeground.value;
         if (fg) {
           SystemSound.play(SystemSoundType.alert);
@@ -156,10 +181,40 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     );
   }
 
+  /// Hint local de fase (p. ej. tras cold start) sin inventar "searching".
+  void hydrateStatusHintFromLocalCache({
+    required String tripId,
+    required String status,
+  }) {
+    final s = status.trim().toLowerCase();
+    if (s.isEmpty) return;
+    if (state.activeTripId != null && state.activeTripId != tripId) return;
+    // No pisar un status realtime más fresco.
+    if (state.status != null &&
+        state.status!.toLowerCase() != s &&
+        !passengerTripIsAwaitingDriverMatch(state.status)) {
+      return;
+    }
+    state = state.copyWith(activeTripId: tripId, status: s);
+  }
+
   void _handleTripDriverLocation(Map data, String tripId) {
     try {
       final tripIdData = data['tripId']?.toString();
       if (tripIdData == null || tripIdData != tripId) return;
+      // Ubicación del conductor implica viaje aceptado+: salir del overlay matching
+      // aunque trip:accepted se haya perdido (sin replay WS).
+      if (passengerTripIsAwaitingDriverMatch(state.status) ||
+          state.status == null) {
+        state = state.copyWith(status: 'accepted', activeTripId: tripIdData);
+        unawaited(
+          TripSessionStorage.saveLastKnownStatus(
+            tripId: tripIdData,
+            status: 'accepted',
+          ),
+        );
+        unawaited(_rt.syncTripStatusFromApi(tripId: tripIdData, force: true));
+      }
       final latRaw = data['lat'];
       final lngRaw = data['lng'];
       if (latRaw is! num || lngRaw is! num) return;

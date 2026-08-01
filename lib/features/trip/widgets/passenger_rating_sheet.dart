@@ -10,11 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
-/// Sheet de calificación con estrellas (pasajero califica al conductor).
-/// Layout y animación alineados con `driver_home_screen.dart` → `_RatingSheetContent`.
-///
-/// Se extrajo desde `trip_request_screen.dart` (refactor cosmético 2026-05-06)
-/// sin cambios funcionales: misma firma de callbacks y mismo comportamiento.
+/// Sheet compacto de calificación (pasajero → conductor).
 class PassengerRatingSheetContent extends StatefulWidget {
   const PassengerRatingSheetContent({
     super.key,
@@ -98,10 +94,10 @@ class _PassengerRatingSheetContentState
       final highRaw = results[1];
       setState(() {
         _feedbackLow = (lowRaw.isEmpty ? _fallbackFeedback(l10n, 2) : lowRaw)
-            .take(5)
+            .take(4)
             .toList(growable: false);
         _feedbackHigh = (highRaw.isEmpty ? _fallbackFeedback(l10n, 5) : highRaw)
-            .take(5)
+            .take(4)
             .toList(growable: false);
       });
     } catch (_) {
@@ -116,8 +112,9 @@ class _PassengerRatingSheetContentState
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     setState(() {
-      _feedbackLow = _fallbackFeedback(l10n, 2).take(5).toList(growable: false);
-      _feedbackHigh = _fallbackFeedback(l10n, 5).take(5).toList(growable: false);
+      _feedbackLow = _fallbackFeedback(l10n, 2).take(4).toList(growable: false);
+      _feedbackHigh =
+          _fallbackFeedback(l10n, 5).take(4).toList(growable: false);
     });
   }
 
@@ -165,12 +162,6 @@ class _PassengerRatingSheetContentState
           minStars: 1,
           maxStars: 3,
         ),
-        TripRatingFeedbackItem(
-          code: 'fallback_other',
-          label: l10n.passengerRatingFallbackOther,
-          minStars: 1,
-          maxStars: 3,
-        ),
       ];
     }
     return [
@@ -198,20 +189,14 @@ class _PassengerRatingSheetContentState
         minStars: 4,
         maxStars: 5,
       ),
-      TripRatingFeedbackItem(
-        code: 'fallback_excellent',
-        label: l10n.passengerRatingFallbackExcellent,
-        minStars: 4,
-        maxStars: 5,
-      ),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final driverChip =
-        widget.driverName != null && widget.driverName!.trim().isNotEmpty;
+    final driverName = widget.driverName?.trim();
+    final hasDriver = driverName != null && driverName.isNotEmpty;
 
     return Material(
       color: Colors.transparent,
@@ -222,276 +207,206 @@ class _PassengerRatingSheetContentState
             position: _slide,
             child: Padding(
               padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 8,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 12,
+                left: 14,
+                right: 14,
+                top: 4,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 10,
               ),
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(
-                    color: AppColors.border.withValues(alpha: 0.55),
+                    color: AppColors.border.withValues(alpha: 0.45),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      blurRadius: 28,
-                      offset: const Offset(0, -4),
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 22,
+                      offset: const Offset(0, -3),
                     ),
                   ],
                 ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppColors.border.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.border.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppColors.primary,
-                                    AppColors.primary.withValues(alpha: 0.75),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.35,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.check_rounded,
-                                color: AppColors.onPrimary,
-                                size: 26,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                l10n.tripRatingSheetHeaderTitle,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: AppColors.textPrimary,
                         ),
-                        const SizedBox(height: 20),
+                      ),
+                      if (hasDriver) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          widget.title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.subtitle,
+                          driverName,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 14,
-                            height: 1.4,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.96,
-                            ),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary.withValues(alpha: 0.95),
                           ),
                         ),
-                        if (driverChip) ...[
-                          const SizedBox(height: 20),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  color: AppColors.background,
-                                  border: Border.all(
-                                    color: AppColors.border.withValues(
-                                      alpha: 0.62,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.person_rounded,
-                                      size: 17,
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.92,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      widget.driverName!,
-                                      style: const TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-                        Text(
-                          l10n.tripRatingYourRating,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.subtitle,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.3,
+                          color: AppColors.textSecondary.withValues(alpha: 0.9),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(5, (index) {
-                            final filled = _rating >= index + 1;
-                            return IconButton(
-                              onPressed: () => _setRating(index + 1),
-                              icon: Icon(
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          final filled = _rating >= index + 1;
+                          return GestureDetector(
+                            onTap: () => _setRating(index + 1),
+                            behavior: HitTestBehavior.opaque,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
                                 filled
                                     ? Icons.star_rounded
                                     : Icons.star_border_rounded,
-                                size: 38,
+                                size: 34,
                                 color: filled
                                     ? AppColors.primary
                                     : AppColors.textSecondary,
                               ),
-                            );
-                          }),
-                        ),
-                        if (_rating > 0) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _rating <= 3
-                                ? l10n.tripRatingFeedbackPromptLow
-                                : l10n.tripRatingFeedbackPromptHigh,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          if (_loadingCatalog)
-                            const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          else if (_displayedOptions.isNotEmpty)
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _displayedOptions
-                                  .map((item) {
-                                    final selected = _selectedFeedbackCodes
-                                        .contains(item.code);
-                                    return FilterChip(
-                                      selected: selected,
-                                      onSelected: (value) {
-                                        setState(() {
-                                          if (value) {
-                                            _selectedFeedbackCodes.add(
-                                              item.code,
-                                            );
-                                          } else {
-                                            _selectedFeedbackCodes.remove(
-                                              item.code,
-                                            );
-                                          }
-                                        });
-                                      },
-                                      label: Text(item.label),
-                                    );
-                                  })
-                                  .toList(growable: false),
-                            ),
-                        ],
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _rating == 0 || _loadingCatalog
-                              ? null
-                              : () {
-                                  TexiUiFeedback.lightTap();
-                                  widget.onSubmitted(
-                                    _rating,
-                                    _selectedFeedbackCodes.toList(
-                                      growable: false,
-                                    ),
-                                  );
-                                },
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: Text(
-                            widget.sendLabel,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
+                          );
+                        }),
+                      ),
+                      if (_rating > 0) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _rating <= 3
+                              ? l10n.tripRatingFeedbackPromptLow
+                              : l10n.tripRatingFeedbackPromptHigh,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            TexiUiFeedback.lightTap();
-                            widget.onSkipped();
-                          },
-                          child: Text(
-                            widget.skipLabel,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                        if (_loadingCatalog)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          )
+                        else if (_displayedOptions.isNotEmpty)
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _displayedOptions.map((item) {
+                              final selected =
+                                  _selectedFeedbackCodes.contains(item.code);
+                              return FilterChip(
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                selected: selected,
+                                labelPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                padding: EdgeInsets.zero,
+                                onSelected: (value) {
+                                  setState(() {
+                                    if (value) {
+                                      _selectedFeedbackCodes.add(item.code);
+                                    } else {
+                                      _selectedFeedbackCodes.remove(item.code);
+                                    }
+                                  });
+                                },
+                                label: Text(
+                                  item.label,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              );
+                            }).toList(growable: false),
+                          ),
+                      ],
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        onPressed: _rating == 0 || _loadingCatalog
+                            ? null
+                            : () {
+                                TexiUiFeedback.lightTap();
+                                widget.onSubmitted(
+                                  _rating,
+                                  _selectedFeedbackCodes.toList(
+                                    growable: false,
+                                  ),
+                                );
+                              },
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      ],
-                    ),
+                        child: Text(
+                          widget.sendLabel,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          TexiUiFeedback.lightTap();
+                          widget.onSkipped();
+                        },
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          foregroundColor: AppColors.textSecondary,
+                        ),
+                        child: Text(
+                          widget.skipLabel,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

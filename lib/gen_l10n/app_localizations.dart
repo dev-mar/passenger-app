@@ -122,6 +122,204 @@ abstract class AppLocalizations {
   /// **'Enter your number to sign in or create your account.'**
   String get loginSubtitle;
 
+  /// No description provided for @loginMethodChoiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your ride starts here'**
+  String get loginMethodChoiceTitle;
+
+  /// No description provided for @loginMethodChoiceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you want to sign in. Fast, secure, and simple.'**
+  String get loginMethodChoiceSubtitle;
+
+  /// No description provided for @loginMethodPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile number'**
+  String get loginMethodPhoneTitle;
+
+  /// No description provided for @loginMethodPhoneSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We verify your identity via WhatsApp'**
+  String get loginMethodPhoneSubtitle;
+
+  /// No description provided for @loginMethodGoogleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get loginMethodGoogleTitle;
+
+  /// No description provided for @loginMethodGoogleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your Gmail account'**
+  String get loginMethodGoogleSubtitle;
+
+  /// No description provided for @loginMethodGoogleBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get loginMethodGoogleBadge;
+
+  /// No description provided for @loginGoogleComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in will be available soon.'**
+  String get loginGoogleComingSoon;
+
+  /// No description provided for @loginBackToMethods.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign-in options'**
+  String get loginBackToMethods;
+
+  /// No description provided for @loginPhoneStepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s your number?'**
+  String get loginPhoneStepTitle;
+
+  /// No description provided for @loginPhoneStepSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your number. Then confirm you\'re human and choose how to verify.'**
+  String get loginPhoneStepSubtitle;
+
+  /// No description provided for @loginCaptchaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm you\'re human'**
+  String get loginCaptchaTitle;
+
+  /// No description provided for @loginCaptchaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A quick security step before continuing. Only once this session.'**
+  String get loginCaptchaSubtitle;
+
+  /// No description provided for @loginGoogleCaptchaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your Google sign-in'**
+  String get loginGoogleCaptchaTitle;
+
+  /// No description provided for @loginGoogleCaptchaSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the captcha to protect your account and continue with Google.'**
+  String get loginGoogleCaptchaSubtitle;
+
+  /// No description provided for @loginCaptchaLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading verification…'**
+  String get loginCaptchaLoading;
+
+  /// No description provided for @loginCaptchaInteractiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the security box to continue.'**
+  String get loginCaptchaInteractiveHint;
+
+  /// No description provided for @loginCaptchaReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification complete.'**
+  String get loginCaptchaReady;
+
+  /// No description provided for @loginCaptchaLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load the captcha. Check your connection.'**
+  String get loginCaptchaLoadFailed;
+
+  /// No description provided for @loginCaptchaReadyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re good to go. Continue to the next step.'**
+  String get loginCaptchaReadyHint;
+
+  /// No description provided for @loginCaptchaDevPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudflare Turnstile appears here in production. Set TURNSTILE_SITE_KEY in the APK build.'**
+  String get loginCaptchaDevPlaceholder;
+
+  /// No description provided for @loginVerifyMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How do you want to verify?'**
+  String get loginVerifyMethodTitle;
+
+  /// No description provided for @loginVerifyMethodSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the most convenient option to confirm {phoneMasked}.'**
+  String loginVerifyMethodSubtitle(String phoneMasked);
+
+  /// No description provided for @loginVerifyMethodRecommendedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get loginVerifyMethodRecommendedBadge;
+
+  /// No description provided for @loginVerifyMethodWaInboundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send secure key from WhatsApp'**
+  String get loginVerifyMethodWaInboundTitle;
+
+  /// No description provided for @loginVerifyMethodWaInboundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast and secure. We open WhatsApp with the message ready to send.'**
+  String get loginVerifyMethodWaInboundSubtitle;
+
+  /// No description provided for @loginVerifyMethodOrDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get loginVerifyMethodOrDivider;
+
+  /// No description provided for @loginVerifyMethodCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive verification code'**
+  String get loginVerifyMethodCodeTitle;
+
+  /// No description provided for @loginVerifyMethodCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We send a 6-digit code via WhatsApp for you to enter in the app.'**
+  String get loginVerifyMethodCodeSubtitle;
+
+  /// No description provided for @loginVerifyMethodCodeComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive code will be available soon.'**
+  String get loginVerifyMethodCodeComingSoon;
+
+  /// No description provided for @loginVerifyMethodLoadingWa.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing verification…'**
+  String get loginVerifyMethodLoadingWa;
+
+  /// No description provided for @loginPhoneStepSubtitleGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Google verified ({email}). Now confirm your number via WhatsApp.'**
+  String loginPhoneStepSubtitleGoogle(String email);
+
+  /// No description provided for @loginGoogleError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not sign in with Google. Please try again.'**
+  String get loginGoogleError;
+
   /// No description provided for @loginCode.
   ///
   /// In en, this message translates to:
@@ -158,6 +356,12 @@ abstract class AppLocalizations {
   /// **'Could not sign in. Check your number.'**
   String get loginErrorInvalidCredentials;
 
+  /// No description provided for @loginErrorOtpRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Wait a few minutes and try again.'**
+  String get loginErrorOtpRateLimit;
+
   /// No description provided for @loginErrorPhoneRegisteredAsDriver.
   ///
   /// In en, this message translates to:
@@ -181,6 +385,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verification service unavailable. Please try again later.'**
   String get loginErrorVerificationServiceUnavailable;
+
+  /// No description provided for @loginErrorWhatsAppVerificationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp verification is not available. Contact support or try again later.'**
+  String get loginErrorWhatsAppVerificationUnavailable;
 
   /// No description provided for @loginErrorSessionSuperseded.
   ///
@@ -1475,8 +1685,152 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaFallbackHint.
   ///
   /// In en, this message translates to:
-  /// **'Having trouble? You can enter the code manually below.'**
+  /// **'If WhatsApp did not open, tap the button above to try again.'**
   String get verifyCodeWaFallbackHint;
+
+  /// No description provided for @verifyCodeWaRequestOutbound.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive code via WhatsApp'**
+  String get verifyCodeWaRequestOutbound;
+
+  /// No description provided for @verifyCodeWaOutboundFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not send the WhatsApp code. Please try again.'**
+  String get verifyCodeWaOutboundFailed;
+
+  /// No description provided for @stepUpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional verification'**
+  String get stepUpTitle;
+
+  /// No description provided for @stepUpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For your security, confirm your email and complete the captcha to continue.'**
+  String get stepUpSubtitle;
+
+  /// No description provided for @stepUpEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get stepUpEmailLabel;
+
+  /// No description provided for @stepUpEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'you@email.com'**
+  String get stepUpEmailHint;
+
+  /// No description provided for @stepUpUseGoogleEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Google account on this device'**
+  String get stepUpUseGoogleEmail;
+
+  /// No description provided for @stepUpSendEmailCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code to email'**
+  String get stepUpSendEmailCode;
+
+  /// No description provided for @stepUpEmailSentBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}'**
+  String stepUpEmailSentBanner(String email);
+
+  /// No description provided for @stepUpResendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get stepUpResendCode;
+
+  /// No description provided for @stepUpSecurityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Security verification'**
+  String get stepUpSecurityLabel;
+
+  /// No description provided for @stepUpEmailCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email code'**
+  String get stepUpEmailCodeLabel;
+
+  /// No description provided for @stepUpConfirmButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm and continue'**
+  String get stepUpConfirmButton;
+
+  /// No description provided for @stepUpCompleteContinueLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional verification complete. Continue with WhatsApp to verify your number.'**
+  String get stepUpCompleteContinueLogin;
+
+  /// No description provided for @stepUpEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get stepUpEmailInvalid;
+
+  /// No description provided for @stepUpCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from your email.'**
+  String get stepUpCodeInvalid;
+
+  /// No description provided for @stepUpCaptchaRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the captcha before continuing.'**
+  String get stepUpCaptchaRequired;
+
+  /// No description provided for @stepUpCaptchaLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load the captcha. Check your connection and try again.'**
+  String get stepUpCaptchaLoadFailed;
+
+  /// No description provided for @stepUpCaptchaLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading security verification…'**
+  String get stepUpCaptchaLoading;
+
+  /// No description provided for @stepUpCaptchaInteractiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the Cloudflare checkbox above.'**
+  String get stepUpCaptchaInteractiveHint;
+
+  /// No description provided for @stepUpCaptchaReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Security verification completed.'**
+  String get stepUpCaptchaReady;
+
+  /// No description provided for @stepUpCaptchaRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry captcha'**
+  String get stepUpCaptchaRetry;
+
+  /// No description provided for @stepUpEmailSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not send the code to your email.'**
+  String get stepUpEmailSendFailed;
+
+  /// No description provided for @stepUpCompleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional verification could not be completed.'**
+  String get stepUpCompleteFailed;
 
   /// No description provided for @verifyCodeConfirm.
   ///

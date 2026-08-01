@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../constants/app_assets.dart';
 import '../../gen_l10n/app_localizations.dart';
 
 /// Etiqueta amigable para tipos de servicio mostrados al usuario (API puede traer nombres legacy).
@@ -48,6 +49,50 @@ String serviceTypeIconKey(String raw) {
     return 'premium';
   }
   return 'standard';
+}
+
+/// Capacidad típica mostrada en la tarjeta de oferta (guía UI).
+int serviceTypeSeatCapacity(String raw) {
+  switch (serviceTypeIconKey(raw)) {
+    case 'two_wheeler':
+      return 1;
+    case 'premium':
+      return 3;
+    case 'comfort':
+      return 4;
+    default:
+      return 4;
+  }
+}
+
+/// Asset PNG del vehículo (orden visual: Estándar → Moto → Confort → Premium).
+String serviceTypeVehicleAsset(String raw) {
+  switch (serviceTypeIconKey(raw)) {
+    case 'two_wheeler':
+      return AppAssets.serviceTypeMoto;
+    case 'comfort':
+      return AppAssets.serviceTypeComfort;
+    case 'premium':
+      return AppAssets.serviceTypePremium;
+    default:
+      return AppAssets.serviceTypeStandard;
+  }
+}
+
+/// Orden de carrusel: Estándar, Moto, Confort, Premium.
+int serviceTypeCarouselSortKey(String raw) {
+  switch (serviceTypeIconKey(raw)) {
+    case 'standard':
+      return 0;
+    case 'two_wheeler':
+      return 1;
+    case 'comfort':
+      return 2;
+    case 'premium':
+      return 3;
+    default:
+      return 50;
+  }
 }
 
 /// Icono Material coherente con el tipo de servicio (cotización / selector).
