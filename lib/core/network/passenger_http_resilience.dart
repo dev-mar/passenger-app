@@ -72,6 +72,50 @@ String? networkErrorCodeFromDio(DioException error) {
   return null;
 }
 
+/// 502/503/504 sin envelope de negocio (p. ej. HTML de Azure App Service).
+String? unavailableBackendCodeFromDio(DioException error) {
+  final status = error.response?.statusCode ?? 0;
+  if (status != 502 && status != 503 && status != 504) return null;
+  final data = error.response?.data;
+  if (data is Map) {
+    final map = Map<String, dynamic>.from(data);
+    final top = map['code']?.toString().trim();
+    if (top != null && top.isNotEmpty) return null;
+    final err = map['error'];
+    if (err is Map) {
+      final nested = err['code']?.toString().trim();
+      if (nested != null && nested.isNotEmpty) return null;
+    }
+  }
+  return 'BACKEND_UNAVAILABLE';
+}
+
+/// Evita mostrar ensayos técnicos de Dio / HTML de gateway al usuario.
+String? safeAuthErrorMessage({
+  String? backendMessage,
+  String? dioMessage,
+}) {
+  final backend = backendMessage?.trim();
+  if (backend != null && backend.isNotEmpty) {
+    final lower = backend.toLowerCase();
+    if (lower.contains('<!doctype') ||
+        lower.contains('<html') ||
+        lower.contains('validateStatus') ||
+        lower.contains('status code of')) {
+      return null;
+    }
+    return backend;
+  }
+  final dio = dioMessage?.trim();
+  if (dio == null || dio.isEmpty) return null;
+  if (dio.contains('validateStatus') ||
+      dio.contains('status code of') ||
+      dio.toLowerCase().contains('<!doctype')) {
+    return null;
+  }
+  return dio;
+}
+
 Future<T> requestWithRetry<T>({
   required Future<T> Function() operation,
   required String flow,

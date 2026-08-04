@@ -43,6 +43,9 @@ class PassengerTripDraftHeader extends StatelessWidget {
     required this.searchPriorityMode,
     required this.searchRole,
     this.searchCollapseToken = 0,
+    this.searchExpandToken = 0,
+    this.onOpenSearchOrigin,
+    this.onOpenSearchDestination,
     this.onEditOrigin,
     this.onEditDestination,
     required this.editStopLabel,
@@ -85,6 +88,11 @@ class PassengerTripDraftHeader extends StatelessWidget {
   final PassengerDraftSearchRole searchRole;
   /// Incrementar al mover el mapa / refrescar UI para colapsar la caja de búsqueda.
   final int searchCollapseToken;
+  /// Incrementar para expandir/enfocar la lupa (tap en fila de dirección).
+  final int searchExpandToken;
+  /// Tap en el texto de origen/destino → misma lupa, target según fila.
+  final VoidCallback? onOpenSearchOrigin;
+  final VoidCallback? onOpenSearchDestination;
   final VoidCallback? onEditOrigin;
   final VoidCallback? onEditDestination;
   final String editStopLabel;
@@ -120,6 +128,8 @@ class PassengerTripDraftHeader extends StatelessWidget {
                   ? onSaveOriginToFavorites
                   : null,
               saveToFavoritesTooltip: saveOriginFavoritesTooltip,
+              onOpenSearch: onOpenSearchOrigin,
+              openSearchTooltip: searchFieldHint,
               onEdit: originConfirmed ? onEditOrigin : null,
               editTooltip: editStopLabel,
             ),
@@ -166,34 +176,56 @@ class PassengerTripDraftHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _PhaseLabel(text: l10n.tripWhereTo.toUpperCase()),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          hasDestinationSet
-                              ? destinationDisplayLine
-                              : (destinationDisplayLine.isNotEmpty &&
-                                        destinationDisplayLine !=
-                                            l10n.tripTapMapDestination
-                                    ? destinationDisplayLine
-                                    : l10n.tripTapMapDestination),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.start,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 12,
-                            fontWeight: hasDestinationSet
-                                ? FontWeight.w600
-                                : FontWeight.w500,
-                            color: hasDestinationSet
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                            height: 1.18,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: onOpenSearchDestination,
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                        splashColor: AppColors.primary.withValues(alpha: 0.10),
+                        highlightColor:
+                            AppColors.primary.withValues(alpha: 0.05),
+                        child: Tooltip(
+                          message: onOpenSearchDestination != null
+                              ? searchFieldHint
+                              : '',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.xxs,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _PhaseLabel(
+                                  text: l10n.tripWhereTo.toUpperCase(),
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  hasDestinationSet
+                                      ? destinationDisplayLine
+                                      : (destinationDisplayLine.isNotEmpty &&
+                                                destinationDisplayLine !=
+                                                    l10n.tripTapMapDestination
+                                            ? destinationDisplayLine
+                                            : l10n.tripTapMapDestination),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: hasDestinationSet
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: hasDestinationSet
+                                        ? AppColors.textPrimary
+                                        : AppColors.textSecondary,
+                                    height: 1.18,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   if (hasDestinationSet && onSaveDestinationToFavorites != null)
@@ -243,6 +275,7 @@ class PassengerTripDraftHeader extends StatelessWidget {
                 _CollapsibleDraftSearchRow(
                   searchRole: searchRole,
                   searchCollapseToken: searchCollapseToken,
+                  searchExpandToken: searchExpandToken,
                   searchController: searchController,
                   searchFocusNode: searchFocusNode,
                   onSearchChanged: onSearchChanged,
@@ -388,6 +421,7 @@ class _CollapsibleDraftSearchRow extends StatefulWidget {
   const _CollapsibleDraftSearchRow({
     required this.searchRole,
     required this.searchCollapseToken,
+    required this.searchExpandToken,
     required this.searchController,
     required this.searchFocusNode,
     required this.onSearchChanged,
@@ -400,6 +434,7 @@ class _CollapsibleDraftSearchRow extends StatefulWidget {
 
   final PassengerDraftSearchRole searchRole;
   final int searchCollapseToken;
+  final int searchExpandToken;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final ValueChanged<String> onSearchChanged;
@@ -441,6 +476,16 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
     if (oldWidget.searchFocusNode != widget.searchFocusNode) {
       oldWidget.searchFocusNode.removeListener(_onFocusChanged);
       widget.searchFocusNode.addListener(_onFocusChanged);
+    }
+    final expandRequested =
+        oldWidget.searchExpandToken != widget.searchExpandToken;
+    if (expandRequested) {
+      // Prioridad: abrir lupa desde fila origen/destino (aunque cambie el rol).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _expand();
+      });
+      return;
     }
     if (oldWidget.searchRole != widget.searchRole ||
         oldWidget.searchCollapseToken != widget.searchCollapseToken) {
@@ -766,6 +811,8 @@ class _PinnedRow extends StatelessWidget {
     required this.highlighted,
     this.onSaveToFavorites,
     this.saveToFavoritesTooltip,
+    this.onOpenSearch,
+    this.openSearchTooltip,
     this.onEdit,
     this.editTooltip,
   });
@@ -777,6 +824,8 @@ class _PinnedRow extends StatelessWidget {
   final bool highlighted;
   final VoidCallback? onSaveToFavorites;
   final String? saveToFavoritesTooltip;
+  final VoidCallback? onOpenSearch;
+  final String? openSearchTooltip;
   final VoidCallback? onEdit;
   final String? editTooltip;
 
@@ -822,30 +871,47 @@ class _PinnedRow extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onOpenSearch,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                splashColor: dotColor.withValues(alpha: 0.14),
+                highlightColor: dotColor.withValues(alpha: 0.06),
+                child: Tooltip(
+                  message: openSearchTooltip ?? '',
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label.toUpperCase(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          value,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.start,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            height: 1.18,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                Text(
-                  value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.start,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    height: 1.18,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           if (onSaveToFavorites != null) ...[

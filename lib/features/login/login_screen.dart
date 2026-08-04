@@ -2,33 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_assets.dart';
+import '../../core/config/app_config.dart';
 import '../../core/config/passenger_app_environment.dart';
-import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/constants/app_assets.dart';
 import '../../core/compliance/passenger_login_legal_footer.dart';
-import '../../features/profile/widgets/passenger_profile_legal_section.dart';
-import '../../core/widgets/premium_state_view.dart';
-import '../../gen_l10n/app_localizations.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import '../../features/profile/widgets/passenger_profile_legal_section.dart';
+import '../../gen_l10n/app_localizations.dart';
 import 'login_controller.dart';
+import 'utils/login_auth_rate_limit.dart';
+import 'utils/login_attempts_limit_dialog.dart';
 import 'utils/login_country_flag.dart';
-import 'widgets/login_captcha_gate_panel.dart';
+import 'widgets/login_google_unified_panel.dart';
 import 'widgets/login_method_choice_panel.dart';
-import 'widgets/login_phone_entry_panel.dart';
+import 'widgets/login_phone_unified_panel.dart';
 import 'widgets/login_phone_verification_method_panel.dart';
 import 'widgets/passenger_auth_shell.dart';
 import 'widgets/passenger_turnstile_widget.dart';
 
-enum LoginWizardStep {
+enum LoginScreenStep {
   methodChoice,
-  phoneEntry,
-  phoneCaptcha,
-  phoneVerificationMethod,
-  googleCaptcha,
+  phoneUnified,
+  googleUnified,
 }
 
-/// Pantalla Login pasajero: método → teléfono → captcha (1ª vez) → método WA → auth.
+/// Login pasajero unificado: una pantalla por método (teléfono o Google).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({
     super.key,
@@ -49,13 +48,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _countryCodeController = TextEditingController(text: '+591');
   final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
   final _turnstileKey = GlobalKey<PassengerTurnstileWidgetState>();
 
   bool _isLoading = false;
   String? _errorMessage;
-  LoginWizardStep _wizardStep = LoginWizardStep.methodChoice;
-  bool _phoneCaptchaPassed = false;
-  bool _googleCaptchaPassed = false;
+  LoginScreenStep _step = LoginScreenStep.methodChoice;
   String? _entryCaptchaToken;
   bool _captchaReady = false;
 
@@ -65,6 +63,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool get _captchaGateRequired =>
       PassengerAppEnvironment.turnstileSiteKey.trim().isNotEmpty ||
       PassengerAppEnvironment.isDev;
+
+  bool get _phoneValid => _phoneController.text.trim().length >= 6;
+
+  bool get _showPhoneCaptcha => _phoneValid;
+
+  bool get _showPhoneVerifyActions =>
+      _phoneValid && (_captchaReady || !_captchaGateRequired);
+
+  bool get _isUnifiedStep =>
+      _step == LoginScreenStep.phoneUnified ||
+      _step == LoginScreenStep.googleUnified;
 
   @override
   void initState() {
@@ -76,10 +85,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     if (phone != null && phone.isNotEmpty) {
       _phoneController.text = phone;
-      _wizardStep = LoginWizardStep.phoneEntry;
+      _step = LoginScreenStep.phoneUnified;
     }
+    _phoneController.addListener(_onPhoneChanged);
     if (widget.stepUpCompleted) {
-      _phoneCaptchaPassed = true;
+      _step = LoginScreenStep.phoneUnified;
+      if (!_captchaGateRequired) _captchaReady = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
@@ -89,16 +100,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             content: Text(l10n.stepUpCompleteContinueLogin),
           ),
         );
-        _startPhoneLoginAfterMethod(PhoneVerificationMethod.whatsAppInbound);
       });
     }
   }
 
   @override
   void dispose() {
+    _phoneController.removeListener(_onPhoneChanged);
     _countryCodeController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
+  }
+
+  void _onPhoneChanged() {
+    if (!_phoneValid && (_captchaReady || _entryCaptchaToken != null)) {
+      _resetCaptchaGate();
+      _turnstileKey.currentState?.resetWidget();
+    }
+    setState(() {});
   }
 
   String get _fullPhone {
@@ -106,13 +126,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final phone = _phoneController.text.trim();
     return countryCode.replaceAll(RegExp(r'[^\d+]'), '') +
         phone.replaceAll(RegExp(r'[^\d]'), '');
-  }
-
-  String _maskedPhone() {
-    final digits = _phoneController.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.length <= 4) return digits;
-    final tail = digits.substring(digits.length - 4);
-    return '••• ${tail.substring(0, 2)} ${tail.substring(2)}';
   }
 
   void _resetCaptchaGate() {
@@ -123,54 +136,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _onMethodSelected(LoginEntryMethod method) {
     final l10n = AppLocalizations.of(context)!;
     if (method == LoginEntryMethod.google) {
-      if (!ref.read(loginControllerProvider.notifier).isGoogleAuthConfigured) {
+      if (!AppConfig.googleAuthEnabled) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text(l10n.loginGoogleComingSoon),
+            content: Text(l10n.loginGoogleNotConfiguredInApp),
           ),
         );
-        return;
-      }
-      if (_googleCaptchaPassed) {
-        _submitGoogleLogin();
         return;
       }
       _resetCaptchaGate();
       setState(() {
         _errorMessage = null;
-        _wizardStep = LoginWizardStep.googleCaptcha;
+        _step = LoginScreenStep.googleUnified;
       });
       return;
     }
-    setState(() {
-      _wizardStep = LoginWizardStep.phoneEntry;
-      _errorMessage = null;
-    });
-  }
-
-  void _onPhoneEntryContinue() {
-    final l10n = AppLocalizations.of(context)!;
-    final phone = _phoneController.text.trim();
-    if (phone.isEmpty) {
-      setState(() => _errorMessage = l10n.loginPhoneRequired);
-      return;
-    }
-    setState(() => _errorMessage = null);
-    TexiUiFeedback.softImpact();
-    if (_phoneCaptchaPassed || !_captchaGateRequired) {
-      setState(() => _wizardStep = LoginWizardStep.phoneVerificationMethod);
-      return;
-    }
     _resetCaptchaGate();
-    setState(() => _wizardStep = LoginWizardStep.phoneCaptcha);
-  }
-
-  void _onPhoneCaptchaContinue() {
-    if (!_captchaReady && _captchaGateRequired) return;
     setState(() {
-      _phoneCaptchaPassed = true;
-      _wizardStep = LoginWizardStep.phoneVerificationMethod;
+      _errorMessage = null;
+      _step = LoginScreenStep.phoneUnified;
     });
   }
 
@@ -182,6 +167,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _onVerificationMethodSelected(PhoneVerificationMethod method) {
+    if (!_phoneValid) {
+      setState(() => _errorMessage = AppLocalizations.of(context)!.loginPhoneRequired);
+      return;
+    }
+    if (_captchaGateRequired && !_captchaReady) return;
     _startPhoneLoginAfterMethod(method);
   }
 
@@ -222,8 +212,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _handleLoginNextStep(nextStep, countryCode: countryCode, phone: phone);
   }
 
-  Future<void> _submitGoogleLogin() async {
+  Future<void> _signInWithGoogle() async {
     if (_isLoading) return;
+    if (_captchaGateRequired && !_captchaReady) return;
     setState(() {
       _errorMessage = null;
       _isLoading = true;
@@ -233,39 +224,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .loginWithGoogle(entryCaptchaToken: _entryCaptchaToken);
     if (!mounted) return;
     setState(() => _isLoading = false);
+    _handleGoogleLoginNextStep(next);
+  }
 
+  Future<void> _continueWithManualEmail() async {
+    if (_isLoading) return;
+    if (_captchaGateRequired && !_captchaReady) return;
+    final email = _emailController.text.trim();
+    if (!email.contains('@') || email.length <= 5) return;
+
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+    final next = await ref
+        .read(loginControllerProvider.notifier)
+        .requestEmailLoginChallenge(
+          email: email,
+          entryCaptchaToken: _entryCaptchaToken,
+        );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    _handleEmailLoginNextStep(next, email: email);
+  }
+
+  void _handleGoogleLoginNextStep(LoginNextStep next) {
     if (next == LoginNextStep.tripRequest) {
       context.goNamed('trip_request');
       return;
     }
-    if (next == LoginNextStep.phoneRequired) {
-      setState(() {
-        _wizardStep = LoginWizardStep.phoneEntry;
-        _errorMessage = null;
-      });
+    if (next == LoginNextStep.attemptsLimitReached) {
+      _resetToMethodChoice();
+      showLoginAttemptsLimitDialog(
+        context,
+        navigateToLoginOnDismiss: false,
+      );
+      return;
+    }
+    if (next == LoginNextStep.profileRequired) {
+      final loginState = ref.read(loginControllerProvider);
+      context.goNamed(
+        'profile_setup',
+        queryParameters: {
+          if (loginState.loginEmail != null &&
+              loginState.loginEmail!.isNotEmpty)
+            'email': loginState.loginEmail!,
+        },
+      );
       return;
     }
     if (next == LoginNextStep.error) {
-      final msg = ref.read(loginControllerProvider).errorMessage;
-      if (msg != null && msg.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
-      }
+      final loginState = ref.read(loginControllerProvider);
+      showLoginAuthRateLimitIfNeeded(
+        context,
+        code: loginState.errorCode,
+        navigateToLoginOnDismiss: false,
+      ).then((blocked) {
+        if (!mounted) return;
+        if (blocked) {
+          _resetToMethodChoice();
+          return;
+        }
+        setState(() => _errorMessage = loginState.errorMessage);
+      });
     }
   }
 
-  void _onGoogleCaptchaContinue() {
-    if (!_captchaReady && _captchaGateRequired) return;
-    setState(() => _googleCaptchaPassed = true);
-    _submitGoogleLogin();
+  void _handleEmailLoginNextStep(LoginNextStep next, {required String email}) {
+    if (next == LoginNextStep.verifyEmailCode) {
+      context.goNamed(
+        'verify_code',
+        queryParameters: {
+          'email': email,
+          'channel': 'email',
+        },
+      );
+      return;
+    }
+    if (next == LoginNextStep.attemptsLimitReached) {
+      _resetToMethodChoice();
+      showLoginAttemptsLimitDialog(
+        context,
+        navigateToLoginOnDismiss: false,
+      );
+      return;
+    }
+    if (next == LoginNextStep.error) {
+      final loginState = ref.read(loginControllerProvider);
+      showLoginAuthRateLimitIfNeeded(
+        context,
+        code: loginState.errorCode,
+        navigateToLoginOnDismiss: false,
+      ).then((blocked) {
+        if (!mounted) return;
+        if (blocked) {
+          _resetToMethodChoice();
+          return;
+        }
+        setState(() => _errorMessage = loginState.errorMessage);
+      });
+    }
   }
 
   void _handleLoginNextStep(
     LoginNextStep nextStep, {
     required String countryCode,
     required String phone,
-  }) {
+  }) async {
     switch (nextStep) {
       case LoginNextStep.tripRequest:
         context.goNamed('trip_request');
@@ -289,22 +354,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           },
         );
         break;
+      case LoginNextStep.verifyEmailCode:
+      case LoginNextStep.profileRequired:
+        break;
       case LoginNextStep.stepUp:
-        context.goNamed(
-          'auth_step_up',
-          queryParameters: {
-            'cc': countryCode,
-            'phone': phone,
-          },
+      case LoginNextStep.attemptsLimitReached:
+        _resetToMethodChoice();
+        await showLoginAttemptsLimitDialog(
+          context,
+          navigateToLoginOnDismiss: false,
         );
         break;
+      case LoginNextStep.authLockout:
+        _resetToMethodChoice();
+        final lockout = ref.read(loginControllerProvider).authLockout;
+        if (lockout != null) {
+          await navigateToPassengerAuthLockout(
+            context,
+            lockout: lockout,
+            countryCode: countryCode,
+            phoneNumber: phone,
+          );
+        } else {
+          await showLoginAttemptsLimitDialog(
+            context,
+            navigateToLoginOnDismiss: false,
+          );
+        }
+        break;
       case LoginNextStep.phoneRequired:
-        setState(() => _wizardStep = LoginWizardStep.phoneEntry);
+        setState(() => _step = LoginScreenStep.phoneUnified);
         break;
       case LoginNextStep.error:
         _applyLoginError(countryCode: countryCode, phone: phone);
         break;
     }
+  }
+
+  void _resetToMethodChoice() {
+    _resetCaptchaGate();
+    _errorMessage = null;
+    _step = LoginScreenStep.methodChoice;
+    _phoneController.clear();
+    _emailController.clear();
   }
 
   Future<void> _applyLoginError({
@@ -313,6 +405,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }) async {
     final l10n = AppLocalizations.of(context)!;
     final loginState = ref.read(loginControllerProvider);
+    if (await showLoginAuthRateLimitIfNeeded(
+      context,
+      code: loginState.errorCode,
+      responseData: loginState.authLockout?.toJson(),
+      message: loginState.errorMessage,
+      countryCode: countryCode,
+      phoneNumber: phone,
+      navigateToLoginOnDismiss: false,
+    )) {
+      _resetToMethodChoice();
+      return;
+    }
     if (loginState.errorCode == 'ACCOUNT_DELETION_PENDING') {
       await _showAccountDeletionPendingDialog(
         countryCode: countryCode,
@@ -323,7 +427,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     setState(() {
-      _wizardStep = LoginWizardStep.phoneVerificationMethod;
+      _step = LoginScreenStep.phoneUnified;
       final code = loginState.errorCode;
       const authReviewDataCodes = <String>{
         'PASS_AUTH_VALIDATION',
@@ -344,6 +448,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'NETWORK_TIMEOUT' => l10n.verifyCodeErrorNetwork,
                   'NETWORK_CONNECTION' => l10n.verifyCodeErrorConnection,
                   'NETWORK_REQUEST_FAILED' => l10n.verifyCodeErrorNetwork,
+                  'BACKEND_UNAVAILABLE' => l10n.loginErrorBackendUnavailable,
                   'CLIENT_INVALID_RESPONSE' =>
                     l10n.verifyCodeErrorIncompleteResponse,
                   'CLIENT_EMPTY_DATA' =>
@@ -360,6 +465,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     l10n.loginErrorVerificationServiceUnavailable,
                   'PASS_AUTH_WA_NOT_CONFIGURED' =>
                     l10n.loginErrorWhatsAppVerificationUnavailable,
+                  'PASS_AUTH_WA_OUTBOUND_RATE_LIMIT' =>
+                    l10n.loginErrorWaOutboundRateLimit,
+                  'PASS_AUTH_WA_OUTBOUND_NOT_CONFIGURED' =>
+                    l10n.loginErrorWhatsAppVerificationUnavailable,
+                  'PASS_AUTH_WA_OUTBOUND_SEND_FAILED' =>
+                    l10n.verifyCodeWaOutboundFailed,
                   'SESSION_SUPERSEDED' => l10n.loginErrorSessionSuperseded,
                   'TRIP_OPERATIONAL_LOCK' =>
                     l10n.loginErrorTripOperationalLock,
@@ -374,25 +485,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_isLoading) return;
     setState(() {
       _errorMessage = null;
-      switch (_wizardStep) {
-        case LoginWizardStep.methodChoice:
-          break;
-        case LoginWizardStep.phoneEntry:
-          _wizardStep = LoginWizardStep.methodChoice;
-          _phoneCaptchaPassed = false;
-          _resetCaptchaGate();
-          break;
-        case LoginWizardStep.phoneCaptcha:
-          _wizardStep = LoginWizardStep.phoneEntry;
-          break;
-        case LoginWizardStep.phoneVerificationMethod:
-          _wizardStep = LoginWizardStep.phoneEntry;
-          break;
-        case LoginWizardStep.googleCaptcha:
-          _resetCaptchaGate();
-          _wizardStep = LoginWizardStep.methodChoice;
-          break;
-      }
+      _resetCaptchaGate();
+      _step = LoginScreenStep.methodChoice;
     });
   }
 
@@ -470,27 +564,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
   }
 
-  String? _loadingMessageForStep(AppLocalizations l10n) {
+  String? _loadingMessage(AppLocalizations l10n) {
     if (!_isLoading) return null;
-    return switch (_wizardStep) {
-      LoginWizardStep.phoneVerificationMethod => l10n.loginVerifyMethodLoadingWa,
-      LoginWizardStep.googleCaptcha => l10n.commonLoading,
-      _ => l10n.commonLoading,
-    };
+    return _step == LoginScreenStep.phoneUnified
+        ? l10n.loginVerifyMethodLoadingWa
+        : l10n.commonLoading;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final loginState = ref.watch(loginControllerProvider);
-    final googleEnabled =
-        ref.read(loginControllerProvider.notifier).isGoogleAuthConfigured;
-    final showBack = _wizardStep != LoginWizardStep.methodChoice;
-    final compactLogo = _wizardStep != LoginWizardStep.methodChoice;
+    final googleEnabled = PassengerAppEnvironment.multichannelAuthEnabled &&
+        AppConfig.googleAuthEnabled;
+    final authChannelsEnabled = PassengerAppEnvironment.multichannelAuthEnabled;
+    final showBack = _step != LoginScreenStep.methodChoice;
 
     return PassengerAuthShell(
       loading: _isLoading,
-      loadingMessage: _loadingMessageForStep(l10n),
+      loadingMessage: _loadingMessage(l10n),
+      maxContentWidth: _isUnifiedStep ? 560 : 420,
+      horizontalPadding: _isUnifiedStep ? 12 : 24,
       leading: showBack
           ? Padding(
               padding: const EdgeInsets.only(left: 8, top: 4),
@@ -515,11 +609,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: Image.asset(
                   AppAssets.logoAmaBlanco,
-                  width: compactLogo ? 72 : 88,
-                  height: compactLogo ? 72 : 88,
+                  width: showBack ? 72 : 88,
+                  height: showBack ? 72 : 88,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) =>
-                      SizedBox(height: compactLogo ? 72 : 88),
+                      SizedBox(height: showBack ? 72 : 88),
                 ),
               ),
               const SizedBox(height: 20),
@@ -537,16 +631,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: SlideTransition(position: offset, child: child),
                   );
                 },
-                child: _buildWizardStep(
+                child: _buildStep(
                   l10n: l10n,
                   loginState: loginState,
                   googleEnabled: googleEnabled,
+                  outboundEnabled: authChannelsEnabled,
                 ),
               ),
               const SizedBox(height: 18),
-              PassengerLoginLegalFooter(
-                textColor: AppColors.textSecondary.withValues(alpha: 0.85),
-              ),
+              if (_step == LoginScreenStep.methodChoice)
+                PassengerLoginLegalFooter(
+                  tone: PassengerLegalNoticeTone.methodChoice,
+                  textColor: AppColors.textSecondary.withValues(alpha: 0.85),
+                )
+              else if (_isUnifiedStep)
+                PassengerLoginLegalFooter(
+                  tone: PassengerLegalNoticeTone.authContinue,
+                  textColor: AppColors.textSecondary.withValues(alpha: 0.85),
+                ),
             ],
           ),
         ),
@@ -554,66 +656,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildWizardStep({
+  Widget _buildStep({
     required AppLocalizations l10n,
     required LoginState loginState,
     required bool googleEnabled,
+    required bool outboundEnabled,
   }) {
-    switch (_wizardStep) {
-      case LoginWizardStep.methodChoice:
+    switch (_step) {
+      case LoginScreenStep.methodChoice:
         return LoginMethodChoicePanel(
-          key: const ValueKey('method_step'),
+          key: const ValueKey('method_choice'),
           onMethodSelected: _onMethodSelected,
           googleAuthEnabled: googleEnabled,
         );
-      case LoginWizardStep.phoneEntry:
-        return LoginPhoneEntryPanel(
-          key: const ValueKey('phone_step'),
+      case LoginScreenStep.phoneUnified:
+        return LoginPhoneUnifiedPanel(
+          key: const ValueKey('phone_unified'),
           country: _country,
           phoneController: _phoneController,
-          errorMessage: _errorMessage,
+          turnstileKey: _turnstileKey,
+          phoneValid: _phoneValid,
+          showCaptcha: _showPhoneCaptcha,
+          captchaReady: _captchaReady,
+          showVerifyActions: _showPhoneVerifyActions,
+          onCaptchaToken: _onCaptchaToken,
+          onMethodSelected: _onVerificationMethodSelected,
           isLoading: _isLoading,
-          onSubmit: _onPhoneEntryContinue,
+          outboundEnabled: outboundEnabled,
+          errorMessage: _errorMessage,
           linkedGoogleEmail: loginState.googleEmail,
         );
-      case LoginWizardStep.phoneCaptcha:
-        return LoginCaptchaGatePanel(
-          key: const ValueKey('phone_captcha'),
+      case LoginScreenStep.googleUnified:
+        return LoginGoogleUnifiedPanel(
+          key: const ValueKey('google_unified'),
+          emailController: _emailController,
           turnstileKey: _turnstileKey,
           captchaReady: _captchaReady,
           onCaptchaToken: _onCaptchaToken,
-          onContinue: _onPhoneCaptchaContinue,
+          onContinueManualEmail: _continueWithManualEmail,
+          onSignInWithGoogle: _signInWithGoogle,
+          googleAuthEnabled: googleEnabled,
           isLoading: _isLoading,
-        );
-      case LoginWizardStep.phoneVerificationMethod:
-        return Column(
-          key: const ValueKey('verify_method'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            LoginPhoneVerificationMethodPanel(
-              phoneMasked: _maskedPhone(),
-              outboundEnabled: true,
-              onMethodSelected: _onVerificationMethodSelected,
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 14),
-              PremiumStateView(
-                icon: Icons.info_outline_rounded,
-                title: l10n.loginReviewDataTitle,
-                message: _errorMessage!,
-              ),
-            ],
-          ],
-        );
-      case LoginWizardStep.googleCaptcha:
-        return LoginCaptchaGatePanel(
-          key: const ValueKey('google_captcha'),
-          turnstileKey: _turnstileKey,
-          captchaReady: _captchaReady,
-          forGoogle: true,
-          onCaptchaToken: _onCaptchaToken,
-          onContinue: _onGoogleCaptchaContinue,
-          isLoading: _isLoading,
+          errorMessage: _errorMessage,
         );
     }
   }

@@ -11,6 +11,7 @@ import '../../../core/theme/app_ui_tokens.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
 const String _kTurnstilePageBaseUrlDefault = 'https://api.prod.taxitexi.com/';
+const Duration _kTurnstileErrorGracePeriod = Duration(seconds: 12);
 
 enum PassengerCaptchaContext { loginEntry, stepUp }
 
@@ -30,11 +31,14 @@ class PassengerTurnstileWidget extends StatefulWidget {
     required this.onToken,
     this.onError,
     this.captchaContext = PassengerCaptchaContext.stepUp,
+    this.expanded = false,
   });
 
   final ValueChanged<String> onToken;
   final VoidCallback? onError;
   final PassengerCaptchaContext captchaContext;
+  /// Más alto y ancho para pantalla de captcha de entrada (sin card contenedor).
+  final bool expanded;
 
   @override
   State<PassengerTurnstileWidget> createState() =>
@@ -46,11 +50,63 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
   _TurnstileUiState _state = _TurnstileUiState.loading;
   int _attempt = 0;
   Completer<String>? _pendingToken;
+  Timer? _errorGraceTimer;
+  Timer? _interactiveHintTimer;
+  bool _errorGraceElapsed = false;
+  bool _showInteractiveHint = false;
+
+  double get _widgetHeight => widget.expanded ? 96 : 72;
 
   @override
   void initState() {
     super.initState();
     _bootAttempt();
+  }
+
+  @override
+  void dispose() {
+    _errorGraceTimer?.cancel();
+    _interactiveHintTimer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleInteractiveHint() {
+    _interactiveHintTimer?.cancel();
+    _showInteractiveHint = false;
+    _interactiveHintTimer = Timer(const Duration(milliseconds: 650), () {
+      if (!mounted) return;
+      if (_state != _TurnstileUiState.interactive) return;
+      setState(() => _showInteractiveHint = true);
+    });
+  }
+
+  void _clearInteractiveHint() {
+    _interactiveHintTimer?.cancel();
+    if (_showInteractiveHint) {
+      _showInteractiveHint = false;
+    }
+  }
+
+  void _startErrorGraceTimer() {
+    _errorGraceTimer?.cancel();
+    _errorGraceElapsed = false;
+    _errorGraceTimer = Timer(_kTurnstileErrorGracePeriod, () {
+      if (!mounted) return;
+      setState(() => _errorGraceElapsed = true);
+    });
+  }
+
+  void _setErrorState({bool notifyParent = true}) {
+    if (!_errorGraceElapsed) {
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _state = _TurnstileUiState.error);
+    if (notifyParent) {
+      widget.onError?.call();
+    }
+    _pendingToken?.completeError(StateError('turnstile error'));
+    _pendingToken = null;
   }
 
   /// Reinicia el widget tras fallo server-side del captcha.
@@ -92,15 +148,26 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
 
   Future<void> _bootAttempt() async {
     final siteKey = PassengerAppEnvironment.turnstileSiteKey.trim();
+    _startErrorGraceTimer();
     if (siteKey.isEmpty) {
-      if (mounted) setState(() => _state = _TurnstileUiState.error);
-      widget.onError?.call();
+      if (mounted) {
+        setState(() => _state = _TurnstileUiState.loading);
+      }
+      Future<void>.delayed(_kTurnstileErrorGracePeriod, () {
+        if (!mounted) return;
+        setState(() {
+          _errorGraceElapsed = true;
+          _state = _TurnstileUiState.error;
+        });
+        widget.onError?.call();
+      });
       return;
     }
 
     setState(() {
       _state = _TurnstileUiState.loading;
       _controller = null;
+      _clearInteractiveHint();
     });
 
     late final PlatformWebViewControllerCreationParams params;
@@ -123,16 +190,18 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
           if (!mounted) return;
           if (payload == 'interactive') {
             setState(() => _state = _TurnstileUiState.interactive);
+            if (widget.captchaContext == PassengerCaptchaContext.loginEntry) {
+              _scheduleInteractiveHint();
+            }
             return;
           }
           if (payload == 'error') {
-            setState(() => _state = _TurnstileUiState.error);
-            widget.onError?.call();
-            _pendingToken?.completeError(StateError('turnstile error'));
-            _pendingToken = null;
+            _clearInteractiveHint();
+            _setErrorState();
             return;
           }
           if (payload.isNotEmpty) {
+            _clearInteractiveHint();
             setState(() => _state = _TurnstileUiState.ready);
             widget.onToken(payload);
             if (_pendingToken != null && !_pendingToken!.isCompleted) {
@@ -145,9 +214,7 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onWebResourceError: (_) {
-            if (!mounted) return;
-            setState(() => _state = _TurnstileUiState.error);
-            widget.onError?.call();
+            _setErrorState();
           },
         ),
       );
@@ -175,6 +242,7 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
 
   String _htmlForSiteKey(String siteKey) {
     final escaped = siteKey.replaceAll("'", "\\'");
+    final minH = _widgetHeight.round();
     return '''
 <!DOCTYPE html>
 <html>
@@ -185,17 +253,17 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
   <style>
     html, body {
       margin: 0; padding: 0;
-      background: transparent;
+      background: #1a1814;
       overflow: hidden;
-      min-height: 72px;
+      min-height: ${minH}px;
     }
     #turnstile-root {
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 72px;
+      min-height: ${minH}px;
       width: 100%;
-      padding: 4px 0;
+      padding: 6px 0;
     }
   </style>
 </head>
@@ -225,91 +293,128 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
       });
       postInteractive();
     }
-    setTimeout(function() { if (!window.turnstile) postError(); }, 15000);
+    setTimeout(function() { if (!window.turnstile) postError(); }, 18000);
   </script>
 </body>
 </html>
 ''';
   }
 
-  String _hintForState(AppLocalizations l10n) {
+  String? _hintForState(AppLocalizations l10n) {
     final isLogin = widget.captchaContext == PassengerCaptchaContext.loginEntry;
     return switch (_state) {
       _TurnstileUiState.loading =>
-        isLogin ? l10n.loginCaptchaLoading : l10n.stepUpCaptchaLoading,
+        isLogin ? null : l10n.stepUpCaptchaLoading,
       _TurnstileUiState.interactive => isLogin
-          ? l10n.loginCaptchaInteractiveHint
+          ? (_showInteractiveHint ? l10n.loginCaptchaInteractiveHint : null)
           : l10n.stepUpCaptchaInteractiveHint,
-      _TurnstileUiState.ready =>
-        isLogin ? l10n.loginCaptchaReady : l10n.stepUpCaptchaReady,
-      _TurnstileUiState.error =>
-        isLogin ? l10n.loginCaptchaLoadFailed : l10n.stepUpCaptchaLoadFailed,
+      _TurnstileUiState.ready => isLogin ? null : l10n.stepUpCaptchaReady,
+      _TurnstileUiState.error => _errorGraceElapsed
+          ? (isLogin
+              ? l10n.loginCaptchaLoadFailed
+              : l10n.stepUpCaptchaLoadFailed)
+          : (isLogin ? null : l10n.stepUpCaptchaLoading),
     };
+  }
+
+  Color _hintColor(String? hint) {
+    if (hint == null) return AppColors.textSecondary;
+    if (_state == _TurnstileUiState.error && _errorGraceElapsed) {
+      return AppColors.error.withValues(alpha: 0.92);
+    }
+    return AppColors.textSecondary.withValues(alpha: 0.92);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (PassengerAppEnvironment.turnstileSiteKey.trim().isEmpty) {
-      return _messageBox(l10n.stepUpCaptchaLoadFailed);
+      return _messageBox(l10n.loginCaptchaDevPlaceholder);
     }
 
     final controller = _controller;
-    final hintColor = _state == _TurnstileUiState.ready
-        ? AppColors.success
-        : _state == _TurnstileUiState.error
-            ? AppColors.error.withValues(alpha: 0.92)
-            : AppColors.textSecondary;
+    final showLoadingOverlay =
+        _state == _TurnstileUiState.loading ||
+        (_state == _TurnstileUiState.error && !_errorGraceElapsed);
+    final hint = _hintForState(l10n);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          child: SizedBox(
-            height: 72,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (controller != null)
-                  WebViewWidget(
-                    key: ValueKey('turnstile-webview-$_attempt'),
-                    controller: controller,
-                  ),
-                if (_state == _TurnstileUiState.loading)
-                  ColoredBox(
-                    color: const Color(0xFF1A1814).withValues(alpha: 0.92),
-                    child: Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary.withValues(alpha: 0.9),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            color: const Color(0xFF1A1814),
+            border: Border.all(
+              color: _state == _TurnstileUiState.ready
+                  ? AppColors.primary.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            child: SizedBox(
+              height: _widgetHeight,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (controller != null)
+                    WebViewWidget(
+                      key: ValueKey('turnstile-webview-$_attempt'),
+                      controller: controller,
+                    ),
+                  if (showLoadingOverlay)
+                    ColoredBox(
+                      color: const Color(0xFF1A1814).withValues(alpha: 0.94),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: AppColors.primary.withValues(alpha: 0.9),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              l10n.loginCaptchaLoading,
+                              style: TextStyle(
+                                color: AppColors.textSecondary.withValues(
+                                  alpha: 0.9,
+                                ),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          child: Text(
-            _hintForState(l10n),
-            key: ValueKey(_state),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: hintColor,
-                  height: 1.35,
-                  fontSize: 12.5,
-                ),
-            textAlign: TextAlign.center,
+        if (hint != null) ...[
+          const SizedBox(height: 10),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Text(
+              hint,
+              key: ValueKey('${hint}_${_state}_$_errorGraceElapsed'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _hintColor(hint),
+                    height: 1.35,
+                    fontSize: 12.5,
+                  ),
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-        if (_state == _TurnstileUiState.error) ...[
+        ],
+        if (_state == _TurnstileUiState.error && _errorGraceElapsed) ...[
           const SizedBox(height: 2),
           Center(
             child: TextButton(

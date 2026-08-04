@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../config/app_config.dart';
+import '../maps/passenger_google_maps_health.dart';
 import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
@@ -38,15 +39,26 @@ class GeocodingService {
     return _searchCache.run(
       key: 's:$normalized',
       fetcher: () async {
+        final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
+        if (apiKey == null) {
+          PassengerGoogleMapsHealth.logMissingApiKeyOnce();
+          return null;
+        }
         final encoded = Uri.encodeComponent(address.trim());
-        final url =
-            '$_baseUrl?address=$encoded&key=${AppConfig.googleMapsApiKey}';
+        final url = '$_baseUrl?address=$encoded&key=$apiKey';
         try {
           final response = await _dio.get<Map<String, dynamic>>(url);
           final data = response.data;
           if (data == null) return null;
           final status = data['status'] as String?;
-          if (status != 'OK') return null;
+          if (status != 'OK') {
+            PassengerGoogleMapsHealth.logApiStatus(
+              service: 'Geocoding',
+              status: status,
+              errorMessage: data['error_message']?.toString(),
+            );
+            return null;
+          }
           final results = data['results'] as List<dynamic>?;
           if (results == null || results.isEmpty) return null;
           final first = results.first as Map<String, dynamic>;
@@ -112,17 +124,28 @@ class GeocodingService {
     String? resultType,
     required bool preferStreetLevel,
   }) async {
+    final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
+    if (apiKey == null) {
+      PassengerGoogleMapsHealth.logMissingApiKeyOnce();
+      return null;
+    }
     final filter = resultType == null || resultType.isEmpty
         ? ''
         : '&result_type=${Uri.encodeQueryComponent(resultType)}';
-    final url =
-        '$_baseUrl?latlng=$lat,$lng$filter&key=${AppConfig.googleMapsApiKey}';
+    final url = '$_baseUrl?latlng=$lat,$lng$filter&key=$apiKey';
     final response = await _dio.get<Map<String, dynamic>>(url);
     final data = response.data;
     if (data == null) return null;
 
     final status = data['status'] as String?;
-    if (status != 'OK') return null;
+    if (status != 'OK') {
+      PassengerGoogleMapsHealth.logApiStatus(
+        service: 'ReverseGeocoding',
+        status: status,
+        errorMessage: data['error_message']?.toString(),
+      );
+      return null;
+    }
 
     final results = data['results'] as List<dynamic>?;
     if (results == null || results.isEmpty) return null;

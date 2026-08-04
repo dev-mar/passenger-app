@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
 import '../config/app_config.dart';
@@ -93,8 +95,36 @@ class AuthService {
     }
   }
 
-  /// Cierra sesión: borra token y refresh.
+  /// Cierra sesión: revoca refresh en servidor (best-effort) y borra tokens locales.
   static Future<void> logout() async {
+    try {
+      final refresh = await PassengerSecureStorage.read(_keyRefreshToken);
+      final bearer = await _readSecure(_keyAuthToken);
+      if (bearer != null && bearer.isNotEmpty) {
+        String? pushToken;
+        try {
+          if (Firebase.apps.isNotEmpty) {
+            final t = await FirebaseMessaging.instance
+                .getToken()
+                .timeout(const Duration(milliseconds: 1200));
+            if (t != null && t.trim().isNotEmpty) pushToken = t.trim();
+          }
+        } catch (_) {}
+        await _dio
+            .post<Map<String, dynamic>>(
+              AppConfig.authLogoutPath,
+              data: <String, dynamic>{
+                if (refresh != null && refresh.isNotEmpty)
+                  'refresh_token': refresh,
+                if (pushToken != null) 'push_token': pushToken,
+              },
+              options: Options(headers: {'Authorization': 'Bearer $bearer'}),
+            )
+            .timeout(const Duration(seconds: 5));
+      }
+    } catch (_) {
+      // El cierre local no debe fallar por red.
+    }
     await PassengerPushTokenService.instance.revokeAllOnServerIfPossible();
     await PassengerSecureStorage.delete(_keyAuthToken);
     await PassengerSecureStorage.delete(_keyRefreshToken);

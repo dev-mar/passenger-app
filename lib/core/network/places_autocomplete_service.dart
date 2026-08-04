@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../config/app_config.dart';
+import '../maps/passenger_google_maps_health.dart';
 import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
@@ -67,10 +68,15 @@ class PlacesAutocompleteService {
     return _suggestionsCache.run(
       key: key,
       fetcher: () async {
+        final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
+        if (apiKey == null) {
+          PassengerGoogleMapsHealth.logMissingApiKeyOnce();
+          return const [];
+        }
         try {
           final params = <String, dynamic>{
             'input': q,
-            'key': AppConfig.googleMapsApiKey,
+            'key': apiKey,
             'language': 'es',
             'sessiontoken': sessionToken,
             // Bolivia; el bias de ubicación prioriza la zona del mapa.
@@ -88,7 +94,14 @@ class PlacesAutocompleteService {
             queryParameters: params,
           );
           final data = response.data;
-          if (data == null || data['status'] != 'OK') return const [];
+          if (data == null || data['status'] != 'OK') {
+            PassengerGoogleMapsHealth.logApiStatus(
+              service: 'Places',
+              status: data?['status']?.toString(),
+              errorMessage: data?['error_message']?.toString(),
+            );
+            return const [];
+          }
           final preds = data['predictions'] as List<dynamic>?;
           if (preds == null || preds.isEmpty) return const [];
           final queryLower = q.toLowerCase();
@@ -139,19 +152,31 @@ class PlacesAutocompleteService {
     return _detailsCache.run(
       key: 'd:${placeId.trim()}',
       fetcher: () async {
+        final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
+        if (apiKey == null) {
+          PassengerGoogleMapsHealth.logMissingApiKeyOnce();
+          return null;
+        }
         try {
           final response = await _dio.get<Map<String, dynamic>>(
             _detailsUrl,
             queryParameters: {
               'place_id': placeId,
               'fields': 'geometry/location,formatted_address',
-              'key': AppConfig.googleMapsApiKey,
+              'key': apiKey,
               'language': 'es',
               'sessiontoken': sessionToken,
             },
           );
           final data = response.data;
-          if (data == null || data['status'] != 'OK') return null;
+          if (data == null || data['status'] != 'OK') {
+            PassengerGoogleMapsHealth.logApiStatus(
+              service: 'PlaceDetails',
+              status: data?['status']?.toString(),
+              errorMessage: data?['error_message']?.toString(),
+            );
+            return null;
+          }
           final result = data['result'] as Map<String, dynamic>?;
           final geometry = result?['geometry'] as Map<String, dynamic>?;
           final location = geometry?['location'] as Map<String, dynamic>?;

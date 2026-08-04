@@ -33,10 +33,12 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
     super.key,
     required this.countryCode,
     required this.phoneNumber,
+    this.email,
   });
 
   final String countryCode;
   final String phoneNumber;
+  final String? email;
 
   @override
   ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -52,6 +54,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   String? _errorMessage;
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
+
+  bool get _isEmailOnly =>
+      widget.email != null &&
+      widget.email!.trim().isNotEmpty &&
+      widget.phoneNumber.trim().isEmpty;
 
   @override
   void initState() {
@@ -114,6 +121,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         ? widget.countryCode
         : '+${widget.countryCode}';
     final fullPhone = '$cc$phoneDigits';
+    final email = widget.email?.trim();
 
     try {
       final clientMeta = await passengerAuthClientMeta();
@@ -123,7 +131,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         path: AppConfig.authUsersPath,
         data: <String, dynamic>{
           ...clientMeta,
-          'phone_number': fullPhone,
+          if (_isEmailOnly && email != null && email.isNotEmpty)
+            'email': email
+          else
+            'phone_number': fullPhone,
           'alias_name': name,
           // Foto opcional: si no hay imagen, enviamos null explícito.
           'profile_picture': _profileImageBase64,
@@ -180,7 +191,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         refreshToken: refreshToken,
         expiresInSeconds: expiresInSec,
       );
-      await AuthService.persistLoginPhoneE164(fullPhone);
+      if (!_isEmailOnly) {
+        await AuthService.persistLoginPhoneE164(fullPhone);
+      }
       await AuthService.savePassengerDisplayName(name);
 
       if (!mounted) return;

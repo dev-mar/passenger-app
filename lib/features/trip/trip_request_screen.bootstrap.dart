@@ -43,6 +43,7 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
     passengerTripChatOpenBump.addListener(_onPassengerTripChatOpenBump);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_loadDriverTripIcon());
+      unawaited(_probeGoogleMapsRestHealth());
       _onPassengerTripChatOpenBump();
       unawaited(_loadRecentPlaces());
       unawaited(_loadSavedPlaces());
@@ -261,6 +262,21 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
       _resolveOrigin();
     });
     _d._loadingOrigin = true;
+  }
+
+  Future<void> _probeGoogleMapsRestHealth() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final probe = await PassengerGoogleMapsHealth.probe();
+    if (!mounted || probe.ok) return;
+    setState(() {
+      _d._error = probe.missingApiKey
+          ? l10n.tripMapsRestKeyMissing
+          : (probe.status == 'REQUEST_DENIED'
+              ? l10n.tripMapsRestKeyDenied
+              : l10n.tripMapsRestUnavailable);
+    });
   }
 
   void disposeTripRequestScreen() {

@@ -503,6 +503,15 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._searchingOverlayGeneration += 1;
       }
     });
+    if (result.kind == PassengerTripSubmitResultKind.phoneRequired) {
+      await handlePassengerTripPhoneRequired(
+        context,
+        ref,
+        result.kind,
+        returnTo: 'trip_request',
+      );
+      return;
+    }
     if (result.kind == PassengerTripSubmitResultKind.error) {
       final msg = result.message ?? l10n.commonError;
       if (msg == l10n.tripNoDriversAvailable) {

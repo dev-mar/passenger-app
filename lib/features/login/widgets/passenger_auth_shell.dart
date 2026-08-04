@@ -17,6 +17,7 @@ class PassengerAuthShell extends StatelessWidget {
     this.loading = false,
     this.loadingMessage,
     this.maxContentWidth = 420,
+    this.horizontalPadding = 24,
   });
 
   final Widget child;
@@ -24,6 +25,7 @@ class PassengerAuthShell extends StatelessWidget {
   final bool loading;
   final String? loadingMessage;
   final double maxContentWidth;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +61,9 @@ class PassengerAuthShell extends StatelessWidget {
                   child: Center(
                     child: SingleChildScrollView(
                       padding: EdgeInsets.fromLTRB(
-                        24,
+                        horizontalPadding,
                         leading != null ? 8 : 20,
-                        24,
+                        horizontalPadding,
                         20 + AppSafeScrolling.systemNavBottom(context),
                       ),
                       child: ConstrainedBox(

@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/storage/passenger_auth_lockout_storage.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../login/utils/passenger_play_review_credentials.dart';
 import '../trip/trip_request_state.dart';
 
 /// Pantalla Splash: logo + comprobar sesión → Login o solicitud de viaje.
@@ -88,6 +90,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     context.goNamed('login');
   }
 
+  void _goAuthLockout({
+    required String countryCode,
+    required String phoneNumber,
+  }) {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+    context.goNamed(
+      'auth_lockout',
+      queryParameters: {
+        'cc': countryCode,
+        'phone': phoneNumber,
+      },
+    );
+  }
+
   void _goTripRequest() {
     if (_navigated || !mounted) return;
     _navigated = true;
@@ -127,6 +144,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
       _goTripRequest();
       return;
+    }
+
+    final lockout = await PassengerAuthLockoutStorage.readActive();
+    if (!mounted || _navigated) return;
+    if (lockout != null &&
+        lockout.isActive &&
+        lockout.countryCode != null &&
+        lockout.phoneNumber != null) {
+      if (PassengerPlayReviewCredentials.isAllowlistedPhone(
+        countryCode: lockout.countryCode!,
+        phoneNumber: lockout.phoneNumber!,
+      )) {
+        await PassengerAuthLockoutStorage.clear();
+      } else {
+        _goAuthLockout(
+          countryCode: lockout.countryCode!,
+          phoneNumber: lockout.phoneNumber!,
+        );
+        return;
+      }
     }
 
     _goLogin();

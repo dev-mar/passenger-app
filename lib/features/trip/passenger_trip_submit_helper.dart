@@ -7,6 +7,7 @@ import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/network/trips_api.dart';
+import '../../core/network/passenger_api_providers.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -19,6 +20,7 @@ import 'trip_request_state.dart';
 enum PassengerTripSubmitResultKind {
   success,
   recoveredExisting,
+  phoneRequired,
   error,
 }
 
@@ -73,6 +75,20 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
       PassengerTripSubmitResultKind.error,
       message: l10n.commonError,
     );
+  }
+
+  try {
+    final meData = await ref
+        .read(passengerMeProfileServiceProvider)
+        .fetchData(forceRefresh: true);
+    if (meData['phone_verified'] != true) {
+      return PassengerTripSubmitResult(
+        PassengerTripSubmitResultKind.phoneRequired,
+        message: l10n.tripPhoneRequired,
+      );
+    }
+  } catch (_) {
+    // Si falla /auth/me, el gate server-side responderá 403.
   }
 
   try {
@@ -192,6 +208,12 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
         code,
         fallbackMessage: rawMsg,
       );
+      if (code == 'PASS_AUTH_PHONE_REQUIRED') {
+        return PassengerTripSubmitResult(
+          PassengerTripSubmitResultKind.phoneRequired,
+          message: message,
+        );
+      }
       return PassengerTripSubmitResult(
         PassengerTripSubmitResultKind.error,
         message: message,

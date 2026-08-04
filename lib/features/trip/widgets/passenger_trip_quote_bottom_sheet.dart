@@ -8,6 +8,7 @@ import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../passenger_trip_submit_helper.dart';
+import '../../login/passenger_phone_link_navigation.dart';
 import '../trip_request_state.dart';
 import 'quote_bottom_sheet_widgets.dart';
 
@@ -94,6 +95,16 @@ class _PassengerTripQuoteBottomSheetState
         result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
       widget.onSuccess();
       return;
+    }
+    if (result.kind == PassengerTripSubmitResultKind.phoneRequired) {
+      if (await handlePassengerTripPhoneRequired(
+        context,
+        ref,
+        result.kind,
+        returnTo: 'trip_request',
+      )) {
+        return;
+      }
     }
     setState(() {
       _errorMessage =

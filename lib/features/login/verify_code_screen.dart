@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/app_lifecycle/passenger_app_visibility.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/passenger_api_client.dart';
@@ -19,8 +20,16 @@ import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/network/texi_backend_error.dart';
+import '../../core/config/passenger_app_environment.dart';
 import '../../core/l10n/trip_error_localization.dart';
+import '../../core/notifications/passenger_notification_service.dart';
+import '../../core/router/app_router.dart';
 import 'login_controller.dart';
+import 'utils/login_attempts_limit_dialog.dart';
+import 'utils/login_auth_rate_limit.dart';
+import 'widgets/login_auth_action_row.dart';
+import 'widgets/login_auth_info_button.dart';
+import 'widgets/login_whatsapp_brand_icon.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 /// Pantalla para ingresar el código de 6 dígitos y activar al pasajero.
@@ -29,22 +38,34 @@ class VerifyCodeScreen extends ConsumerStatefulWidget {
     super.key,
     required this.countryCode,
     required this.phoneNumber,
+    this.email,
     this.verificationChannel,
     this.challengeId,
     this.waDeepLink,
+    this.linkPhoneMode = false,
+    this.returnTo,
+    this.waResumeMode,
   });
 
   final String countryCode;
   final String phoneNumber;
+  final String? email;
   final String? verificationChannel;
   final String? challengeId;
   final String? waDeepLink;
+  final bool linkPhoneMode;
+  final String? returnTo;
+  /// Tras toque en notificación local (`driver` | `link` | `profile`).
+  final String? waResumeMode;
 
   @override
   ConsumerState<VerifyCodeScreen> createState() => _VerifyCodeScreenState();
 }
 
-class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
+class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
+    with WidgetsBindingObserver {
+  static const Duration _outboundHelpRevealDelay = Duration(seconds: 75);
+
   final _codeController = TextEditingController();
   final _codeFocusNode = FocusNode();
   bool _isLoading = false;
@@ -53,16 +74,47 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   bool _waWaiting = false;
   bool _waExpired = false;
   bool _waOutboundLoading = false;
+  bool _outboundFallbackAvailable = false;
+  bool _smsFallbackAvailable = false;
+  bool _waVerifiedSuccess = false;
+  bool _waVerifiedPendingNavigation = false;
+  bool _waVerifiedReuseDriver = false;
+  Timer? _outboundHelpTimer;
+  bool _outboundHelpExpanded = false;
+
+  bool get _isPlayReview => widget.verificationChannel == 'play_review';
+
+  bool get _isWhatsAppOutbound =>
+      widget.verificationChannel == 'whatsapp_outbound';
 
   bool get _isWhatsAppInbound =>
       widget.verificationChannel == 'whatsapp_inbound' &&
       (widget.challengeId?.isNotEmpty ?? false);
+
+  bool get _isEmailLogin =>
+      widget.verificationChannel == 'email' &&
+      (widget.email?.trim().isNotEmpty ?? false);
+
+  bool get _isSmsFirebase =>
+      widget.verificationChannel == 'sms_firebase' ||
+      widget.verificationChannel == 'sms';
+
+  void _openSmsVerifyScreen() {
+    context.goNamed(
+      'verify_sms',
+      queryParameters: {
+        'cc': widget.countryCode,
+        'phone': widget.phoneNumber,
+      },
+    );
+  }
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (_isWhatsAppInbound) {
       _waWaiting = true;
       _waPollTimer = Timer.periodic(
@@ -71,6 +123,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _openWhatsAppDeepLink();
+        _maybeResumeFromWaNotification();
+      });
+    } else if (_isSmsFirebase) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openSmsVerifyScreen();
+      });
+    } else if (_isWhatsAppOutbound) {
+      _outboundHelpTimer = Timer(_outboundHelpRevealDelay, () {
+        if (!mounted || _outboundHelpExpanded) return;
+        setState(() => _outboundHelpExpanded = true);
       });
     }
   }
@@ -112,35 +174,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         if (!mounted) return;
         setState(() {
           _waWaiting = false;
-          _waExpired = data['fallback_channel'] == 'whatsapp_outbound';
+          _waExpired = true;
+          _outboundFallbackAvailable =
+              data['fallback_channel'] == 'whatsapp_outbound';
+          _smsFallbackAvailable = data['fallback_channel'] == 'sms_firebase';
         });
         return;
       }
       if (status != 'verified') return;
 
-      _waPollTimer?.cancel();
-      if (!mounted) return;
-
-      final reuseDriver = data['reuse_driver_profile'] == true ||
-          data['reuse_driver_profile'] == 'true';
-      if (reuseDriver) {
-        setState(() {
-          _isLoading = true;
-          _waWaiting = false;
-        });
-        await _completePassengerFromDriver();
-        return;
-      }
-
-      await AuthService.persistLoginPhoneE164(fullPhone);
-      if (!mounted) return;
-      context.goNamed(
-        'profile_setup',
-        queryParameters: {
-          'cc': widget.countryCode,
-          'phone': widget.phoneNumber,
-        },
-      );
+      await _onWhatsAppInboundVerified(data);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -149,8 +192,42 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     }
   }
 
+  Future<bool> _navigateIfAuthLockout({
+    required String? code,
+    dynamic responseData,
+  }) async {
+    if (await showLoginAuthRateLimitIfNeeded(
+      context,
+      code: code,
+      responseData: responseData,
+      countryCode: widget.countryCode,
+      phoneNumber: widget.phoneNumber,
+    )) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _waOutboundLoading = false;
+        });
+      }
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _requestWhatsAppOutboundCode() async {
     if (!_isWhatsAppInbound || _waOutboundLoading) return;
+    await _issueWhatsAppOutboundCode(showResentSnackBar: false);
+  }
+
+  Future<void> _resendWhatsAppOutboundCode() async {
+    if (!_isWhatsAppOutbound || _waOutboundLoading) return;
+    await _issueWhatsAppOutboundCode(showResentSnackBar: true);
+  }
+
+  Future<void> _issueWhatsAppOutboundCode({
+    required bool showResentSnackBar,
+  }) async {
+    if (_waOutboundLoading) return;
     final l10n = AppLocalizations.of(context)!;
     setState(() {
       _waOutboundLoading = true;
@@ -168,14 +245,37 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         );
     if (!mounted) return;
     setState(() => _waOutboundLoading = false);
-    if (next == LoginNextStep.stepUp) {
-      context.goNamed(
-        'auth_step_up',
-        queryParameters: {'cc': widget.countryCode, 'phone': widget.phoneNumber},
-      );
+    if (next == LoginNextStep.stepUp ||
+        next == LoginNextStep.attemptsLimitReached) {
+      await showLoginAttemptsLimitDialog(context);
+      return;
+    }
+    if (next == LoginNextStep.authLockout) {
+      final lockout = ref.read(loginControllerProvider).authLockout;
+      if (lockout != null) {
+        await navigateToPassengerAuthLockout(
+          context,
+          lockout: lockout,
+          countryCode: widget.countryCode,
+          phoneNumber: widget.phoneNumber,
+        );
+      } else {
+        await showLoginAttemptsLimitDialog(context);
+      }
       return;
     }
     if (next == LoginNextStep.verifyCode) {
+      if (showResentSnackBar) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(l10n.verifyCodeOutboundResent),
+          ),
+        );
+        _codeController.clear();
+        setState(() => _errorMessage = null);
+        return;
+      }
       context.goNamed(
         'verify_code',
         queryParameters: {
@@ -192,12 +292,320 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     });
   }
 
+  Future<void> _startWhatsAppInboundFromOutbound() async {
+    if (!_isWhatsAppOutbound || _isLoading || _waOutboundLoading) return;
+    final l10n = AppLocalizations.of(context)!;
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final cc = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    final fullPhone = '$cc$phoneDigits';
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final next = await ref.read(loginControllerProvider.notifier).login(
+          countryCode: widget.countryCode,
+          phoneNumber: widget.phoneNumber,
+          fullPhone: fullPhone,
+          otpChannel: 'whatsapp_inbound',
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (next == LoginNextStep.stepUp ||
+        next == LoginNextStep.attemptsLimitReached) {
+      await showLoginAttemptsLimitDialog(context);
+      return;
+    }
+    if (next == LoginNextStep.authLockout) {
+      final lockout = ref.read(loginControllerProvider).authLockout;
+      if (lockout != null) {
+        await navigateToPassengerAuthLockout(
+          context,
+          lockout: lockout,
+          countryCode: widget.countryCode,
+          phoneNumber: widget.phoneNumber,
+        );
+      } else {
+        await showLoginAttemptsLimitDialog(context);
+      }
+      return;
+    }
+    if (next == LoginNextStep.verifyCode) {
+      final loginState = ref.read(loginControllerProvider);
+      context.goNamed(
+        'verify_code',
+        queryParameters: {
+          'cc': widget.countryCode,
+          'phone': widget.phoneNumber,
+          if (loginState.verificationChannel != null &&
+              loginState.verificationChannel!.isNotEmpty)
+            'channel': loginState.verificationChannel!,
+          if (loginState.challengeId != null &&
+              loginState.challengeId!.isNotEmpty)
+            'challenge_id': loginState.challengeId!,
+          if (loginState.waDeepLink != null &&
+              loginState.waDeepLink!.isNotEmpty)
+            'wa_deep_link': loginState.waDeepLink!,
+        },
+      );
+      return;
+    }
+    setState(() {
+      _errorMessage = ref.read(loginControllerProvider).errorMessage ??
+          l10n.verifyCodeWaOutboundFailed;
+    });
+  }
+
+  void _expandOutboundHelp() {
+    if (_outboundHelpExpanded || !_isWhatsAppOutbound) return;
+    TexiUiFeedback.softImpact();
+    setState(() => _outboundHelpExpanded = true);
+  }
+
+  Widget _buildOutboundDeliveryHelp(AppLocalizations l10n) {
+    if (_isPlayReview) {
+      return const SizedBox.shrink();
+    }
+    if (!_isWhatsAppOutbound) {
+      return Text(
+        l10n.verifyCodeRetryHint,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary.withValues(alpha: 0.9),
+              height: 1.4,
+              fontSize: 12.5,
+            ),
+        textAlign: TextAlign.center,
+      );
+    }
+
+    final multichannel = PassengerAppEnvironment.multichannelAuthEnabled;
+    final actionsEnabled = !_isLoading && !_waOutboundLoading;
+
+    if (!_outboundHelpExpanded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.verifyCodeRetryHint,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
+                  height: 1.4,
+                  fontSize: 12.5,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: actionsEnabled ? _expandOutboundHelp : null,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary.withValues(alpha: 0.92),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              minimumSize: const Size(0, 36),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              l10n.verifyCodeOutboundHelpLink,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.verifyCodeOutboundHelpSubtitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
+                  height: 1.45,
+                  fontSize: 13,
+                ),
+          ),
+          const SizedBox(height: 16),
+          if (multichannel) ...[
+            LoginAuthActionRow(
+              enabled: actionsEnabled,
+              highlighted: true,
+              accent: LoginWhatsAppBrandIcon.brandGreen,
+              icon: const LoginWhatsAppBrandIcon(size: 28),
+              label: l10n.loginVerifyMethodWaInboundShort,
+              badge: l10n.loginVerifyMethodRecommendedBadge,
+              infoMessage: l10n.loginVerifyMethodWaInboundInfo,
+              onTap: _startWhatsAppInboundFromOutbound,
+            ),
+            const SizedBox(height: 10),
+          ],
+          LoginAuthActionRow(
+            enabled: actionsEnabled,
+            highlighted: false,
+            icon: Icon(
+              Icons.pin_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.88),
+              size: 22,
+            ),
+            label: l10n.verifyCodeOutboundResend,
+            infoMessage: l10n.loginVerifyMethodCodeInfo,
+            onTap: _resendWhatsAppOutboundCode,
+          ),
+          if (multichannel) ...[
+            const SizedBox(height: 10),
+            LoginAuthActionRow(
+              enabled: actionsEnabled,
+              highlighted: false,
+              icon: Icon(
+                Icons.sms_outlined,
+                color: AppColors.textPrimary.withValues(alpha: 0.88),
+                size: 22,
+              ),
+              label: l10n.verifyCodeWaRequestSms,
+              infoMessage: l10n.verifyCodeSmsSubtitle(
+                '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}',
+              ),
+              onTap: _requestSmsFirebaseCode,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _requestSmsFirebaseCode() {
+    _openSmsVerifyScreen();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _waPollTimer?.cancel();
+    _outboundHelpTimer?.cancel();
     _codeController.dispose();
     _codeFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_waVerifiedPendingNavigation) {
+      unawaited(_completeWaVerifiedNavigation());
+      return;
+    }
+    if (_isWhatsAppInbound && !_waVerifiedSuccess && !_waExpired) {
+      unawaited(_pollWhatsAppChallenge());
+    }
+  }
+
+  void _maybeResumeFromWaNotification() {
+    final mode = widget.waResumeMode?.trim();
+    if (mode == null || mode.isEmpty) return;
+    if (mode == 'driver') {
+      unawaited(_completePassengerFromDriver());
+      return;
+    }
+    if (mode == 'link') {
+      unawaited(_completeWaVerifiedNavigation(reuseDriver: false));
+      return;
+    }
+    if (mode == 'profile') {
+      unawaited(_completeWaVerifiedNavigation(reuseDriver: false));
+    }
+  }
+
+  Future<void> _onWhatsAppInboundVerified(Map<String, dynamic> data) async {
+    _waPollTimer?.cancel();
+    if (!mounted) return;
+
+    final reuseDriver = data['reuse_driver_profile'] == true ||
+        data['reuse_driver_profile'] == 'true';
+    final inForeground = PassengerAppVisibility.isInForeground.value;
+
+    if (!inForeground) {
+      setState(() {
+        _waWaiting = false;
+        _waVerifiedPendingNavigation = true;
+        _waVerifiedReuseDriver = reuseDriver;
+      });
+      final challengeId = widget.challengeId?.trim();
+      if (challengeId != null && challengeId.isNotEmpty) {
+        await PassengerNotificationService.instance
+            .showWaInboundVerifiedReturnPrompt(
+          challengeId: challengeId,
+          countryCode: widget.countryCode,
+          phoneNumber: widget.phoneNumber,
+          reuseDriverProfile: reuseDriver,
+          linkPhoneMode: widget.linkPhoneMode,
+          returnTo: widget.returnTo,
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _waWaiting = false;
+      _waVerifiedSuccess = true;
+      _errorMessage = null;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    await _completeWaVerifiedNavigation(reuseDriver: reuseDriver);
+  }
+
+  Future<void> _completeWaVerifiedNavigation({bool? reuseDriver}) async {
+    if (_isLoading) return;
+    await PassengerNotificationService.instance
+        .cancelWaInboundVerifiedReturnPrompt();
+    _waVerifiedPendingNavigation = false;
+
+    final useDriver = reuseDriver ?? _waVerifiedReuseDriver;
+    if (useDriver) {
+      setState(() {
+        _isLoading = true;
+        _waWaiting = false;
+      });
+      await _completePassengerFromDriver();
+      return;
+    }
+
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final cc = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    final fullPhone = '$cc$phoneDigits';
+    await AuthService.persistLoginPhoneE164(fullPhone);
+    if (!mounted) return;
+
+    if (widget.linkPhoneMode) {
+      final returnTo = widget.returnTo?.trim();
+      if (returnTo != null && returnTo.isNotEmpty) {
+        context.go(returnTo);
+      } else {
+        context.goNamed(AppRouter.tripRequest);
+      }
+      return;
+    }
+
+    context.goNamed(
+      AppRouter.profileSetup,
+      queryParameters: {
+        'cc': widget.countryCode,
+        'phone': widget.phoneNumber,
+      },
+    );
   }
 
   /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
@@ -324,8 +732,99 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       return;
     }
 
+    if (_isEmailLogin) {
+      final email = widget.email!.trim();
+      final next = await ref
+          .read(loginControllerProvider.notifier)
+          .verifyEmailLoginCode(email: email, code: codeText);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (next == LoginNextStep.tripRequest) {
+        context.goNamed('trip_request');
+        return;
+      }
+      if (next == LoginNextStep.profileRequired) {
+        context.goNamed(
+          'profile_setup',
+          queryParameters: {'email': email},
+        );
+        return;
+      }
+      if (next == LoginNextStep.attemptsLimitReached) {
+        await showLoginAttemptsLimitDialog(context);
+        if (!mounted) return;
+        context.goNamed('login');
+        return;
+      }
+      if (next == LoginNextStep.authLockout) {
+        final lockout = ref.read(loginControllerProvider).authLockout;
+        if (lockout != null) {
+          await navigateToPassengerAuthLockout(
+            context,
+            lockout: lockout,
+            countryCode: widget.countryCode,
+            phoneNumber: widget.phoneNumber,
+          );
+        } else {
+          await showLoginAttemptsLimitDialog(context);
+          if (!mounted) return;
+          context.goNamed('login');
+        }
+        return;
+      }
+      if (next == LoginNextStep.error) {
+        final loginState = ref.read(loginControllerProvider);
+        if (await showLoginAuthRateLimitIfNeeded(
+          context,
+          code: loginState.errorCode,
+        )) {
+          if (!mounted) return;
+          context.goNamed('login');
+          return;
+        }
+        setState(() => _errorMessage = loginState.errorMessage);
+      }
+      return;
+    }
+
     final phoneOnlyDigits =
         widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+
+    if (widget.linkPhoneMode) {
+      final ok = await ref.read(loginControllerProvider.notifier).linkPhoneVerify(
+            countryCode: widget.countryCode,
+            phoneNumber: phoneOnlyDigits,
+            verificationCode: codeText,
+          );
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (ok) {
+        final ccNav = widget.countryCode.startsWith('+')
+            ? widget.countryCode
+            : '+${widget.countryCode}';
+        await AuthService.persistLoginPhoneE164('$ccNav$phoneOnlyDigits');
+        await ref
+            .read(passengerMeProfileServiceProvider)
+            .fetchData(forceRefresh: true);
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text(l10n.phoneLinkSuccess),
+          ),
+        );
+        final dest = widget.returnTo?.trim();
+        if (dest != null && dest.isNotEmpty) {
+          context.goNamed(dest);
+        } else {
+          context.goNamed('trip_request');
+        }
+        return;
+      }
+      setState(() => _errorMessage = l10n.verifyCodeErrorValidateCode);
+      return;
+    }
 
     try {
       final clientMeta = await passengerAuthClientMeta();
@@ -351,6 +850,11 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       if (envelope['success'] != true) {
         final message = envelope['message']?.toString() ??
             l10n.verifyCodeErrorValidateCode;
+        final code = envelope['code']?.toString();
+        if (!mounted) return;
+        if (await _navigateIfAuthLockout(code: code, responseData: envelope)) {
+          return;
+        }
         setState(() {
           _isLoading = false;
           _errorMessage = message;
@@ -418,6 +922,10 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
           backendMsg ??
           (data is Map ? data['message']?.toString() : null) ??
           (e.message != null && e.message!.isNotEmpty ? e.message! : null);
+      if (!mounted) return;
+      if (await _navigateIfAuthLockout(code: code, responseData: data)) {
+        return;
+      }
       final message = (code != null && code.startsWith('RBAC_'))
           ? localizedTripApiError(l10n, code, fallbackMessage: fallback)
           : localizedTripApiError(l10n, code, fallbackMessage: fallback);
@@ -455,19 +963,40 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _isWhatsAppInbound ? l10n.verifyCodeWaTitle : l10n.verifyCodeTitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary.withValues(alpha: 0.95),
-                    fontWeight: FontWeight.w600,
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 42),
+                  child: Text(
+                    _isWhatsAppInbound
+                        ? l10n.verifyCodeWaTitle
+                        : l10n.verifyCodeTitle,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.95),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: LoginAuthInfoButton(
+                    message: _isWhatsAppInbound
+                        ? l10n.verifyCodeWaInfo
+                        : l10n.verifyCodeEntryInfo,
+                    compact: true,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               _isWhatsAppInbound
                   ? l10n.verifyCodeWaSubtitle(maskedPhone)
-                  : l10n.verifyCodeSubtitle(maskedPhone),
+                  : _isPlayReview
+                      ? l10n.verifyCodePlayReviewSubtitle
+                      : l10n.verifyCodeSubtitle(maskedPhone),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary.withValues(alpha: 0.95),
@@ -482,22 +1011,30 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                 icon: const Icon(Icons.chat_rounded),
                 label: Text(l10n.verifyCodeWaOpenButton),
               ),
-              if (_waWaiting) ...[
+              if (_waWaiting || _waVerifiedSuccess) ...[
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    Icon(
+                      _waVerifiedSuccess
+                          ? Icons.check_circle_rounded
+                          : Icons.hourglass_top_rounded,
+                      size: 20,
+                      color: _waVerifiedSuccess
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 10),
                     Flexible(
                       child: Text(
-                        l10n.verifyCodeWaWaiting,
+                        _waVerifiedSuccess
+                            ? l10n.verifyCodeWaVerified
+                            : l10n.verifyCodeWaWaiting,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: _waVerifiedSuccess
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
                             ),
                       ),
                     ),
@@ -512,11 +1049,18 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                       color: AppColors.textSecondary.withValues(alpha: 0.85),
                     ),
               ),
-              if (_waExpired) ...[
+              if (_waExpired && _outboundFallbackAvailable) ...[
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: _waOutboundLoading ? null : _requestWhatsAppOutboundCode,
                   child: Text(l10n.verifyCodeWaRequestOutbound),
+                ),
+              ],
+              if (_waExpired && _smsFallbackAvailable) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: _requestSmsFirebaseCode,
+                  child: Text(l10n.verifyCodeWaRequestSms),
                 ),
               ],
             ],
@@ -533,7 +1077,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                 },
               ),
             ],
-            if (!_isWhatsAppInbound) ...[
+            if (!_isWhatsAppInbound && !_isSmsFirebase) ...[
             const SizedBox(height: 22),
             PassengerAuthGlassCard(
               child: Column(
@@ -583,19 +1127,12 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                             borderRadius: BorderRadius.circular(AppRadii.lg),
                           ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              l10n.verifyCodeConfirm,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15.5,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.arrow_forward_rounded, size: 18),
-                          ],
+                        child: Text(
+                          l10n.verifyCodeConfirm,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15.5,
+                          ),
                         ),
                       ),
                     ),
@@ -604,15 +1141,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              l10n.verifyCodeRetryHint,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary.withValues(alpha: 0.9),
-                    height: 1.4,
-                    fontSize: 12.5,
-                  ),
-              textAlign: TextAlign.center,
-            ),
+            _buildOutboundDeliveryHelp(l10n),
             ],
           ],
         ),

@@ -19,6 +19,8 @@ import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
 import 'passenger_active_trip_guard.dart';
 import 'passenger_realtime_controller.dart';
+import 'passenger_trip_submit_helper.dart';
+import '../login/passenger_phone_link_navigation.dart';
 import 'trip_recovery_feedback.dart';
 
 /// Pantalla Confirmar viaje: resumen y botón Solicitar.
@@ -181,6 +183,17 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
         final data = e.response?.data;
         final code = TexiBackendError.codeFromResponse(data);
         final rawMsg = TexiBackendError.messageFromResponse(data);
+        if (code == 'PASS_AUTH_PHONE_REQUIRED') {
+          if (await handlePassengerTripPhoneRequired(
+            context,
+            ref,
+            PassengerTripSubmitResultKind.phoneRequired,
+            returnTo: 'trip_request',
+          )) {
+            setState(() => _loading = false);
+            return;
+          }
+        }
         message = localizedTripApiError(l10n, code, fallbackMessage: rawMsg);
         if (message == l10n.commonError && e.response?.statusCode != null) {
           message = '${e.response?.statusCode}: ${e.message ?? message}';

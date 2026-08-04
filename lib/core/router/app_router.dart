@@ -6,10 +6,13 @@ import '../auth/auth_service.dart';
 import '../config/passenger_app_environment.dart';
 import '../session/passenger_internal_tools_gate.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/login/passenger_auth_lockout_screen.dart';
 import '../../features/login/auth_step_up_screen.dart';
 import '../../features/login/login_screen.dart';
 import '../../features/login/verify_code_screen.dart';
+import '../../features/login/verify_sms_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
+import '../../features/login/passenger_phone_link_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/passenger_profile_preview_screen.dart';
 import '../../features/support/passenger_support_help_screen.dart';
@@ -30,8 +33,11 @@ class AppRouter {
   static const String splash = 'splash';
   static const String login = 'login';
   static const String verifyCode = 'verify_code';
+  static const String verifySms = 'verify_sms';
   static const String authStepUp = 'auth_step_up';
+  static const String authLockout = 'auth_lockout';
   static const String profileSetup = 'profile_setup';
+  static const String phoneLink = 'phone_link';
   static const String home = 'home';
   static const String passengerProfile = 'passenger_profile';
   static const String supportHelp = 'support_help';
@@ -53,6 +59,8 @@ class AppRouter {
     '/',
     '/login',
     '/auth/verify',
+    '/auth/verify-sms',
+    '/auth/lockout',
     '/auth/step-up',
     '/auth/profile',
   };
@@ -147,12 +155,45 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final cc = q['cc'] ?? '+591';
           final phone = q['phone'] ?? '';
+          final channel = q['channel'];
+          if (channel == 'sms' || channel == 'sms_firebase') {
+            return VerifySmsScreen(
+              countryCode: cc,
+              phoneNumber: phone,
+            );
+          }
           return VerifyCodeScreen(
             countryCode: cc,
             phoneNumber: phone,
-            verificationChannel: q['channel'],
+            email: q['email'],
+            verificationChannel: channel,
             challengeId: q['challenge_id'],
             waDeepLink: q['wa_deep_link'],
+            linkPhoneMode: q['link'] == '1',
+            returnTo: q['return_to'],
+            waResumeMode: q['wa_resume'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/auth/verify-sms',
+        name: verifySms,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return VerifySmsScreen(
+            countryCode: q['cc'] ?? '+591',
+            phoneNumber: q['phone'] ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/auth/lockout',
+        name: authLockout,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return PassengerAuthLockoutScreen(
+            countryCode: q['cc'] ?? '+591',
+            phoneNumber: q['phone'] ?? '',
           );
         },
       ),
@@ -174,7 +215,19 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final cc = q['cc'] ?? '+591';
           final phone = q['phone'] ?? '';
-          return ProfileSetupScreen(countryCode: cc, phoneNumber: phone);
+          return ProfileSetupScreen(
+            countryCode: cc,
+            phoneNumber: phone,
+            email: q['email'],
+          );
+        },
+      ),
+      GoRoute(
+        path: '/auth/link-phone',
+        name: phoneLink,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          return PassengerPhoneLinkScreen(returnTo: q['return_to']);
         },
       ),
       GoRoute(

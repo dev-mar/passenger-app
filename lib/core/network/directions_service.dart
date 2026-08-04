@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../config/app_config.dart';
+import '../maps/passenger_google_maps_health.dart';
 import '../maps/trip_route_tracking_policy.dart';
 import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
@@ -79,16 +80,28 @@ class DirectionsService {
     return _cache.run(
       key: key,
       fetcher: () async {
+        final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
+        if (apiKey == null) {
+          PassengerGoogleMapsHealth.logMissingApiKeyOnce();
+          return null;
+        }
         final origin = '$originLat,$originLng';
         final destination = '$destinationLat,$destinationLng';
         final url =
             '$_baseUrl?origin=$origin&destination=$destination'
-            '&key=${AppConfig.googleMapsApiKey}';
+            '&key=$apiKey';
         try {
           final response = await _dio.get<Map<String, dynamic>>(url);
           final data = response.data;
           if (data == null) return null;
-          if (data['status'] != 'OK') return null;
+          if (data['status'] != 'OK') {
+            PassengerGoogleMapsHealth.logApiStatus(
+              service: 'Directions',
+              status: data['status']?.toString(),
+              errorMessage: data['error_message']?.toString(),
+            );
+            return null;
+          }
           final routes = data['routes'] as List<dynamic>?;
           if (routes == null || routes.isEmpty) return null;
           final route = routes.first as Map<String, dynamic>;

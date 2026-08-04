@@ -62,10 +62,17 @@ Future<void> main() async {
 
 Future<void> _initializeFirebaseCore() async {
   try {
-    if (Firebase.apps.isNotEmpty) return;
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    ).timeout(const Duration(seconds: 12));
+    final expected = DefaultFirebaseOptions.currentPlatform;
+    if (Firebase.apps.isNotEmpty) {
+      final current = Firebase.app().options;
+      if (current.projectId == expected.projectId &&
+          current.appId == expected.appId) {
+        return;
+      }
+      await Firebase.app().delete();
+    }
+    await Firebase.initializeApp(options: expected)
+        .timeout(const Duration(seconds: 12));
   } catch (e) {
     debugPrint('[main] Firebase init: $e');
   }

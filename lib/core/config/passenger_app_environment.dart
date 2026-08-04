@@ -79,7 +79,7 @@ class PassengerAppEnvironment {
   static bool get showsInternalToolsByDefault =>
       internalToolsDartDefine || isDev;
 
-  /// Auth multicanal (WA inbound Fase 1): prod siempre; dev solo con override QA compile-time.
+  /// Auth multicanal (WA / email / Google): **solo prod** o `--dart-define=TEXI_PASSENGER_MULTICHANNEL_AUTH=true` (humo QA).
   static bool get multichannelAuthEnabled =>
       isProd || multichannelAuthDartDefine;
 

@@ -5,7 +5,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../gen_l10n/app_localizations.dart';
+import '../app_lifecycle/passenger_app_visibility.dart';
+import '../auth/auth_service.dart';
 import '../l10n/passenger_locale_holder.dart';
+import 'passenger_auth_notification_navigation.dart';
 import 'passenger_fcm_navigation.dart';
 
 class PassengerNotificationService {
@@ -14,9 +17,12 @@ class PassengerNotificationService {
       PassengerNotificationService._();
 
   static const String _channelId = 'texi_passenger_trip_updates';
+  static const String _authChannelId = 'texi_passenger_auth_verification';
+  static const int _waInboundVerifiedNotificationId = 900001;
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  String? _waInboundVerifiedNotifyChallengeId;
   static const int _quietHoursStart = 22; // 22:00
   static const int _quietHoursEnd = 7; // 07:00
   static const String _chatVibrationLevel = 'medium'; // low | medium | high
@@ -32,10 +38,15 @@ class PassengerNotificationService {
     await _plugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        schedulePassengerLocalNotificationTripTap(response.payload);
+        final payload = response.payload;
+        if (PassengerAuthNotificationNavigation.isAuthPayload(payload)) {
+          schedulePassengerAuthLocalNotificationTap(payload);
+          return;
+        }
+        schedulePassengerLocalNotificationTripTap(payload);
       },
     );
-    final channel = AndroidNotificationChannel(
+    final tripChannel = AndroidNotificationChannel(
       _channelId,
       l10n.passengerNotificationChannelName,
       description: l10n.passengerNotificationChannelDescription,
@@ -43,11 +54,20 @@ class PassengerNotificationService {
       playSound: true,
       enableVibration: true,
     );
-    await _plugin
+    final authChannel = AndroidNotificationChannel(
+      _authChannelId,
+      l10n.passengerNotificationChannelAuthName,
+      description: l10n.passengerNotificationChannelAuthDescription,
+      importance: Importance.defaultImportance,
+      playSound: true,
+      enableVibration: true,
+    );
+    final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
+        >();
+    await androidPlugin?.createNotificationChannel(tripChannel);
+    await androidPlugin?.createNotificationChannel(authChannel);
     _initialized = true;
   }
 
@@ -135,6 +155,70 @@ class PassengerNotificationService {
     );
     final id = (payload ?? title + body).hashCode.abs() % 2147483647;
     await _plugin.show(id, title, body, details, payload: payload);
+  }
+
+  /// Aviso puntual tras verificar WA inbound con la app en segundo plano (login/registro).
+  /// Canal distinto al de viajes; no usa FCM ni permisos nuevos.
+  Future<void> showWaInboundVerifiedReturnPrompt({
+    required String challengeId,
+    required String countryCode,
+    required String phoneNumber,
+    required bool reuseDriverProfile,
+    bool linkPhoneMode = false,
+    String? returnTo,
+  }) async {
+    if (!Platform.isAndroid) return;
+    if (PassengerAppVisibility.isInForeground.value) return;
+    if (challengeId.trim().isEmpty) return;
+    if (_waInboundVerifiedNotifyChallengeId == challengeId) return;
+
+    try {
+      if (await AuthService.hasStoredSession()) return;
+    } catch (_) {
+      return;
+    }
+
+    if (!await areAndroidNotificationsEnabled()) return;
+
+    await initialize();
+    _waInboundVerifiedNotifyChallengeId = challengeId;
+
+    final l10n = _l10nForCurrentLocale();
+    final payload = PassengerAuthNotificationNavigation.buildWaInboundVerifiedPayload(
+      reuseDriverProfile: reuseDriverProfile,
+      linkPhoneMode: linkPhoneMode,
+      countryCode: countryCode,
+      phoneNumber: phoneNumber,
+      returnTo: returnTo,
+    );
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _authChannelId,
+        l10n.passengerNotificationChannelAuthName,
+        channelDescription: l10n.passengerNotificationChannelAuthDescription,
+        importance: Importance.defaultImportance,
+        priority: Priority.defaultPriority,
+        playSound: true,
+        enableVibration: true,
+        category: AndroidNotificationCategory.status,
+        autoCancel: true,
+        onlyAlertOnce: true,
+        tag: 'wa_inbound_verified',
+      ),
+    );
+    await _plugin.show(
+      _waInboundVerifiedNotificationId,
+      l10n.passengerNotifyWaVerifiedTitle,
+      l10n.passengerNotifyWaVerifiedBody,
+      details,
+      payload: payload,
+    );
+  }
+
+  Future<void> cancelWaInboundVerifiedReturnPrompt() async {
+    if (!_initialized) return;
+    await _plugin.cancel(_waInboundVerifiedNotificationId);
+    _waInboundVerifiedNotifyChallengeId = null;
   }
 
   Future<void> showDriverArrivedIfBackground({

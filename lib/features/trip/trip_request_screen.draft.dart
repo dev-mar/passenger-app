@@ -43,7 +43,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   /// (`_d._mapNeedleAddressPreview`) para que la direcci├│n apuntada se vea ah├¡
   /// mismo y, al confirmar, quede directamente persistida sin saltos visuales.
   String _resolveDraftOriginDisplayLine(AppLocalizations l10n) {
-    if (_d._pickingOrigin || _d._draftEditTarget == PassengerDraftEditTarget.origin) {
+    // Preview de aguja solo en modo pin (no al abrir lupa desde la fila).
+    if (_d._pickingOrigin) {
       final preview = _d._mapNeedleAddressPreview?.trim();
       if (preview != null && preview.isNotEmpty) return preview;
     }
@@ -57,8 +58,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         _d._pickingDestination ||
         (_d._originConfirmed &&
             _d._destination == null &&
-            _d._activeStop == ActiveStop.none) ||
-        _d._draftEditTarget == PassengerDraftEditTarget.destination;
+            _d._activeStop == ActiveStop.none);
     if (isPickingDest) {
       final preview = _d._mapNeedleAddressPreview?.trim();
       if (preview != null && preview.isNotEmpty) return preview;
@@ -68,6 +68,34 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
           '${_d._destination!.latitude.toStringAsFixed(4)}, ${_d._destination!.longitude.toStringAsFixed(4)}';
     }
     return l10n.tripTapMapDestination;
+  }
+
+  /// Abre la lupa apuntando a origen (sin modo aguja del botón Editar).
+  void _onDraftOpenSearchForOrigin() {
+    TexiUiFeedback.lightTap();
+    if (!mounted) return;
+    _d._mapConfirmIdleTimer?.cancel();
+    setState(() {
+      _d._draftEditTarget = PassengerDraftEditTarget.origin;
+      _d._pickingOrigin = false;
+      _d._pickingDestination = false;
+      _d._mapConfirmInstructionHiddenWhileDragging = false;
+      _d._draftSearchExpandToken++;
+    });
+  }
+
+  /// Abre la lupa apuntando a destino (requiere origen confirmado).
+  void _onDraftOpenSearchForDestination() {
+    TexiUiFeedback.lightTap();
+    if (!mounted || !_d._originConfirmed) return;
+    _d._mapConfirmIdleTimer?.cancel();
+    setState(() {
+      _d._draftEditTarget = PassengerDraftEditTarget.destination;
+      _d._pickingOrigin = false;
+      _d._pickingDestination = false;
+      _d._mapConfirmInstructionHiddenWhileDragging = false;
+      _d._draftSearchExpandToken++;
+    });
   }
 
   void _notifyDraftSearchCollapsedAfterBothStops() {
@@ -538,6 +566,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     if (!mounted) return;
     setState(() {
       _d._draftSearchCollapseToken++;
+      // Libera el target de lupa (fila origen/destino) para el siguiente paso.
+      _d._draftEditTarget = PassengerDraftEditTarget.none;
       _d._draftSuggestions = const <PlaceSuggestion>[];
       _d._loadingDraftSuggestions = false;
     });
@@ -648,6 +678,16 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() => _d._submittingTrip = false);
     if (result.kind == PassengerTripSubmitResultKind.success ||
         result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
+      return;
+    }
+    if (result.kind == PassengerTripSubmitResultKind.phoneRequired) {
+      setState(() => _d._error = null);
+      await handlePassengerTripPhoneRequired(
+        context,
+        ref,
+        result.kind,
+        returnTo: 'trip_request',
+      );
       return;
     }
     final msg = result.message ?? l10n.commonError;

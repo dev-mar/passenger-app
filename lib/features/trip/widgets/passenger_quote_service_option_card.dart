@@ -6,6 +6,7 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import 'service_type_vehicle_image.dart';
 
 /// Tarjeta de oferta: imagen izq. + textos der. (guía trip-typeofert + PNGs).
 class PassengerQuoteServiceOptionCard extends StatelessWidget {
@@ -72,10 +73,9 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
                 SizedBox(
                   width: 76,
                   height: 62,
-                  child: Image.asset(
-                    asset,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
+                  child: ServiceTypeVehicleImage(
+                    asset: asset,
+                    selected: selected,
                     errorBuilder: (_, _, _) => Icon(
                       serviceTypeIconData(option.serviceTypeName),
                       color: AppColors.primary,

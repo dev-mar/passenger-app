@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import 'login_auth_info_button.dart';
 import 'login_google_brand_icon.dart';
 
 typedef LoginMethodSelected = void Function(LoginEntryMethod method);
@@ -71,11 +72,7 @@ class LoginMethodChoicePanel extends StatelessWidget {
           ),
           title: l10n.loginMethodPhoneTitle,
           subtitle: l10n.loginMethodPhoneSubtitle,
-          trailing: Icon(
-            Icons.arrow_forward_rounded,
-            color: AppColors.primary.withValues(alpha: 0.95),
-            size: 20,
-          ),
+          infoMessage: l10n.loginMethodPhoneInfo,
         ),
         const SizedBox(height: AppSpacing.xxx),
         _LoginMethodCard(
@@ -97,11 +94,7 @@ class LoginMethodChoicePanel extends StatelessWidget {
           ),
           title: l10n.loginMethodGoogleTitle,
           subtitle: l10n.loginMethodGoogleSubtitle,
-          trailing: Icon(
-            Icons.mail_outline_rounded,
-            color: AppColors.textSecondary.withValues(alpha: 0.85),
-            size: 20,
-          ),
+          infoMessage: l10n.loginMethodGoogleInfo,
         ),
       ],
     );
@@ -115,7 +108,7 @@ class _LoginMethodCard extends StatelessWidget {
     required this.leading,
     required this.title,
     required this.subtitle,
-    required this.trailing,
+    required this.infoMessage,
     this.badge,
   });
 
@@ -124,7 +117,7 @@ class _LoginMethodCard extends StatelessWidget {
   final Widget leading;
   final String title;
   final String subtitle;
-  final Widget trailing;
+  final String infoMessage;
   final String? badge;
 
   @override
@@ -137,87 +130,102 @@ class _LoginMethodCard extends StatelessWidget {
         : Colors.white.withValues(alpha: 0.04);
 
     return TexiScalePress(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadii.dialog),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadii.dialog),
-              color: fill,
-              border: Border.all(color: borderColor, width: highlighted ? 1.4 : 1),
-              boxShadow: highlighted
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
-              child: Row(
-                children: [
-                  leading,
-                  const SizedBox(width: AppSpacing.xxx),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                title,
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15.5,
+          color: fill,
+          border: Border.all(color: borderColor, width: highlighted ? 1.4 : 1),
+          boxShadow: highlighted
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          leading,
+                          const SizedBox(width: AppSpacing.xxx),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15.5,
+                                        ),
+                                      ),
+                                    ),
+                                    if (badge != null) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(AppRadii.pill),
+                                        ),
+                                        child: Text(
+                                          badge!,
+                                          style: TextStyle(
+                                            color: AppColors.textSecondary
+                                                .withValues(alpha: 0.95),
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ),
-                            ),
-                            if (badge != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                                ),
-                                child: Text(
-                                  badge!,
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle,
                                   style: TextStyle(
-                                    color: AppColors.textSecondary.withValues(alpha: 0.95),
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary
+                                        .withValues(alpha: 0.9),
+                                    fontSize: 12.5,
+                                    height: 1.35,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: AppColors.textSecondary.withValues(alpha: 0.9),
-                            fontSize: 12.5,
-                            height: 1.35,
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  trailing,
-                ],
+                ),
               ),
-            ),
+              LoginAuthInfoButton(
+                message: infoMessage,
+                compact: true,
+              ),
+            ],
           ),
         ),
       ),

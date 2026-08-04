@@ -6,7 +6,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
-import 'passenger_auth_captcha_card.dart';
 import 'passenger_turnstile_widget.dart';
 
 class LoginCaptchaGatePanel extends StatelessWidget {
@@ -42,10 +41,11 @@ class LoginCaptchaGatePanel extends StatelessWidget {
         Text(
           forGoogle ? l10n.loginGoogleCaptchaTitle : l10n.loginCaptchaTitle,
           textAlign: TextAlign.center,
-          style: theme.textTheme.titleLarge?.copyWith(
+          style: theme.textTheme.headlineSmall?.copyWith(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
+            letterSpacing: -0.35,
+            height: 1.15,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -56,25 +56,25 @@ class LoginCaptchaGatePanel extends StatelessWidget {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.92),
-            height: 1.45,
-            fontSize: 13.5,
+            height: 1.5,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 28),
         if (captchaConfigured)
-          PassengerAuthCaptchaCard(
-            turnstileKey: turnstileKey,
+          PassengerTurnstileWidget(
+            key: turnstileKey,
             captchaContext: PassengerCaptchaContext.loginEntry,
+            expanded: true,
             onToken: onCaptchaToken,
             onError: onCaptchaError,
-            highlightWhenReady: captchaReady,
           )
         else
           _DevCaptchaPlaceholder(
             message: l10n.loginCaptchaDevPlaceholder,
             onBypass: () => onCaptchaToken('dev-bypass-captcha'),
           ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 26),
         SizedBox(
           height: 52,
           width: double.infinity,
@@ -92,34 +92,16 @@ class LoginCaptchaGatePanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadii.lg),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    l10n.loginContinue,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15.5,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 18),
-                ],
+              child: Text(
+                l10n.loginContinue,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15.5,
+                ),
               ),
             ),
           ),
         ),
-        if (captchaReady) ...[
-          const SizedBox(height: 10),
-          Text(
-            l10n.loginCaptchaReadyHint,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.success.withValues(alpha: 0.95),
-              height: 1.35,
-            ),
-          ),
-        ],
       ],
     );
   }
@@ -137,10 +119,11 @@ class _DevCaptchaPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        color: AppColors.background.withValues(alpha: 0.55),
+        color: const Color(0xFF1A1814),
         border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
       ),
       child: Column(
@@ -157,7 +140,7 @@ class _DevCaptchaPlaceholder extends StatelessWidget {
             style: TextStyle(
               color: AppColors.textSecondary.withValues(alpha: 0.95),
               fontSize: 13,
-              height: 1.4,
+              height: 1.45,
             ),
           ),
           if (PassengerAppEnvironment.isDev) ...[

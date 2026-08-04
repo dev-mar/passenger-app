@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../../firebase_options.dart';
 import 'passenger_fcm_navigation.dart';
 import 'passenger_fcm_realtime_bridge.dart';
+import 'passenger_force_logout_from_push.dart';
 import 'passenger_notification_service.dart';
 import 'passenger_push_token_service.dart';
 
@@ -17,6 +18,10 @@ Future<void> passengerFirebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (isPassengerForceLogoutPush(message)) {
+    await clearPassengerSessionFromBackgroundPush(message);
+    return;
+  }
   if (message.notification != null) {
     // Con payload `notification`, Android suele mostrar la notificación del sistema.
     return;
@@ -41,6 +46,10 @@ Future<void> setupPassengerFirebaseMessaging() async {
   // POST_NOTIFICATIONS / FCM: solo tras divulgación in-app (ver compliance).
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    if (isPassengerForceLogoutPush(message)) {
+      schedulePassengerForceLogoutFromPush(message);
+      return;
+    }
     unawaited(_showForegroundFcmDeduped(message));
   });
 

@@ -130,19 +130,12 @@ class LoginPhoneEntryPanel extends StatelessWidget {
                     child: Semantics(
                       button: true,
                       label: l10n.loginContinueA11y,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            l10n.loginContinue,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15.5,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_rounded, size: 18),
-                        ],
+                      child: Text(
+                        l10n.loginContinue,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15.5,
+                        ),
                       ),
                     ),
                   ),

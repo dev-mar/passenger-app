@@ -61,17 +61,52 @@ class AppConfig {
   /// `POST` Google Sign-In pasajero — body `{ id_token }`.
   static const String authGooglePath = '/auth/google';
 
+  /// `POST` emisión código login por correo.
+  static const String authEmailLoginChallengePath = '/auth/login/email-challenge';
+
+  /// `POST` verificar código login por correo.
+  static const String authEmailLoginVerifyPath = '/auth/login/email-verify';
+
+  /// `POST` cerrar sesión pasajero (revoca refresh server-side si aplica).
+  static const String authLogoutPath = '/auth/logout';
+
+  /// Fase 7 — vincular teléfono a sesión limitada (email/Google).
+  static const String authPhoneLinkChallengePath = '/auth/phone/link-challenge';
+  static const String authPhoneLinkVerifyPath = '/auth/phone/link-verify';
+
   /// URL completa de login.
   static String get loginUrl => '$baseUrlAuth$loginPath';
 
   /// Key de Google Maps consumida por servicios HTTP (Directions/Geocoding).
   /// Configurar con:
   /// `--dart-define=GOOGLE_MAPS_API_KEY=...`
+  static const String _googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
+
+  static bool get hasGoogleMapsApiKey => _googleMapsApiKey.isNotEmpty;
+
+  static String? get googleMapsApiKeyOrNull =>
+      _googleMapsApiKey.isEmpty ? null : _googleMapsApiKey;
+
+  /// Key para Places/Geocoding/Directions (HTTP). Si no se define, usa [googleMapsApiKeyOrNull].
+  /// Prod suele requerir key REST sin restricción «Android apps» (solo APIs habilitadas).
+  /// `--dart-define=GOOGLE_MAPS_REST_API_KEY=...`
+  static String? get googleMapsRestApiKeyOrNull {
+    const restKey = String.fromEnvironment(
+      'GOOGLE_MAPS_REST_API_KEY',
+      defaultValue: '',
+    );
+    if (restKey.isNotEmpty) return restKey;
+    return googleMapsApiKeyOrNull;
+  }
+
   static String get googleMapsApiKey {
-    const key = String.fromEnvironment('GOOGLE_MAPS_API_KEY', defaultValue: '');
-    if (key.isEmpty) {
+    final key = googleMapsApiKeyOrNull;
+    if (key == null) {
       throw StateError(
-        'Falta GOOGLE_MAPS_API_KEY. Define --dart-define=GOOGLE_MAPS_API_KEY=...'
+        'Falta GOOGLE_MAPS_API_KEY. Define --dart-define=GOOGLE_MAPS_API_KEY=...',
       );
     }
     return key;

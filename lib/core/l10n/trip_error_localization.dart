@@ -23,6 +23,20 @@ String localizedTripApiError (
       return l10n.tripNoDriversAvailable;
     case 'SESSION_SUPERSEDED':
       return l10n.loginErrorSessionSuperseded;
+    case 'PASS_AUTH_PHONE_REQUIRED':
+      return l10n.tripPhoneRequired;
+    case 'PASS_AUTH_SMS_EMAIL_REQUIRED':
+    case 'PASS_AUTH_SMS_GOOGLE_REQUIRED':
+    case 'PASS_AUTH_GOOGLE_TOKEN_INVALID':
+    case 'PASS_AUTH_GOOGLE_EMAIL_UNVERIFIED':
+      return l10n.verifySmsGoogleRequired;
+    case 'PASS_AUTH_SMS_NOT_CONFIGURED':
+      return l10n.loginErrorVerificationServiceUnavailable;
+    case 'PASS_AUTH_SMS_TOKEN_INVALID':
+    case 'PASS_AUTH_SMS_PHONE_MISMATCH':
+      return l10n.verifyCodeErrorValidateCode;
+    case 'PASS_AUTH_SMS_RATE_LIMIT':
+      return l10n.loginAttemptsLimitBody;
     case 'TRIP_OPERATIONAL_LOCK':
       return l10n.loginErrorTripOperationalLock;
   }

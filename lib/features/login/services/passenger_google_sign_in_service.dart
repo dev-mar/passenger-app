@@ -16,14 +16,22 @@ class PassengerGoogleSignInService {
   bool get isConfigured => _client != null;
 
   Future<String?> signInAndGetIdToken() async {
+    final creds = await signInAndGetCredentials();
+    return creds?.idToken;
+  }
+
+  /// Google Sign-In del dispositivo — token + email para gate SMS.
+  Future<({String idToken, String email})?> signInAndGetCredentials() async {
     final client = _client;
     if (client == null) return null;
     final account = await client.signIn();
     if (account == null) return null;
     final auth = await account.authentication;
     final token = auth.idToken;
+    final email = account.email.trim();
     if (token == null || token.trim().isEmpty) return null;
-    return token.trim();
+    if (email.isEmpty || !email.contains('@')) return null;
+    return (idToken: token.trim(), email: email);
   }
 
   /// Solo obtiene email de la cuenta Google del dispositivo (sin login backend).

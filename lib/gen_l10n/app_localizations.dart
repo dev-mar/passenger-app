@@ -164,11 +164,41 @@ abstract class AppLocalizations {
   /// **'Coming soon'**
   String get loginMethodGoogleBadge;
 
-  /// No description provided for @loginGoogleComingSoon.
+  /// No description provided for @loginMethodPhoneInfo.
   ///
   /// In en, this message translates to:
-  /// **'Google sign-in will be available soon.'**
-  String get loginGoogleComingSoon;
+  /// **'Enter your mobile number. Then complete a security check and choose how to confirm it on WhatsApp.'**
+  String get loginMethodPhoneInfo;
+
+  /// No description provided for @loginMethodGoogleInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your Google account (Gmail) to sign in without another password. First time? We\'ll ask you to confirm your mobile number.'**
+  String get loginMethodGoogleInfo;
+
+  /// No description provided for @loginAuthInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional information'**
+  String get loginAuthInfoTitle;
+
+  /// No description provided for @loginAuthInfoSecureNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure, encrypted process. We only use your data to sign you in—we don\'t share it with third parties.'**
+  String get loginAuthInfoSecureNote;
+
+  /// No description provided for @loginAuthInfoGotIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get loginAuthInfoGotIt;
+
+  /// No description provided for @loginGoogleNotConfiguredInApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Sign-In isn\'t set up in this app build. Use your mobile number or contact support.'**
+  String get loginGoogleNotConfiguredInApp;
 
   /// No description provided for @loginBackToMethods.
   ///
@@ -188,16 +218,70 @@ abstract class AppLocalizations {
   /// **'Enter your number. Then confirm you\'re human and choose how to verify.'**
   String get loginPhoneStepSubtitle;
 
+  /// No description provided for @loginAttemptsLimitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts'**
+  String get loginAttemptsLimitTitle;
+
+  /// No description provided for @loginAttemptsLimitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your details. Wait a few minutes before trying again, or choose another sign-in method on the home screen.'**
+  String get loginAttemptsLimitBody;
+
+  /// No description provided for @loginAttemptsLimitAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to start'**
+  String get loginAttemptsLimitAction;
+
+  /// No description provided for @authLockoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please wait'**
+  String get authLockoutTitle;
+
+  /// No description provided for @authLockoutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For your security we paused sign-in attempts. You can continue when the timer ends.'**
+  String get authLockoutBody;
+
+  /// No description provided for @authLockoutWaitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time remaining'**
+  String get authLockoutWaitLabel;
+
+  /// No description provided for @authLockoutSecondsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'sec'**
+  String get authLockoutSecondsUnit;
+
+  /// No description provided for @authLockoutAlternateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can also verify your number by sending the WhatsApp message.'**
+  String get authLockoutAlternateHint;
+
+  /// No description provided for @authLockoutWhatsAppCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify with WhatsApp'**
+  String get authLockoutWhatsAppCta;
+
   /// No description provided for @loginCaptchaTitle.
   ///
   /// In en, this message translates to:
-  /// **'Confirm you\'re human'**
+  /// **'Security verification'**
   String get loginCaptchaTitle;
 
   /// No description provided for @loginCaptchaSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'A quick security step before continuing. Only once this session.'**
+  /// **'A quick step before continuing. Only once this session.'**
   String get loginCaptchaSubtitle;
 
   /// No description provided for @loginGoogleCaptchaTitle.
@@ -221,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginCaptchaInteractiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Check the security box to continue.'**
+  /// **'Check the box to continue.'**
   String get loginCaptchaInteractiveHint;
 
   /// No description provided for @loginCaptchaReady.
@@ -308,6 +392,78 @@ abstract class AppLocalizations {
   /// **'Preparing verification…'**
   String get loginVerifyMethodLoadingWa;
 
+  /// No description provided for @loginPhoneUnifiedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your number'**
+  String get loginPhoneUnifiedTitle;
+
+  /// No description provided for @loginVerifySectionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to verify'**
+  String get loginVerifySectionLabel;
+
+  /// No description provided for @loginVerifyMethodWaInboundShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure key via WhatsApp'**
+  String get loginVerifyMethodWaInboundShort;
+
+  /// No description provided for @loginVerifyMethodCodeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get loginVerifyMethodCodeShort;
+
+  /// No description provided for @loginVerifyMethodWaInboundInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'We open WhatsApp with a ready-to-send message. Send it unchanged and we confirm your identity automatically.'**
+  String get loginVerifyMethodWaInboundInfo;
+
+  /// No description provided for @loginVerifyMethodCodeInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'We send a 6-digit code via WhatsApp. Enter it in the app to confirm it\'s you.'**
+  String get loginVerifyMethodCodeInfo;
+
+  /// No description provided for @loginGoogleUnifiedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with email'**
+  String get loginGoogleUnifiedTitle;
+
+  /// No description provided for @loginGoogleEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'you@email.com'**
+  String get loginGoogleEmailHint;
+
+  /// No description provided for @loginGoogleEmailInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email you\'ll use in Texi. When you continue, we\'ll send a verification code to that inbox.'**
+  String get loginGoogleEmailInfo;
+
+  /// No description provided for @loginGoogleSignInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Google'**
+  String get loginGoogleSignInButton;
+
+  /// No description provided for @loginGoogleOrDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get loginGoogleOrDivider;
+
+  /// No description provided for @loginGoogleContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get loginGoogleContinue;
+
   /// No description provided for @loginPhoneStepSubtitleGoogle.
   ///
   /// In en, this message translates to:
@@ -385,6 +541,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verification service unavailable. Please try again later.'**
   String get loginErrorVerificationServiceUnavailable;
+
+  /// No description provided for @loginErrorBackendUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is temporarily unavailable. Please try again in a few minutes.'**
+  String get loginErrorBackendUnavailable;
 
   /// No description provided for @loginErrorWhatsAppVerificationUnavailable.
   ///
@@ -985,6 +1147,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We couldn’t verify permissions. Please try again in a few seconds.'**
   String get tripRbacTechnical;
+
+  /// No description provided for @tripPhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your mobile number to request a trip.'**
+  String get tripPhoneRequired;
+
+  /// No description provided for @tripPhoneGateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your number'**
+  String get tripPhoneGateTitle;
+
+  /// No description provided for @tripPhoneGateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You signed in with email. To request a trip you need to verify your mobile number once.'**
+  String get tripPhoneGateBody;
+
+  /// No description provided for @tripPhoneGatePrimaryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'See verification options'**
+  String get tripPhoneGatePrimaryAction;
+
+  /// No description provided for @tripPhoneGateDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get tripPhoneGateDismiss;
+
+  /// No description provided for @phoneLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your phone'**
+  String get phoneLinkTitle;
+
+  /// No description provided for @phoneLinkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To request a trip you need to confirm your number. We’ll send you a verification code.'**
+  String get phoneLinkSubtitle;
+
+  /// No description provided for @phoneLinkContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get phoneLinkContinue;
+
+  /// No description provided for @phoneLinkSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Number verified. You can now request trips.'**
+  String get phoneLinkSuccess;
 
   /// No description provided for @tripRealtimeNoToken.
   ///
@@ -1667,7 +1883,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Send the pre-filled message from WhatsApp to confirm {phone}.'**
+  /// **'Send the pre-filled message from WhatsApp to confirm {phone}. After sending, return to TEXIAPP — we\'ll detect your message automatically.'**
   String verifyCodeWaSubtitle(String phone);
 
   /// No description provided for @verifyCodeWaOpenButton.
@@ -1679,8 +1895,14 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Waiting for your WhatsApp message…'**
+  /// **'Waiting for your WhatsApp message… Return to TEXIAPP after you send it.'**
   String get verifyCodeWaWaiting;
+
+  /// No description provided for @verifyCodeWaVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Message received! Continuing…'**
+  String get verifyCodeWaVerified;
 
   /// No description provided for @verifyCodeWaFallbackHint.
   ///
@@ -1693,6 +1915,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Receive code via WhatsApp'**
   String get verifyCodeWaRequestOutbound;
+
+  /// No description provided for @verifyCodeWaRequestSms.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive code via SMS'**
+  String get verifyCodeWaRequestSms;
+
+  /// No description provided for @verifyCodeSmsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify with SMS'**
+  String get verifyCodeSmsTitle;
+
+  /// No description provided for @verifyCodeSmsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We’ll send a 6-digit code by SMS to {phone}.'**
+  String verifyCodeSmsSubtitle(String phone);
+
+  /// No description provided for @verifyCodeSmsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the SMS…'**
+  String get verifyCodeSmsWaiting;
+
+  /// No description provided for @verifyCodeSmsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t send the SMS. Try again.'**
+  String get verifyCodeSmsFailed;
+
+  /// No description provided for @verifyCodeSmsEmailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'To use SMS, confirm your Google account on this device.'**
+  String get verifyCodeSmsEmailRequired;
+
+  /// No description provided for @verifySmsGoogleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm with Google'**
+  String get verifySmsGoogleTitle;
+
+  /// No description provided for @verifySmsGoogleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'To receive an SMS at {phone}, use the Google account linked on this device.'**
+  String verifySmsGoogleSubtitle(String phone);
+
+  /// No description provided for @verifySmsGoogleButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get verifySmsGoogleButton;
+
+  /// No description provided for @verifySmsGoogleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'We only accept the Google account on this phone. You cannot type another email.'**
+  String get verifySmsGoogleHint;
+
+  /// No description provided for @verifySmsGoogleCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'You did not finish Google sign-in. Tap the button below to try again.'**
+  String get verifySmsGoogleCancelled;
+
+  /// No description provided for @verifySmsGoogleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'To receive SMS, confirm your Google account on this device.'**
+  String get verifySmsGoogleRequired;
+
+  /// No description provided for @verifySmsLinkedAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked account: {email}'**
+  String verifySmsLinkedAccount(String email);
+
+  /// No description provided for @verifySmsFirebaseNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS verification is not available in this version yet. Try WhatsApp sign-in while we enable this method.'**
+  String get verifySmsFirebaseNotConfigured;
+
+  /// No description provided for @verifySmsFirebaseShaMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This app version cannot receive SMS yet. Update the app or use WhatsApp to continue.'**
+  String get verifySmsFirebaseShaMissing;
+
+  /// No description provided for @verifySmsFirebaseRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You requested several codes in a row. Wait a few minutes and try again.'**
+  String get verifySmsFirebaseRateLimited;
+
+  /// No description provided for @verifySmsFirebasePhoneDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS is not active for your number yet. You can use WhatsApp or try again later.'**
+  String get verifySmsFirebasePhoneDisabled;
+
+  /// No description provided for @verifySmsErrorTitleGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not continue'**
+  String get verifySmsErrorTitleGeneric;
+
+  /// No description provided for @verifySmsErrorTitleSmsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS unavailable'**
+  String get verifySmsErrorTitleSmsUnavailable;
+
+  /// No description provided for @verifySmsErrorTitleRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts'**
+  String get verifySmsErrorTitleRateLimited;
+
+  /// No description provided for @verifySmsErrorTitleNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection'**
+  String get verifySmsErrorTitleNetwork;
+
+  /// No description provided for @verifySmsErrorTitleGoogleCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in incomplete'**
+  String get verifySmsErrorTitleGoogleCancelled;
+
+  /// No description provided for @verifySmsErrorTitleSmsBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS temporarily blocked'**
+  String get verifySmsErrorTitleSmsBlocked;
+
+  /// No description provided for @verifySmsErrorTitleCaptcha.
+  ///
+  /// In en, this message translates to:
+  /// **'Security verification'**
+  String get verifySmsErrorTitleCaptcha;
+
+  /// No description provided for @verifySmsFirebaseError39.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase could not send the SMS after the anti-bot check. This often happens after too many attempts or carrier limits. Wait 15–30 minutes or use WhatsApp.'**
+  String get verifySmsFirebaseError39;
+
+  /// No description provided for @verifySmsFirebaseCaptchaFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not complete Firebase security verification. Try again in a few minutes or verify your number with WhatsApp.'**
+  String get verifySmsFirebaseCaptchaFailed;
+
+  /// No description provided for @verifySmsTryWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify with WhatsApp'**
+  String get verifySmsTryWhatsApp;
+
+  /// No description provided for @verifySmsBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get verifySmsBackToLogin;
+
+  /// No description provided for @loginErrorWaOutboundRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a WhatsApp code recently. Wait a few minutes or use the pre-filled message.'**
+  String get loginErrorWaOutboundRateLimit;
+
+  /// No description provided for @tripMapsRestKeyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Address search is unavailable: missing Google Maps key in this build.'**
+  String get tripMapsRestKeyMissing;
+
+  /// No description provided for @tripMapsRestKeyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Address search and routes are blocked: check the passenger Maps REST key (Places, Geocoding, Directions).'**
+  String get tripMapsRestKeyDenied;
+
+  /// No description provided for @tripMapsRestUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load addresses or routes. Check your connection and try again.'**
+  String get tripMapsRestUnavailable;
 
   /// No description provided for @verifyCodeWaOutboundFailed.
   ///
@@ -1838,11 +2252,53 @@ abstract class AppLocalizations {
   /// **'Confirm code'**
   String get verifyCodeConfirm;
 
+  /// No description provided for @verifyCodeEntryInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Check WhatsApp for a 6-digit code. Enter all six digits here. It may take a few seconds to arrive.'**
+  String get verifyCodeEntryInfo;
+
+  /// No description provided for @verifyCodeWaInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'We open WhatsApp with a ready-to-send message. Send it unchanged, return to TEXIAPP, and we\'ll confirm you in seconds.'**
+  String get verifyCodeWaInfo;
+
   /// No description provided for @verifyCodeRetryHint.
   ///
   /// In en, this message translates to:
   /// **'If you did not receive the code, check the number and try again in a few minutes.'**
   String get verifyCodeRetryHint;
+
+  /// No description provided for @verifyCodeOutboundHelpLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t get the code?'**
+  String get verifyCodeOutboundHelpLink;
+
+  /// No description provided for @verifyCodeOutboundHelpSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another way to verify your number.'**
+  String get verifyCodeOutboundHelpSubtitle;
+
+  /// No description provided for @verifyCodeOutboundResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code via WhatsApp'**
+  String get verifyCodeOutboundResend;
+
+  /// No description provided for @verifyCodeOutboundResent.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent you a new code via WhatsApp.'**
+  String get verifyCodeOutboundResent;
+
+  /// No description provided for @verifyCodePlayReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Store test account: enter the access code from the store listing instructions (no WhatsApp or SMS needed).'**
+  String get verifyCodePlayReviewSubtitle;
 
   /// No description provided for @verifyCodeErrorActivateAccount.
   ///
@@ -2762,6 +3218,30 @@ abstract class AppLocalizations {
   /// **'Messages from the active trip chat.'**
   String get passengerNotificationChannelChatDescription;
 
+  /// No description provided for @passengerNotificationChannelAuthName.
+  ///
+  /// In en, this message translates to:
+  /// **'Account verification'**
+  String get passengerNotificationChannelAuthName;
+
+  /// No description provided for @passengerNotificationChannelAuthDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts to finish sign-in or registration. Does not include trip updates.'**
+  String get passengerNotificationChannelAuthDescription;
+
+  /// No description provided for @passengerNotifyWaVerifiedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification received'**
+  String get passengerNotifyWaVerifiedTitle;
+
+  /// No description provided for @passengerNotifyWaVerifiedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to continue in TEXIAPP.'**
+  String get passengerNotifyWaVerifiedBody;
+
   /// No description provided for @passengerLabsTitle.
   ///
   /// In en, this message translates to:
@@ -2917,6 +3397,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By continuing, you agree to our '**
   String get passengerLegalLoginPrefix;
+
+  /// No description provided for @passengerLegalAuthContinuePrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'By continuing, you confirm you are 18 or older and accept our '**
+  String get passengerLegalAuthContinuePrefix;
 
   /// No description provided for @passengerLegalRegistrationPrefix.
   ///

@@ -22,6 +22,8 @@ class PassengerProfileVm {
     this.accountStatus,
     required this.biometricsEnabled,
     this.lastAccessAt,
+    this.phoneVerified = false,
+    this.authLevel = 'limited',
   });
 
   final String displayName;
@@ -33,6 +35,11 @@ class PassengerProfileVm {
   final String? accountStatus;
   final bool biometricsEnabled;
   final DateTime? lastAccessAt;
+  final bool phoneVerified;
+  /// `full` | `limited`
+  final String authLevel;
+
+  bool get canRequestTrip => phoneVerified || authLevel == 'full';
 
   factory PassengerProfileVm.fromJson(Map<String, dynamic> j) {
     return PassengerProfileVm(
@@ -57,6 +64,8 @@ class PassengerProfileVm {
         if (raw == null || raw.isEmpty) return null;
         return DateTime.tryParse(raw)?.toLocal();
       }(),
+      phoneVerified: j['phone_verified'] == true,
+      authLevel: j['auth_level']?.toString().trim() ?? 'limited',
     );
   }
 }

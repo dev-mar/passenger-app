@@ -9,15 +9,20 @@ import 'passenger_legal_links.dart';
 
 /// Aviso legal sutil en login / onboarding (Play Store: privacidad accesible sin sesión).
 ///
-/// Variante [PassengerLegalNoticeTone.compact]: una sola línea inline.
-/// Variante [PassengerLegalNoticeTone.emphasized]: mismo inline (cierre de registro).
-enum PassengerLegalNoticeTone { compact, emphasized }
+/// - [PassengerLegalNoticeTone.methodChoice]: pantalla inicial de elección de método.
+/// - [PassengerLegalNoticeTone.authContinue]: teléfono / Google (mayoría de edad + políticas).
+/// - [PassengerLegalNoticeTone.emphasized]: cierre de registro de perfil.
+enum PassengerLegalNoticeTone {
+  methodChoice,
+  authContinue,
+  emphasized,
+}
 
 class PassengerLoginLegalFooter extends StatefulWidget {
   const PassengerLoginLegalFooter({
     super.key,
     this.textColor,
-    this.tone = PassengerLegalNoticeTone.compact,
+    this.tone = PassengerLegalNoticeTone.methodChoice,
   });
 
   final Color? textColor;
@@ -77,9 +82,13 @@ class _PassengerLoginLegalFooterState extends State<PassengerLoginLegalFooter> {
       decorationThickness: 1,
     );
 
-    final prefix = emphasized
-        ? l10n.passengerLegalRegistrationPrefix
-        : l10n.passengerLegalLoginPrefix;
+    final prefix = switch (widget.tone) {
+      PassengerLegalNoticeTone.methodChoice => l10n.passengerLegalLoginPrefix,
+      PassengerLegalNoticeTone.authContinue =>
+        l10n.passengerLegalAuthContinuePrefix,
+      PassengerLegalNoticeTone.emphasized =>
+        l10n.passengerLegalRegistrationPrefix,
+    };
 
     return Text.rich(
       TextSpan(

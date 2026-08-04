@@ -148,6 +148,25 @@ function Resolve-MapsKey {
   return ""
 }
 
+function Resolve-MapsRestKey {
+  param(
+    [string]$MapsKey,
+    [string]$AppEnvironment = "dev"
+  )
+
+  if (-not [string]::IsNullOrWhiteSpace($env:GOOGLE_MAPS_REST_API_KEY)) {
+    return $env:GOOGLE_MAPS_REST_API_KEY.Trim()
+  }
+
+  $envLocalPath = Get-LocalEnvFilePath -AppEnvironment $AppEnvironment
+  $fromLocalFile = Get-EnvValueFromLocalFile -FilePath $envLocalPath -Key "GOOGLE_MAPS_REST_API_KEY"
+  if (-not [string]::IsNullOrWhiteSpace($fromLocalFile)) {
+    return $fromLocalFile.Trim()
+  }
+
+  return $MapsKey
+}
+
 function Resolve-MultichannelAuth {
   param(
     [bool]$FromSwitch,
@@ -313,6 +332,7 @@ $resolvedTurnstileSiteKey = Resolve-TurnstileSiteKey -AppEnvironment $resolvedEn
 $resolvedGoogleOAuthClientId = Resolve-GoogleOAuthServerClientId -AppEnvironment $resolvedEnvironment
 Clear-InvalidProdBackendSessionEnv
 $resolvedKey = Resolve-MapsKey -FromParam $MapsApiKey -AppEnvironment $resolvedEnvironment
+$resolvedRestKey = Resolve-MapsRestKey -MapsKey $resolvedKey -AppEnvironment $resolvedEnvironment
 $resolvedBackendInfo = Resolve-BackendBaseUrl -FromParam $BackendBaseUrl -AppEnvironment $resolvedEnvironment
 $resolvedBackend = $resolvedBackendInfo.Url
 $resolvedBackendSource = $resolvedBackendInfo.Source
@@ -362,6 +382,9 @@ if (-not [string]::IsNullOrWhiteSpace($Target)) {
 $flutterArgs += @("--dart-define", "TEXI_APP_ENV=$resolvedEnvironment")
 $flutterArgs += @("--dart-define", "TEXI_BACKEND_BASE_URL=$resolvedBackend")
 $flutterArgs += @("--dart-define", "GOOGLE_MAPS_API_KEY=$resolvedKey")
+if ($resolvedRestKey -ne $resolvedKey) {
+  $flutterArgs += @("--dart-define", "GOOGLE_MAPS_REST_API_KEY=$resolvedRestKey")
+}
 $flutterArgs += @("--dart-define", "PASSENGER_SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
 $flutterArgs += @("--dart-define", "SELFIE_CROP_ENABLED=$($PassengerSelfieCropEnabled.ToString().ToLower())")
 $flutterArgs += @("--dart-define", "TEXI_PASSENGER_MULTICHANNEL_AUTH=$($resolvedMultichannelAuth.ToString().ToLower())")

@@ -69,10 +69,15 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
       state = state.copyWith(connected: false);
     });
 
-    socket.on('passenger:force_logout', (_) {
+    socket.on('passenger:force_logout', (data) {
+      // Admin purge / cuenta eliminada / sesión supersedida → login limpio.
       markPassengerSessionExpelled();
       unawaited(AuthService.logout());
       AuthService.onSessionExpired?.call();
+      if (kDebugMode) {
+        final code = data is Map ? data['code']?.toString() : null;
+        debugPrint('[PASSENGER_RT] passenger:force_logout code=$code');
+      }
     });
 
     socket.on('trip:accepted', (data) {

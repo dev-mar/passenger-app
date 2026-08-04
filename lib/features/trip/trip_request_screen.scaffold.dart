@@ -215,10 +215,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
         !isRecoveringActiveTrip &&
         !isTripActive &&
         !hasConnectionError;
-    final confirmingOrigin =
-        _d._pickingOrigin ||
-        _d._draftEditTarget == PassengerDraftEditTarget.origin ||
-        needsOriginConfirm;
+    // Solo modo aguja / confirmación en mapa. Abrir lupa vía fila origen/destino
+    // usa `_draftEditTarget` sin activar confirmingOrigin.
+    final confirmingOrigin = _d._pickingOrigin || needsOriginConfirm;
     final draftSearchPriorityMode =
         showDraftPlanningChrome &&
         _draftLocationSearchChromeVisible &&
@@ -338,29 +337,14 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 myLocationEnabled: _d._mapMyLocationDotEnabled,
                 // Recentrado unificado en barra superior (mismo c├¡rculo que idioma/perfil); evita duplicar el FAB nativo.
                 myLocationButtonEnabled: false,
-                // Con viaje activo solo bloqueamos colocar destino tocando el mapa (onTap abajo), no zoom ni pan.
+                // Zoom/pan siempre. No reubicar pines por tap: con origen+destino
+                // confirmados un toque accidental movía el destino. Confirmar/editar
+                // origen o destino sigue por aguja (_picking* / draftEditTarget).
                 scrollGesturesEnabled: true,
                 zoomGesturesEnabled: true,
                 rotateGesturesEnabled: true,
                 tiltGesturesEnabled: true,
-                onTap:
-                    (tripId == null &&
-                        !_d._pickingOrigin &&
-                        !_d._pickingDestination &&
-                        !needsAnyMapConfirm)
-                    ? (pos) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        setState(() {
-                          _d._destination = pos;
-                          _d._destinationDisplayLabel = null;
-                          _d._routePoints = null;
-                        });
-                        ref
-                            .read(tripRequestProvider.notifier)
-                            .setDestination(pos.latitude, pos.longitude);
-                        _fetchRoute();
-                      }
-                    : null,
+                onTap: null,
                 onCameraMove: _onCameraMove,
                 onCameraIdle: _onCameraIdleForMapConfirm,
                 markers: {
@@ -559,7 +543,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                                 searchController: _d._draftSearchController,
                                 searchFocusNode: _d._draftSearchFocus,
                                 onSearchChanged: _onDraftSearchChanged,
-                                searchFieldHint: !_d._originConfirmed
+                                searchFieldHint:
+                                    _draftSearchPhase ==
+                                        PassengerDraftSearchRole.origin
                                     ? l10n.tripYourLocation
                                     : l10n.tripDraftSearchHint,
                                 showSuggestionsPanel:
@@ -595,6 +581,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                                 searchRole: _draftSearchPhase,
                                 searchCollapseToken:
                                     _d._draftSearchCollapseToken,
+                                searchExpandToken: _d._draftSearchExpandToken,
+                                onOpenSearchOrigin: _onDraftOpenSearchForOrigin,
+                                onOpenSearchDestination: _d._originConfirmed
+                                    ? _onDraftOpenSearchForDestination
+                                    : null,
                                 onEditOrigin: _d._originConfirmed
                                     ? _onDraftEditOriginPressed
                                     : null,

@@ -24,6 +24,7 @@ import '../../core/network/texi_backend_error.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/maps/trip_route_tracking_policy.dart';
+import '../../core/maps/passenger_google_maps_health.dart';
 import '../../core/network/geocoding_service.dart';
 import '../../core/network/passenger_map_telemetry_service.dart';
 import '../../core/network/places_autocomplete_service.dart';
@@ -51,6 +52,7 @@ import 'passenger_realtime_controller.dart'
 import 'trip_recovery_feedback.dart';
 import 'passenger_trip_chat_l10n.dart';
 import 'passenger_trip_submit_helper.dart';
+import '../login/passenger_phone_link_navigation.dart';
 import 'widgets/passenger_trip_toast.dart';
 import 'widgets/passenger_rating_sheet.dart';
 import 'widgets/passenger_fan_menu.dart';
@@ -154,6 +156,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   String? _mapNeedleAddressPreview;
   /// Incrementar para forzar colapso de la lupa expandida (mapa, editar, etc.).
   int _draftSearchCollapseToken = 0;
+
+  /// Incrementar para expandir/enfocar la lupa (tap en fila origen/destino).
+  int _draftSearchExpandToken = 0;
   int _autoQuoteRouteGeneration = 0;
   bool _submittingTrip = false;
   List<TripRecentPlaceItem> _recentOriginPlaces = const <TripRecentPlaceItem>[];
