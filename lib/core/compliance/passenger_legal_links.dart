@@ -42,3 +42,8 @@ Future<bool> openPassengerAccountDeletionInfo(BuildContext context) {
   final locale = Localizations.localeOf(context);
   return openPassengerExternalUrl(PassengerLegalConfig.accountDeletionUrl(locale));
 }
+
+Future<bool> openPassengerServicesGuide(BuildContext context) {
+  final locale = Localizations.localeOf(context);
+  return openPassengerExternalUrl(PassengerLegalConfig.servicesGuideUrl(locale));
+}

@@ -8,6 +8,7 @@ import '../../core/utils/service_type_display.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
+import 'trip_service_addon_policy.dart';
 
 /// Pantalla Cotización: lista de tipos de servicio y precios.
 class TripQuoteScreen extends ConsumerWidget {
@@ -90,7 +91,7 @@ class TripQuoteScreen extends ConsumerWidget {
                                         ),
                                   ),
                                   Text(
-                                    '${formatMoney(option.estimatedPrice, currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
+                                    '${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
                                     style: Theme.of(context).textTheme.bodyMedium,
                                   ),
                                 ],

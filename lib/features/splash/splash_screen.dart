@@ -9,6 +9,7 @@ import '../../core/storage/trip_session_storage.dart';
 import '../../core/widgets/app_logo.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../login/utils/passenger_play_review_credentials.dart';
+import '../../core/version/app_version_gate.dart';
 import '../trip/trip_request_state.dart';
 
 /// Pantalla Splash: logo + comprobar sesión → Login o solicitud de viaje.
@@ -131,6 +132,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _resolveAndNavigate() async {
+    final canProceed = await AppVersionGate.runStartupCheck(context);
+    if (!mounted || _navigated || !canProceed) return;
+
     // No refrescar token aquí: evita red + lecturas extra de KeyStore en release prod.
     final brandWait = Future<void>.delayed(_minBrandDwell);
     final hasSession = await _resolveHasSession();

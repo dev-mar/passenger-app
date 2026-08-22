@@ -10,6 +10,7 @@ import '../../../gen_l10n/app_localizations.dart';
 import '../passenger_trip_submit_helper.dart';
 import '../../login/passenger_phone_link_navigation.dart';
 import '../trip_request_state.dart';
+import '../trip_service_addon_policy.dart';
 import 'quote_bottom_sheet_widgets.dart';
 
 /// Bottom sheet: opciones de precio y envío directo de la solicitud.
@@ -116,6 +117,7 @@ class _PassengerTripQuoteBottomSheetState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final quote = widget.quote;
+    final tripState = ref.watch(tripRequestProvider);
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -185,7 +187,7 @@ class _PassengerTripQuoteBottomSheetState
                           l10n,
                         ),
                         priceText:
-                            '${formatMoney(option.estimatedPrice, currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
+                            '${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: tripState.specials.selectedCount, surchargePct: tripState.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
                         isSelected: isSelected,
                         onTap: () {
                           setState(() => _selected = option);

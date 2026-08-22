@@ -25,6 +25,10 @@ class PassengerRealtimeState {
   final DateTime? driverPhotoExpiresAt;
   final List<TripChatMessage> chatMessages;
   final String? tripChatErrorCode;
+  final double? estimatedPrice;
+  final String? paymentMethod;
+  final List<String> tripExtras;
+  final List<String> tripSpecials;
 
   const PassengerRealtimeState({
     required this.connecting,
@@ -47,6 +51,10 @@ class PassengerRealtimeState {
     this.driverPhotoExpiresAt,
     this.chatMessages = const [],
     this.tripChatErrorCode,
+    this.estimatedPrice,
+    this.paymentMethod,
+    this.tripExtras = const [],
+    this.tripSpecials = const [],
   });
 
   static const initial = PassengerRealtimeState(
@@ -70,6 +78,10 @@ class PassengerRealtimeState {
     driverPhotoExpiresAt: null,
     chatMessages: [],
     tripChatErrorCode: null,
+    estimatedPrice: null,
+    paymentMethod: null,
+    tripExtras: [],
+    tripSpecials: [],
   );
 
   PassengerRealtimeState copyWith({
@@ -93,6 +105,10 @@ class PassengerRealtimeState {
     DateTime? driverPhotoExpiresAt,
     List<TripChatMessage>? chatMessages,
     String? tripChatErrorCode,
+    double? estimatedPrice,
+    String? paymentMethod,
+    List<String>? tripExtras,
+    List<String>? tripSpecials,
   }) {
     return PassengerRealtimeState(
       connecting: connecting ?? this.connecting,
@@ -115,6 +131,10 @@ class PassengerRealtimeState {
       driverPhotoExpiresAt: driverPhotoExpiresAt ?? this.driverPhotoExpiresAt,
       chatMessages: chatMessages ?? this.chatMessages,
       tripChatErrorCode: tripChatErrorCode,
+      estimatedPrice: estimatedPrice ?? this.estimatedPrice,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      tripExtras: tripExtras ?? this.tripExtras,
+      tripSpecials: tripSpecials ?? this.tripSpecials,
     );
   }
 }

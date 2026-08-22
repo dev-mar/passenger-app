@@ -171,6 +171,9 @@ class TripsApi {
     required int serviceTypeId,
     required double estimatedPrice,
     String? routeOverviewEncoded,
+    String paymentMethod = 'cash',
+    List<String> tripExtras = const [],
+    List<String> tripSpecials = const [],
   }) async {
     final payload = {
       'origin': {'lat': originLat, 'lng': originLng},
@@ -185,6 +188,9 @@ class TripsApi {
       if (routeOverviewEncoded != null &&
           routeOverviewEncoded.trim().isNotEmpty)
         'routeOverviewEncoded': routeOverviewEncoded.trim(),
+      'paymentMethod': paymentMethod.trim().isEmpty ? 'cash' : paymentMethod.trim(),
+      'tripExtras': tripExtras,
+      'tripSpecials': tripSpecials,
     };
     final response = await _dio.post('/passengers/trips', data: payload);
     final body = response.data ?? const <String, dynamic>{};
@@ -641,6 +647,10 @@ class TripStatusResponse {
     this.driverRating,
     this.driverRatingsCount,
     this.currencyCode,
+    this.estimatedPrice,
+    this.paymentMethod,
+    this.tripExtras = const [],
+    this.tripSpecials = const [],
   });
 
   final String tripId;
@@ -661,6 +671,10 @@ class TripStatusResponse {
   final double? driverRating;
   final int? driverRatingsCount;
   final String? currencyCode;
+  final double? estimatedPrice;
+  final String? paymentMethod;
+  final List<String> tripExtras;
+  final List<String> tripSpecials;
 
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
@@ -723,6 +737,13 @@ class TripStatusResponse {
     final driverRatingsCount = ratingsCountRaw is num
         ? ratingsCountRaw.toInt()
         : int.tryParse('$ratingsCountRaw');
+    final rawPrice = json['estimatedPrice'] ?? json['estimated_price'];
+    double? estimatedPrice;
+    if (rawPrice is num) estimatedPrice = rawPrice.toDouble();
+    if (rawPrice is String) estimatedPrice = double.tryParse(rawPrice);
+    final payRaw =
+        json['paymentMethod'] ?? json['payment_method'];
+    final paymentMethod = payRaw?.toString().trim();
 
     return TripStatusResponse(
       tripId: json['tripId']?.toString() ?? '',
@@ -739,8 +760,26 @@ class TripStatusResponse {
       driverRating: driverRating,
       driverRatingsCount: driverRatingsCount,
       currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
+      estimatedPrice: estimatedPrice,
+      paymentMethod: (paymentMethod != null && paymentMethod.isNotEmpty)
+          ? paymentMethod
+          : null,
+      tripExtras: _stringListFromJson(
+        json['tripExtras'] ?? json['passenger_extras'],
+      ),
+      tripSpecials: _stringListFromJson(
+        json['tripSpecials'] ?? json['passenger_specials'],
+      ),
     );
   }
+}
+
+List<String> _stringListFromJson(dynamic raw) {
+  if (raw is! List) return const [];
+  return raw
+      .map((e) => e.toString().trim())
+      .where((s) => s.isNotEmpty)
+      .toList(growable: false);
 }
 
 class CreateTripOffer {

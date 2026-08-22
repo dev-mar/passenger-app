@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/config/passenger_app_environment.dart';
 import '../../../core/feedback/texi_ui_feedback.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/phone/bolivia_local_phone.dart';
 import '../../../core/widgets/premium_state_view.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../utils/login_country_flag.dart';
@@ -112,7 +112,7 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
                   ),
                   keyboardType: TextInputType.phone,
                   autofillHints: const [AutofillHints.telephoneNumber],
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: passengerLocalPhoneFormatters(country.dialCode),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 18,

@@ -833,6 +833,8 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                               rtState.quote?.distanceKm ??
                               0.0,
                           estimatedPrice:
+                              rtState.estimatedPrice ??
+                              tripState.previewTotalPrice ??
                               tripState.selectedOption?.estimatedPrice ??
                               tripState
                                   .quote
@@ -874,6 +876,14 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                               : null,
                           chatLabel: l10n.tripSecureChat,
                           unreadChatCount: _d._tripChatUnreadCount,
+                          paymentMethod:
+                              rtState.paymentMethod ?? tripState.paymentMethod,
+                          tripExtras: tripState.extras.isNotEmpty
+                              ? tripState.extras.toDisplayCodes()
+                              : rtState.tripExtras,
+                          tripSpecials: tripState.specials.isNotEmpty
+                              ? tripState.specials.toCodes()
+                              : rtState.tripSpecials,
                         ),
                       ],
                     ),
@@ -965,6 +975,20 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                         onMenuPressed: (anchor) =>
                             _showProfileMenu(context, anchor: anchor),
                         menuTooltip: l10n.menuOpenTooltip,
+                        paymentMethodLabel: _tripDraftDetailsLabel(
+                          l10n,
+                          tripState,
+                        ),
+                        onOpenRequestDetails: () {
+                          TexiUiFeedback.lightTap();
+                          showPassengerTripRequestDetailsSheet(
+                            context: context,
+                            ref: ref,
+                          );
+                        },
+                        requestDetailsTooltip: l10n.tripRequestDetailsTooltip,
+                        specialsCount: tripState.specials.selectedCount,
+                        specialSurchargePct: tripState.specialSurchargePct,
                       ),
                     ),
                   ),
@@ -1087,4 +1111,22 @@ class _MapChatActionButton extends StatelessWidget {
     );
   }
 }
+
+String _tripDraftDetailsLabel(AppLocalizations l10n, TripRequestState tripState) {
+  final pay = TripPaymentMethod.isQr(tripState.paymentMethod)
+      ? l10n.tripPaymentMethodQr
+      : l10n.tripPaymentMethodCash;
+  final extrasCount = tripState.extras.selectedCount;
+  final specialsCount = tripState.specials.selectedCount;
+  if (extrasCount == 0 && specialsCount == 0) return pay;
+  final bits = <String>[pay];
+  if (extrasCount > 0) {
+    bits.add(l10n.tripPrefsCount(extrasCount));
+  }
+  if (specialsCount > 0) {
+    bits.add(l10n.tripSpecialsCount(specialsCount));
+  }
+  return bits.join(' · ');
+}
+
 

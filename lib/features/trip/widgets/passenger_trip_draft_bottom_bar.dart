@@ -6,6 +6,7 @@ import '../../../core/ui/texi_scale_press.dart';
 import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import '../trip_service_addon_policy.dart';
 import 'passenger_quote_service_option_card.dart';
 
 /// Barra fija inferior del borrador: cotización, CTA y confirmación en mapa.
@@ -33,6 +34,11 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
     required this.cancelDraftLabel,
     required this.onMenuPressed,
     required this.menuTooltip,
+    required this.paymentMethodLabel,
+    required this.onOpenRequestDetails,
+    required this.requestDetailsTooltip,
+    this.specialsCount = 0,
+    this.specialSurchargePct = 50,
   });
 
   final bool isMapConfirmMode;
@@ -58,6 +64,11 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
   final String cancelDraftLabel;
   final ValueChanged<Offset> onMenuPressed;
   final String menuTooltip;
+  final String paymentMethodLabel;
+  final VoidCallback onOpenRequestDetails;
+  final String requestDetailsTooltip;
+  final int specialsCount;
+  final double specialSurchargePct;
 
   @override
   Widget build(BuildContext context) {
@@ -271,6 +282,13 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                             selected: selected,
                             onTap: () => onSelectQuoteOption(option),
                             etaMinutes: quoteData.durationMinutes,
+                            displayPrice: displayQuotedPriceForOption(
+                              basePrice: option.estimatedPrice,
+                              serviceTypeId: option.serviceTypeId,
+                              serviceTypeName: option.serviceTypeName,
+                              specialsCount: specialsCount,
+                              surchargePct: specialSurchargePct,
+                            ),
                           );
                         },
                       ),
@@ -279,48 +297,93 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
-              SizedBox(
-                height: AppSizes.buttonHeight,
-                child: TexiScalePress(
-                  child: FilledButton(
-                    onPressed: requestRideEnabled ? onRequestRide : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                      ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Text(
+                    paymentMethodLabel,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
                     ),
-                    child: requestRideLoading
-                        ? const SizedBox(
-                            height: AppSizes.progressBtn,
-                            width: AppSizes.progressBtn,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.onPrimary,
-                            ),
-                          )
-                        : (!requestRideEnabled &&
-                              (quotingInProgress || loadingRoute))
-                        ? const SizedBox(
-                            height: AppSizes.progressBtn,
-                            width: AppSizes.progressBtn,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.onPrimary,
-                            ),
-                          )
-                        : Text(
-                            requestLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: AppTypography.title,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                   ),
                 ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: AppSizes.buttonHeight,
+                      child: TexiScalePress(
+                        child: FilledButton(
+                          onPressed: requestRideEnabled ? onRequestRide : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.onPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                            ),
+                          ),
+                          child: requestRideLoading
+                              ? const SizedBox(
+                                  height: AppSizes.progressBtn,
+                                  width: AppSizes.progressBtn,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.onPrimary,
+                                  ),
+                                )
+                              : (!requestRideEnabled &&
+                                    (quotingInProgress || loadingRoute))
+                              ? const SizedBox(
+                                  height: AppSizes.progressBtn,
+                                  width: AppSizes.progressBtn,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.onPrimary,
+                                  ),
+                                )
+                              : Text(
+                                  requestLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: AppTypography.title,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Tooltip(
+                    message: requestDetailsTooltip,
+                    child: Material(
+                      color: AppColors.background.withValues(alpha: 0.45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                        side: BorderSide(
+                          color: AppColors.border.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: onOpenRequestDetails,
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                        child: const SizedBox(
+                          width: AppSizes.buttonHeight,
+                          height: AppSizes.buttonHeight,
+                          child: Icon(
+                            Icons.tune_rounded,
+                            size: 22,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
             if (showCancelDraft) ...[

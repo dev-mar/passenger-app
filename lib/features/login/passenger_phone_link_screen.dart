@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/config/passenger_app_environment.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
+import '../../core/phone/bolivia_local_phone.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -37,7 +38,10 @@ class _PassengerPhoneLinkScreenState
   LoginCountryDial get _country =>
       loginCountryFromDialCode(_countryCodeController.text);
 
-  bool get _phoneValid => _phoneController.text.trim().length >= 6;
+  bool get _phoneValid => isValidPassengerLocalPhone(
+        dialCode: _country.dialCode,
+        localNumber: _phoneController.text,
+      );
 
   @override
   void initState() {
@@ -60,8 +64,23 @@ class _PassengerPhoneLinkScreenState
     }
   }
 
+  String _phoneInvalidMessage(AppLocalizations l10n) {
+    final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return l10n.loginPhoneRequired;
+    if (isBoliviaDialCode(_country.dialCode)) {
+      return l10n.loginPhoneInvalidBolivia;
+    }
+    return l10n.loginPhoneRequired;
+  }
+
   Future<void> _startLinkChallenge(PhoneVerificationMethod method) async {
-    if (!_phoneValid || _isLoading) return;
+    if (_isLoading) return;
+    if (!_phoneValid) {
+      setState(() {
+        _errorMessage = _phoneInvalidMessage(AppLocalizations.of(context)!);
+      });
+      return;
+    }
     final phone = _phoneController.text.trim();
     final countryCode = _countryCodeController.text.trim();
     setState(() {
@@ -110,7 +129,13 @@ class _PassengerPhoneLinkScreenState
   }
 
   void _openSmsVerifyScreen() {
-    if (!_phoneValid || _isLoading) return;
+    if (_isLoading) return;
+    if (!_phoneValid) {
+      setState(() {
+        _errorMessage = _phoneInvalidMessage(AppLocalizations.of(context)!);
+      });
+      return;
+    }
     context.pushNamed(
       'verify_sms',
       queryParameters: {
@@ -160,11 +185,11 @@ class _PassengerPhoneLinkScreenState
                 phoneController: _phoneController,
                 errorMessage: null,
                 isLoading: _isLoading,
-                onSubmit: _phoneValid && !_isLoading
-                    ? () => _startLinkChallenge(
+                onSubmit: _isLoading
+                    ? () {}
+                    : () => _startLinkChallenge(
                           PhoneVerificationMethod.whatsAppInbound,
-                        )
-                    : () {},
+                        ),
               ),
               if (_showVerifyMethods) ...[
                 const SizedBox(height: 20),

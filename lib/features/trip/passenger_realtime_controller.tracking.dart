@@ -120,6 +120,11 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
         driverRating: res.driverRating ?? state.driverRating,
         driverRatingsCount: res.driverRatingsCount ?? state.driverRatingsCount,
         currencyCode: res.currencyCode ?? state.currencyCode,
+        estimatedPrice: res.estimatedPrice ?? state.estimatedPrice,
+        paymentMethod: res.paymentMethod ?? state.paymentMethod,
+        tripExtras: res.tripExtras.isNotEmpty ? res.tripExtras : state.tripExtras,
+        tripSpecials:
+            res.tripSpecials.isNotEmpty ? res.tripSpecials : state.tripSpecials,
         chatMessages: chatOk ? state.chatMessages : const [],
         tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
       );

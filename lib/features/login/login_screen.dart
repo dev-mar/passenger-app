@@ -6,6 +6,7 @@ import '../../core/config/app_config.dart';
 import '../../core/config/passenger_app_environment.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/compliance/passenger_login_legal_footer.dart';
+import '../../core/phone/bolivia_local_phone.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../features/profile/widgets/passenger_profile_legal_section.dart';
@@ -64,7 +65,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       PassengerAppEnvironment.turnstileSiteKey.trim().isNotEmpty ||
       PassengerAppEnvironment.isDev;
 
-  bool get _phoneValid => _phoneController.text.trim().length >= 6;
+  bool get _phoneValid => isValidPassengerLocalPhone(
+        dialCode: _country.dialCode,
+        localNumber: _phoneController.text,
+      );
 
   bool get _showPhoneCaptcha => _phoneValid;
 
@@ -84,7 +88,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _countryCodeController.text = cc;
     }
     if (phone != null && phone.isNotEmpty) {
-      _phoneController.text = phone;
+      _phoneController.text = sanitizePassengerLocalPhone(
+        dialCode: _countryCodeController.text,
+        raw: phone,
+      );
       _step = LoginScreenStep.phoneUnified;
     }
     _phoneController.addListener(_onPhoneChanged);
@@ -166,9 +173,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
   }
 
+  String _phoneInvalidMessage() {
+    final l10n = AppLocalizations.of(context)!;
+    final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) return l10n.loginPhoneRequired;
+    if (isBoliviaDialCode(_country.dialCode)) {
+      return l10n.loginPhoneInvalidBolivia;
+    }
+    return l10n.loginPhoneRequired;
+  }
+
   void _onVerificationMethodSelected(PhoneVerificationMethod method) {
     if (!_phoneValid) {
-      setState(() => _errorMessage = AppLocalizations.of(context)!.loginPhoneRequired);
+      setState(() => _errorMessage = _phoneInvalidMessage());
       return;
     }
     if (_captchaGateRequired && !_captchaReady) return;
@@ -179,6 +196,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     PhoneVerificationMethod method,
   ) async {
     if (_isLoading) return;
+    if (!_phoneValid) {
+      setState(() => _errorMessage = _phoneInvalidMessage());
+      return;
+    }
     final countryCode = _countryCodeController.text.trim();
     final phone = _phoneController.text.trim();
 

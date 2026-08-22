@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/phone/bolivia_local_phone.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../core/widgets/premium_state_view.dart';
 import '../../../gen_l10n/app_localizations.dart';
@@ -94,7 +94,7 @@ class LoginPhoneEntryPanel extends StatelessWidget {
                       ),
                       keyboardType: TextInputType.phone,
                       autofillHints: const [AutofillHints.telephoneNumber],
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: passengerLocalPhoneFormatters(country.dialCode),
                       onFieldSubmitted: (_) => onSubmit(),
                       style: const TextStyle(
                         color: AppColors.textPrimary,

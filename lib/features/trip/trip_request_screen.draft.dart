@@ -714,7 +714,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final mainLower = main.toLowerCase();
     final addrLower = addr.toLowerCase();
     if (addrLower.startsWith(mainLower)) return addr;
-    return '$main ┬À $addr';
+    return '$main · $addr';
   }
 
   Future<void> _selectOriginSuggestion(
@@ -740,7 +740,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     // Si el label compuesto incluye nombre de POI (formato "Nombre ┬À Direcci├│n"),
     // ya tenemos el dato m├ís rico desde Places y NO disparamos reverse-geocode
     // (que sobrescribir├¡a el nombre del POI con la calle).
-    final hasPoiName = composedLabel.contains(' ┬À ');
+    final hasPoiName = composedLabel.contains(' · ');
     setState(() {
       _d._origin = LatLng(details.lat, details.lng);
       _d._originDisplayLabel = composedLabel;

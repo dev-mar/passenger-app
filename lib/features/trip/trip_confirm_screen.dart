@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/service_type_display.dart';
+import '../../core/utils/money_formatter.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/trip_session_storage.dart';
@@ -17,6 +18,7 @@ import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
+import 'trip_service_addon_policy.dart';
 import 'passenger_active_trip_guard.dart';
 import 'passenger_realtime_controller.dart';
 import 'passenger_trip_submit_helper.dart';
@@ -132,6 +134,9 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             cityId: quote.city.id,
             serviceTypeId: option.serviceTypeId,
             estimatedPrice: option.estimatedPrice,
+            paymentMethod: ref.read(tripRequestProvider).paymentMethod,
+            tripExtras: ref.read(tripRequestProvider).extras.toCodes(),
+            tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
           );
           break;
         } on DioException catch (e) {
@@ -252,7 +257,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
           _card(
             context,
             l10n.quoteTitle,
-            '${displayServiceTypeName(option.serviceTypeName, l10n)} — ${option.estimatedPrice.toStringAsFixed(1)}',
+            '${displayServiceTypeName(option.serviceTypeName, l10n)} — ${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)}',
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),

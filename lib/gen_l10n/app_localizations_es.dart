@@ -205,7 +205,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginGoogleEmailInfo =>
-      'Escribe el correo que usarás en Texi. Al continuar te enviaremos un código de verificación a ese buzón.';
+      'Escribe el correo que usarás en TEXIAPP. Al continuar te enviaremos un código de verificación a ese buzón.';
 
   @override
   String get loginGoogleSignInButton => 'Iniciar sesión con Google';
@@ -235,7 +235,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginCountryCodeHint => '+591';
 
   @override
-  String get loginPhoneHint => '7 123 4567';
+  String get loginPhoneHint => '8 dígitos; inicia con 5, 6 o 7';
 
   @override
   String get loginContinue => 'Continuar';
@@ -254,7 +254,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginErrorPhoneOtherAccountType =>
-      'Este número ya está asociado a otro tipo de cuenta en Texi. Usa otro número o la aplicación que corresponda a esa cuenta.';
+      'Este número ya está asociado a otro tipo de cuenta en TEXIAPP. Usa otro número o la aplicación que corresponda a esa cuenta.';
 
   @override
   String get loginErrorPhoneDuplicatePassenger =>
@@ -294,6 +294,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get loginPhoneRequired => 'Ingresa tu número de teléfono';
+
+  @override
+  String get loginPhoneInvalidBolivia =>
+      'Número no válido. Debe tener 8 dígitos e iniciar con 5, 6 o 7.';
 
   @override
   String get homeRequestRide => 'Solicitar viaje';
@@ -532,6 +536,200 @@ class AppLocalizationsEs extends AppLocalizations {
   String confirmRequestRideWithService(String serviceName) {
     return 'Solicitar $serviceName';
   }
+
+  @override
+  String get tripPaymentMethodCash => 'En efectivo';
+
+  @override
+  String get tripPaymentMethodCashBody => 'Pagas en mano al conductor.';
+
+  @override
+  String get tripPaymentMethodQr => 'QR';
+
+  @override
+  String get tripPaymentMethodQrBody => 'Pagas con el QR del conductor.';
+
+  @override
+  String get tripRequestDetailsTitle => 'Ajustes del viaje';
+
+  @override
+  String get tripRequestDetailsHint =>
+      'Elige cómo pagar y avisa lo que el conductor debe saber antes de salir.';
+
+  @override
+  String get tripRequestDetailsTooltip => 'Ajustes del viaje';
+
+  @override
+  String get tripRequestDetailsDone => 'Listo';
+
+  @override
+  String get tripRequestDetailsLearnMore => 'Conoce más de esta funcionalidad';
+
+  @override
+  String get tripRequestDetailsLearnMoreError =>
+      'No pudimos abrir la página. Revisa tu conexión e intenta de nuevo.';
+
+  @override
+  String get tripPaymentSectionTitle => 'Cómo pagarás';
+
+  @override
+  String get tripPrefsSectionTitle => 'Preferencias de viaje';
+
+  @override
+  String get tripPrefsSectionHint => 'El conductor lo ve. No cambia el precio.';
+
+  @override
+  String get tripPrefPetTitle => 'Viajo con mi mascota';
+
+  @override
+  String get tripPrefPetBody => 'Lleva manta o transportadora para el viaje.';
+
+  @override
+  String get tripPrefPetInfo =>
+      'Avisa al conductor para que prepare el asiento. Procura llevar manta o transportadora. No suma al costo del viaje.';
+
+  @override
+  String get tripPrefWheelchairTitle => 'Silla de ruedas';
+
+  @override
+  String get tripPrefWheelchairBody =>
+      'Maletero y un poco más de tiempo al subir.';
+
+  @override
+  String get tripPrefWheelchairInfo =>
+      'El conductor sabrá que necesitas el maletero para la silla y un momento extra al abordar. No suma al costo del viaje.';
+
+  @override
+  String get tripPrefLuggageTitle => 'Maletas o equipaje';
+
+  @override
+  String get tripPrefLuggageBody => 'Hasta 2 maletas medianas en el maletero.';
+
+  @override
+  String get tripPrefLuggageInfo =>
+      'Hasta 2 maletas medianas que quepan en el maletero. El equipaje de un viajero común no debe superar unos 50 kg. No suma al costo del viaje.';
+
+  @override
+  String get tripPrefAcTitle => 'Aire acondicionado';
+
+  @override
+  String get tripPrefAcBody => 'Prefieres viajar con clima.';
+
+  @override
+  String get tripPrefAcInfo =>
+      'Se informa al conductor. En Confort no cambia el precio: es una preferencia, no un recargo.';
+
+  @override
+  String tripPrefsCount(int count) {
+    return '$count preferencias';
+  }
+
+  @override
+  String get tripSpecialsSectionTitle => 'Requerimientos especiales';
+
+  @override
+  String get tripSpecialsSectionHint => 'Puede cambiar el costo del viaje.';
+
+  @override
+  String get tripSpecialSeats6Title => 'Hasta 6 personas';
+
+  @override
+  String get tripSpecialSeats6Body => 'Pedimos un vehículo más amplio.';
+
+  @override
+  String get tripSpecialSeats6Info =>
+      'Buscamos un auto con más asientos. Si no hay uno cerca, igual se envía la solicitud a conductores disponibles.';
+
+  @override
+  String get tripSpecialRoofRackTitle => 'Parrilla en el techo';
+
+  @override
+  String get tripSpecialRoofRackBody => 'Para bultos que van amarrados arriba.';
+
+  @override
+  String get tripSpecialRoofRackInfo =>
+      'Pensado para bultos, cajas o mercadería que se amarran en el techo. Volumen y peso equivalentes a un auto estándar. No aplica para mudanzas ni materiales de construcción.';
+
+  @override
+  String get tripSpecialCargoTitle => 'Carga o mercadería';
+
+  @override
+  String get tripSpecialCargoBody => 'Cajas o bultos en maletero y asientos.';
+
+  @override
+  String get tripSpecialCargoInfo =>
+      'Para cajas, sacos o bultos grandes en maletero y asientos. Mismo límite de un auto estándar. No aplica para mudanzas ni materiales de construcción.';
+
+  @override
+  String tripSpecialsCount(int count) {
+    return '$count requerimientos';
+  }
+
+  @override
+  String tripSpecialsPricePreview(String total) {
+    return 'Tu viaje quedaría en $total';
+  }
+
+  @override
+  String get tripAddonInfoClose => 'Entendido';
+
+  @override
+  String get tripMotoServiceTitle => 'Tu atajo en la ciudad';
+
+  @override
+  String get tripMotoServiceBody =>
+      'Un pasajero. Suele ser la forma más ágil de llegar en trayectos urbanos.';
+
+  @override
+  String get tripMotoPerkSpeed => 'Más ágil en tráfico';
+
+  @override
+  String get tripMotoPerkSolo => 'Pensado para una persona';
+
+  @override
+  String get tripMotoPerkLight => 'Sin maletas grandes ni extras de auto';
+
+  @override
+  String get tripPremiumIncludedTitle => 'Tu experiencia Premium';
+
+  @override
+  String get tripPremiumIncludedHint =>
+      'Ya viene incluido. Solo elige cómo pagar.';
+
+  @override
+  String get tripPremiumAmenityCharger => 'Cargador y música';
+
+  @override
+  String get tripPremiumAmenityChargerBody =>
+      'Carga tu teléfono (iPhone o USB-C) o pon tu música por Bluetooth.';
+
+  @override
+  String get tripPremiumAmenityCourtesy => 'Te reciben con estilo';
+
+  @override
+  String get tripPremiumAmenityCourtesyBody =>
+      'Abren la puerta y ayudan con el equipaje liviano.';
+
+  @override
+  String get tripPremiumAmenityWater => 'Agua de cortesía';
+
+  @override
+  String get tripPremiumAmenityWaterBody =>
+      'Lista en el asiento de atrás, cuando está disponible.';
+
+  @override
+  String get tripPremiumAmenityInvoice => 'Listo para empresas';
+
+  @override
+  String get tripPremiumAmenityInvoiceBody =>
+      'Puedes pedir factura o un perfil corporativo, según disponibilidad.';
+
+  @override
+  String get tripPremiumAmenityWait => 'Sal con calma';
+
+  @override
+  String get tripPremiumAmenityWaitBody =>
+      'Unos minutos extra de espera, sin recargo.';
 
   @override
   String get searchingTitle => 'Buscando conductor';
@@ -1937,14 +2135,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerPlayCameraDisclosureBody =>
-      'Texi usa la cámara para tomar tu foto de perfil o adjuntar imágenes en soporte. Las fotos se envían de forma segura a nuestros servidores.';
+      'TEXIAPP usa la cámara para tomar tu foto de perfil o adjuntar imágenes en soporte. Las fotos se envían de forma segura a nuestros servidores.';
 
   @override
   String get passengerPlayGalleryDisclosureTitle => 'Acceso a fotos';
 
   @override
   String get passengerPlayGalleryDisclosureBody =>
-      'Texi accede a fotos que elijas de tu galería para tu perfil o tickets de soporte. Solo se sube la imagen que selecciones.';
+      'TEXIAPP accede a fotos que elijas de tu galería para tu perfil o tickets de soporte. Solo se sube la imagen que selecciones.';
 
   @override
   String get passengerPlayNotificationDisclosureTitle =>
@@ -1952,7 +2150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerPlayNotificationDisclosureBody =>
-      'Texi necesita enviarte notificaciones cuando un conductor acepte tu viaje, cambie el estado del trayecto o te envíe un mensaje durante el viaje.';
+      'TEXIAPP necesita enviarte notificaciones cuando un conductor acepte tu viaje, cambie el estado del trayecto o te envíe un mensaje durante el viaje.';
 
   @override
   String get passengerPlayLocationDisclosureTitle =>
@@ -1960,7 +2158,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passengerPlayLocationDisclosureBody =>
-      'Texi usa tu ubicación para mostrarte en el mapa, encontrar conductores cercanos y facilitar la recogida en el punto de origen.';
+      'TEXIAPP usa tu ubicación para mostrarte en el mapa, encontrar conductores cercanos y facilitar la recogida en el punto de origen.';
 
   @override
   String get passengerPlayDisclosureContinue => 'Continuar';
@@ -2018,7 +2216,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get supportTicketsSubtitle => 'Crea o revisa tickets de soporte';
 
   @override
-  String get supportCompanyCallTitle => 'Llamar a Texi';
+  String get supportCompanyCallTitle => 'Llamar a TEXIAPP';
 
   @override
   String get supportCallFailed =>
@@ -2050,7 +2248,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get operatorVerifiedDriversCtaSubtitle =>
-      'Cómo TEXI valida a cada conductor';
+      'Cómo TEXIAPP valida a cada conductor';
 
   @override
   String get operatorVerifiedDriversTitle => 'Conductores verificados';
@@ -2083,11 +2281,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get operatorCheckTrainingTitle => 'Capacitación';
 
   @override
-  String get operatorCheckTrainingBody => 'Estándares de servicio Texi';
+  String get operatorCheckTrainingBody => 'Estándares de servicio TEXIAPP';
 
   @override
   String get operatorTrustClosing =>
-      'Viaja con confianza. Conductores verificados por Texi.';
+      'Viaja con confianza. Conductores verificados por TEXIAPP.';
 
   @override
   String get profileCompletenessTitle => 'Completa tu información';
@@ -2108,4 +2306,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileBrandTitle => 'TEXIAPP';
+
+  @override
+  String get appUpdateRequiredTitle => 'Actualización requerida';
+
+  @override
+  String get appUpdateRequiredMessage =>
+      'Hay una nueva versión de Texi disponible. Actualiza la app para continuar.';
+
+  @override
+  String get appUpdateOptionalTitle => 'Nueva versión disponible';
+
+  @override
+  String get appUpdateOptionalMessage =>
+      'Hay una actualización en Play Store. Te recomendamos instalarla para la mejor experiencia.';
+
+  @override
+  String get appUpdateOpenStore => 'Ir a Play Store';
+
+  @override
+  String get appUpdateLater => 'Más tarde';
 }

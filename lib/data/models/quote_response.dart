@@ -6,6 +6,7 @@ class QuoteResponse {
     required this.distanceKm,
     required this.durationMinutes,
     required this.options,
+    this.specialRequirementSurchargePct = 50,
   });
 
   final QuoteCity city;
@@ -13,6 +14,7 @@ class QuoteResponse {
   final double distanceKm;
   final int durationMinutes;
   final List<QuoteOption> options;
+  final double specialRequirementSurchargePct;
 
   factory QuoteResponse.fromJson(Map<String, dynamic> json) {
     final optionsList = json['options'] as List<dynamic>? ?? [];
@@ -30,6 +32,13 @@ class QuoteResponse {
       options: optionsList
           .map((e) => QuoteOption.fromJson(e as Map<String, dynamic>))
           .toList(),
+      specialRequirementSurchargePct: () {
+        final raw = json['specialRequirementSurchargePct'] ??
+            json['special_requirement_surcharge_pct'];
+        if (raw is num) return raw.toDouble();
+        if (raw is String) return double.tryParse(raw) ?? 50.0;
+        return 50.0;
+      }(),
     );
   }
 
@@ -38,6 +47,7 @@ class QuoteResponse {
         'currencyCode': currencyCode,
         'distanceKm': distanceKm,
         'durationMinutes': durationMinutes,
+        'specialRequirementSurchargePct': specialRequirementSurchargePct,
         'options': options.map((e) => e.toJson()).toList(),
       };
 }

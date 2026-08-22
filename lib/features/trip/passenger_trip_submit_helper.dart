@@ -129,6 +129,9 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
           serviceTypeId: option.serviceTypeId,
           estimatedPrice: option.estimatedPrice,
           routeOverviewEncoded: routeOverviewEncoded,
+          paymentMethod: ref.read(tripRequestProvider).paymentMethod,
+          tripExtras: ref.read(tripRequestProvider).extras.toCodes(),
+          tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
         );
         break;
       } on DioException catch (e) {

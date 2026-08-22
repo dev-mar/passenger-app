@@ -206,6 +206,9 @@ class PassengerTripActiveTrackingSheet extends StatelessWidget {
     this.onFinishedClose,
     this.onOpenChat,
     this.unreadChatCount = 0,
+    this.paymentMethod,
+    this.tripExtras = const [],
+    this.tripSpecials = const [],
   });
 
   final String status;
@@ -227,6 +230,9 @@ class PassengerTripActiveTrackingSheet extends StatelessWidget {
   final VoidCallback? onFinishedClose;
   final VoidCallback? onOpenChat;
   final int unreadChatCount;
+  final String? paymentMethod;
+  final List<String> tripExtras;
+  final List<String> tripSpecials;
 
   @override
   Widget build(BuildContext context) {
@@ -283,6 +289,9 @@ class PassengerTripActiveTrackingSheet extends StatelessWidget {
                 onOpenChat: onOpenChat,
                 chatLabel: l10n.tripSecureChat,
                 unreadChatCount: unreadChatCount,
+                paymentMethod: paymentMethod,
+                tripExtras: tripExtras,
+                tripSpecials: tripSpecials,
               ),
             ],
           ),

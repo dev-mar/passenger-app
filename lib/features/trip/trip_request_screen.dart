@@ -58,6 +58,8 @@ import 'widgets/passenger_rating_sheet.dart';
 import 'widgets/passenger_fan_menu.dart';
 import 'widgets/passenger_trip_quote_bottom_sheet.dart';
 import 'widgets/passenger_trip_draft_bottom_bar.dart';
+import 'widgets/passenger_trip_request_details_sheet.dart';
+import 'trip_payment_method.dart';
 import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';

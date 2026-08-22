@@ -1,5 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/quote_response.dart';
+import 'trip_passenger_extras.dart';
+import 'trip_passenger_specials.dart';
+import 'trip_payment_method.dart';
+import 'trip_service_addon_policy.dart';
 
 /// Origen o destino en el flujo de solicitud de viaje.
 class TripPoint {
@@ -17,6 +21,9 @@ class TripRequestState {
     this.selectedOption,
     this.tripId,
     this.error,
+    this.paymentMethod = TripPaymentMethod.cash,
+    this.extras = TripPassengerExtras.empty,
+    this.specials = TripPassengerSpecials.empty,
   });
 
   final TripPoint? origin;
@@ -25,6 +32,24 @@ class TripRequestState {
   final QuoteOption? selectedOption;
   final String? tripId;
   final String? error;
+  final String paymentMethod;
+  final TripPassengerExtras extras;
+  final TripPassengerSpecials specials;
+
+  double get specialSurchargePct =>
+      quote?.specialRequirementSurchargePct ?? 50;
+
+  double? get quotedBasePrice => selectedOption?.estimatedPrice;
+
+  double? get previewTotalPrice {
+    final base = quotedBasePrice;
+    if (base == null) return null;
+    return applySpecialsSurcharge(
+      basePrice: base,
+      specialsCount: specials.selectedCount,
+      surchargePct: specialSurchargePct,
+    );
+  }
 
   TripRequestState copyWith({
     TripPoint? origin,
@@ -33,6 +58,9 @@ class TripRequestState {
     QuoteOption? selectedOption,
     String? tripId,
     String? error,
+    String? paymentMethod,
+    TripPassengerExtras? extras,
+    TripPassengerSpecials? specials,
   }) {
     return TripRequestState(
       origin: origin ?? this.origin,
@@ -41,6 +69,9 @@ class TripRequestState {
       selectedOption: selectedOption ?? this.selectedOption,
       tripId: tripId ?? this.tripId,
       error: error,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      extras: extras ?? this.extras,
+      specials: specials ?? this.specials,
     );
   }
 
@@ -63,6 +94,18 @@ final passengerTripMapUiResetTickProvider = StateProvider<int>((ref) => 0);
 class TripRequestNotifier extends StateNotifier<TripRequestState> {
   TripRequestNotifier() : super(const TripRequestState());
 
+  TripPassengerServiceFamily get _family => passengerServiceFamily(
+        serviceTypeId: state.selectedOption?.serviceTypeId,
+        serviceTypeName: state.selectedOption?.serviceTypeName,
+      );
+
+  void _pruneAddonsForFamily(TripPassengerServiceFamily family) {
+    state = state.copyWith(
+      extras: state.extras.prunedTo(allowedExtrasForFamily(family)),
+      specials: state.specials.prunedTo(allowedSpecialsForFamily(family)),
+    );
+  }
+
   void setOrigin(double lat, double lng) {
     state = state.copyWith(origin: TripPoint(lat: lat, lng: lng));
   }
@@ -81,11 +124,20 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
       origin: state.origin,
       destination: state.destination,
       tripId: state.tripId,
+      paymentMethod: state.paymentMethod,
+      extras: state.extras,
+      specials: state.specials,
     );
   }
 
   void selectOption(QuoteOption option) {
     state = state.copyWith(selectedOption: option);
+    _pruneAddonsForFamily(
+      passengerServiceFamily(
+        serviceTypeId: option.serviceTypeId,
+        serviceTypeName: option.serviceTypeName,
+      ),
+    );
   }
 
   void setTripId(String tripId) {
@@ -99,11 +151,28 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
       destination: state.destination,
       quote: state.quote,
       selectedOption: state.selectedOption,
+      paymentMethod: state.paymentMethod,
+      extras: state.extras,
+      specials: state.specials,
     );
   }
 
   void setError(String message) {
     state = state.copyWith(error: message);
+  }
+
+  void setPaymentMethod(String method) {
+    state = state.copyWith(paymentMethod: TripPaymentMethod.normalize(method));
+  }
+
+  void toggleExtra(String code) {
+    if (!allowedExtrasForFamily(_family).contains(code)) return;
+    state = state.copyWith(extras: state.extras.toggled(code));
+  }
+
+  void toggleSpecial(String code) {
+    if (!allowedSpecialsForFamily(_family).contains(code)) return;
+    state = state.copyWith(specials: state.specials.toggled(code));
   }
 
   void reset() {

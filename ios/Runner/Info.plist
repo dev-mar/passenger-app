@@ -46,10 +46,10 @@
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>Texi necesita la cámara para tu foto de perfil durante el registro.</string>
+		<string>TEXIAPP necesita la cámara para tu foto de perfil durante el registro.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Texi necesita acceso a tus fotos para elegir una imagen de perfil.</string>
-		<string>Texi usa tu ubicaciÃ³n para mostrar el mapa y los conductores cercanos.</string>
+		<string>TEXIAPP necesita acceso a tus fotos para elegir una imagen de perfil.</string>
+		<string>TEXIAPP usa tu ubicaciÃ³n para mostrar el mapa y los conductores cercanos.</string>
 		<key>GOOGLE_MAPS_API_KEY</key>
 		<string>$(GOOGLE_MAPS_API_KEY)</string>
 		<key>UIStatusBarHidden</key>

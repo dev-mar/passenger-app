@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart'
 
 import 'core/config/passenger_app_environment.dart';
 
-/// Configuracion Firebase - app pasajero.
+/// Configuracion Firebase â€” app pasajero.
 class DefaultFirebaseOptions {
   DefaultFirebaseOptions._();
 

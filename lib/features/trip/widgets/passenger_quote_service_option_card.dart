@@ -16,12 +16,14 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.etaMinutes,
+    this.displayPrice,
   });
 
   final QuoteOption option;
   final bool selected;
   final VoidCallback onTap;
   final int etaMinutes;
+  final double? displayPrice;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,7 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final name = displayServiceTypeName(option.serviceTypeName, l10n);
     final price = formatMoney(
-      option.estimatedPrice,
+      displayPrice ?? option.estimatedPrice,
       currencyCode: option.currencyCode,
       decimals: 1,
     );

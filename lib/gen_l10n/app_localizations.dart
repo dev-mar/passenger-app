@@ -443,7 +443,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginGoogleEmailInfo.
   ///
   /// In en, this message translates to:
-  /// **'Enter the email you\'ll use in Texi. When you continue, we\'ll send a verification code to that inbox.'**
+  /// **'Enter the email you\'ll use in TEXIAPP. When you continue, we\'ll send a verification code to that inbox.'**
   String get loginGoogleEmailInfo;
 
   /// No description provided for @loginGoogleSignInButton.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginPhoneHint.
   ///
   /// In en, this message translates to:
-  /// **'7 123 4567'**
+  /// **'8 digits; starts with 5, 6 or 7'**
   String get loginPhoneHint;
 
   /// No description provided for @loginContinue.
@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginErrorPhoneOtherAccountType.
   ///
   /// In en, this message translates to:
-  /// **'This number is already linked to another type of Texi account. Use another number or the app that matches that account.'**
+  /// **'This number is already linked to another type of TEXIAPP account. Use another number or the app that matches that account.'**
   String get loginErrorPhoneOtherAccountType;
 
   /// No description provided for @loginErrorPhoneDuplicatePassenger.
@@ -595,6 +595,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your phone number'**
   String get loginPhoneRequired;
+
+  /// No description provided for @loginPhoneInvalidBolivia.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid number. It must have 8 digits and start with 5, 6 or 7.'**
+  String get loginPhoneInvalidBolivia;
 
   /// No description provided for @homeRequestRide.
   ///
@@ -1015,6 +1021,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Request {serviceName}'**
   String confirmRequestRideWithService(String serviceName);
+
+  /// No description provided for @tripPaymentMethodCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get tripPaymentMethodCash;
+
+  /// No description provided for @tripPaymentMethodCashBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay the driver in cash.'**
+  String get tripPaymentMethodCashBody;
+
+  /// No description provided for @tripPaymentMethodQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR'**
+  String get tripPaymentMethodQr;
+
+  /// No description provided for @tripPaymentMethodQrBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay with the driver\'s QR code.'**
+  String get tripPaymentMethodQrBody;
+
+  /// No description provided for @tripRequestDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip settings'**
+  String get tripRequestDetailsTitle;
+
+  /// No description provided for @tripRequestDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you\'ll pay and tell the driver what to know before you go.'**
+  String get tripRequestDetailsHint;
+
+  /// No description provided for @tripRequestDetailsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip settings'**
+  String get tripRequestDetailsTooltip;
+
+  /// No description provided for @tripRequestDetailsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tripRequestDetailsDone;
+
+  /// No description provided for @tripRequestDetailsLearnMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn more about this feature'**
+  String get tripRequestDetailsLearnMore;
+
+  /// No description provided for @tripRequestDetailsLearnMoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t open the page. Check your connection and try again.'**
+  String get tripRequestDetailsLearnMoreError;
+
+  /// No description provided for @tripPaymentSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How you\'ll pay'**
+  String get tripPaymentSectionTitle;
+
+  /// No description provided for @tripPrefsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip preferences'**
+  String get tripPrefsSectionTitle;
+
+  /// No description provided for @tripPrefsSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The driver will see this. It doesn\'t change the fare.'**
+  String get tripPrefsSectionHint;
+
+  /// No description provided for @tripPrefPetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Traveling with my pet'**
+  String get tripPrefPetTitle;
+
+  /// No description provided for @tripPrefPetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring a blanket or carrier for the ride.'**
+  String get tripPrefPetBody;
+
+  /// No description provided for @tripPrefPetInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets the driver prepare the seat. Bring a blanket or carrier. It does not add to the fare.'**
+  String get tripPrefPetInfo;
+
+  /// No description provided for @tripPrefWheelchairTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wheelchair'**
+  String get tripPrefWheelchairTitle;
+
+  /// No description provided for @tripPrefWheelchairBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Trunk space and a little extra time to board.'**
+  String get tripPrefWheelchairBody;
+
+  /// No description provided for @tripPrefWheelchairInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'The driver will know you need the trunk for the wheelchair and a moment extra to board. It does not add to the fare.'**
+  String get tripPrefWheelchairInfo;
+
+  /// No description provided for @tripPrefLuggageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bags or luggage'**
+  String get tripPrefLuggageTitle;
+
+  /// No description provided for @tripPrefLuggageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 2 medium bags in the trunk.'**
+  String get tripPrefLuggageBody;
+
+  /// No description provided for @tripPrefLuggageInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 2 medium suitcases that fit in the trunk. Typical traveler luggage should stay around 50 kg. It does not add to the fare.'**
+  String get tripPrefLuggageInfo;
+
+  /// No description provided for @tripPrefAcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Air conditioning'**
+  String get tripPrefAcTitle;
+
+  /// No description provided for @tripPrefAcBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You prefer to ride with A/C on.'**
+  String get tripPrefAcBody;
+
+  /// No description provided for @tripPrefAcInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'This informs the driver. On Comfort it does not change the price — it’s a preference, not a surcharge.'**
+  String get tripPrefAcInfo;
+
+  /// No description provided for @tripPrefsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} preferences'**
+  String tripPrefsCount(int count);
+
+  /// No description provided for @tripSpecialsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Special requirements'**
+  String get tripSpecialsSectionTitle;
+
+  /// No description provided for @tripSpecialsSectionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This can change the trip fare.'**
+  String get tripSpecialsSectionHint;
+
+  /// No description provided for @tripSpecialSeats6Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 6 people'**
+  String get tripSpecialSeats6Title;
+
+  /// No description provided for @tripSpecialSeats6Body.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll look for a larger vehicle.'**
+  String get tripSpecialSeats6Body;
+
+  /// No description provided for @tripSpecialSeats6Info.
+  ///
+  /// In en, this message translates to:
+  /// **'We look for a car with more seats. If none is nearby, the request still goes out to available drivers.'**
+  String get tripSpecialSeats6Info;
+
+  /// No description provided for @tripSpecialRoofRackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Roof rack'**
+  String get tripSpecialRoofRackTitle;
+
+  /// No description provided for @tripSpecialRoofRackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'For bundles tied on top of the car.'**
+  String get tripSpecialRoofRackBody;
+
+  /// No description provided for @tripSpecialRoofRackInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'For bundles, boxes, or goods tied on the roof. Volume and weight similar to a standard car. Not for moving house or construction materials.'**
+  String get tripSpecialRoofRackInfo;
+
+  /// No description provided for @tripSpecialCargoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cargo or merchandise'**
+  String get tripSpecialCargoTitle;
+
+  /// No description provided for @tripSpecialCargoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Boxes or bundles in the trunk and seats.'**
+  String get tripSpecialCargoBody;
+
+  /// No description provided for @tripSpecialCargoInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'For boxes, sacks, or large bundles in the trunk and seats. Same limits as a standard car. Not for moving house or construction materials.'**
+  String get tripSpecialCargoInfo;
+
+  /// No description provided for @tripSpecialsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} requirements'**
+  String tripSpecialsCount(int count);
+
+  /// No description provided for @tripSpecialsPricePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trip would be {total}'**
+  String tripSpecialsPricePreview(String total);
+
+  /// No description provided for @tripAddonInfoClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get tripAddonInfoClose;
+
+  /// No description provided for @tripMotoServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your shortcut in the city'**
+  String get tripMotoServiceTitle;
+
+  /// No description provided for @tripMotoServiceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'One passenger. Usually the quickest way to get there on urban trips.'**
+  String get tripMotoServiceBody;
+
+  /// No description provided for @tripMotoPerkSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Quicker in traffic'**
+  String get tripMotoPerkSpeed;
+
+  /// No description provided for @tripMotoPerkSolo.
+  ///
+  /// In en, this message translates to:
+  /// **'Built for one person'**
+  String get tripMotoPerkSolo;
+
+  /// No description provided for @tripMotoPerkLight.
+  ///
+  /// In en, this message translates to:
+  /// **'No large bags or car extras'**
+  String get tripMotoPerkLight;
+
+  /// No description provided for @tripPremiumIncludedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Premium experience'**
+  String get tripPremiumIncludedTitle;
+
+  /// No description provided for @tripPremiumIncludedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'It’s already included. You only choose how to pay.'**
+  String get tripPremiumIncludedHint;
+
+  /// No description provided for @tripPremiumAmenityCharger.
+  ///
+  /// In en, this message translates to:
+  /// **'Charger and music'**
+  String get tripPremiumAmenityCharger;
+
+  /// No description provided for @tripPremiumAmenityChargerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Charge your phone (iPhone or USB-C) or play your music over Bluetooth.'**
+  String get tripPremiumAmenityChargerBody;
+
+  /// No description provided for @tripPremiumAmenityCourtesy.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcomed in style'**
+  String get tripPremiumAmenityCourtesy;
+
+  /// No description provided for @tripPremiumAmenityCourtesyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They open the door and help with light luggage.'**
+  String get tripPremiumAmenityCourtesyBody;
+
+  /// No description provided for @tripPremiumAmenityWater.
+  ///
+  /// In en, this message translates to:
+  /// **'Courtesy water'**
+  String get tripPremiumAmenityWater;
+
+  /// No description provided for @tripPremiumAmenityWaterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready in the back seat when available.'**
+  String get tripPremiumAmenityWaterBody;
+
+  /// No description provided for @tripPremiumAmenityInvoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for business'**
+  String get tripPremiumAmenityInvoice;
+
+  /// No description provided for @tripPremiumAmenityInvoiceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can request an invoice or a company profile, when available.'**
+  String get tripPremiumAmenityInvoiceBody;
+
+  /// No description provided for @tripPremiumAmenityWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave at your pace'**
+  String get tripPremiumAmenityWait;
+
+  /// No description provided for @tripPremiumAmenityWaitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A few extra minutes of wait, with no surcharge.'**
+  String get tripPremiumAmenityWaitBody;
 
   /// No description provided for @searchingTitle.
   ///
@@ -3524,7 +3872,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayCameraDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'Texi uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.'**
+  /// **'TEXIAPP uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.'**
   String get passengerPlayCameraDisclosureBody;
 
   /// No description provided for @passengerPlayGalleryDisclosureTitle.
@@ -3536,7 +3884,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayGalleryDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'Texi accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.'**
+  /// **'TEXIAPP accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.'**
   String get passengerPlayGalleryDisclosureBody;
 
   /// No description provided for @passengerPlayNotificationDisclosureTitle.
@@ -3548,7 +3896,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayNotificationDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'Texi needs to send you notifications when a driver accepts your trip, trip status changes, or the driver sends a message during an active ride.'**
+  /// **'TEXIAPP needs to send you notifications when a driver accepts your trip, trip status changes, or the driver sends a message during an active ride.'**
   String get passengerPlayNotificationDisclosureBody;
 
   /// No description provided for @passengerPlayLocationDisclosureTitle.
@@ -3560,7 +3908,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayLocationDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'Texi uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.'**
+  /// **'TEXIAPP uses your location to show you on the map, find nearby drivers, and help with pickup at your origin point.'**
   String get passengerPlayLocationDisclosureBody;
 
   /// No description provided for @passengerPlayDisclosureContinue.
@@ -3668,7 +4016,7 @@ abstract class AppLocalizations {
   /// No description provided for @supportCompanyCallTitle.
   ///
   /// In en, this message translates to:
-  /// **'Call Texi'**
+  /// **'Call TEXIAPP'**
   String get supportCompanyCallTitle;
 
   /// No description provided for @supportCallFailed.
@@ -3722,7 +4070,7 @@ abstract class AppLocalizations {
   /// No description provided for @operatorVerifiedDriversCtaSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'How TEXI validates every driver'**
+  /// **'How TEXIAPP validates every driver'**
   String get operatorVerifiedDriversCtaSubtitle;
 
   /// No description provided for @operatorVerifiedDriversTitle.
@@ -3788,13 +4136,13 @@ abstract class AppLocalizations {
   /// No description provided for @operatorCheckTrainingBody.
   ///
   /// In en, this message translates to:
-  /// **'Texi service standards'**
+  /// **'TEXIAPP service standards'**
   String get operatorCheckTrainingBody;
 
   /// No description provided for @operatorTrustClosing.
   ///
   /// In en, this message translates to:
-  /// **'Ride with confidence. Drivers verified by Texi.'**
+  /// **'Ride with confidence. Drivers verified by TEXIAPP.'**
   String get operatorTrustClosing;
 
   /// No description provided for @profileCompletenessTitle.
@@ -3832,6 +4180,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TEXIAPP'**
   String get profileBrandTitle;
+
+  /// No description provided for @appUpdateRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update required'**
+  String get appUpdateRequiredTitle;
+
+  /// No description provided for @appUpdateRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of Texi is available. Update the app to continue.'**
+  String get appUpdateRequiredMessage;
+
+  /// No description provided for @appUpdateOptionalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available'**
+  String get appUpdateOptionalTitle;
+
+  /// No description provided for @appUpdateOptionalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'An update is available on the Play Store. We recommend installing it for the best experience.'**
+  String get appUpdateOptionalMessage;
+
+  /// No description provided for @appUpdateOpenStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Play Store'**
+  String get appUpdateOpenStore;
+
+  /// No description provided for @appUpdateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get appUpdateLater;
 }
 
 class _AppLocalizationsDelegate

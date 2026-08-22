@@ -49,6 +49,24 @@ class PassengerLegalConfig {
         : _accountDeletionEnDefault;
   }
 
+  static const String _servicesGuideUrlRaw = String.fromEnvironment(
+    'TEXI_SERVICES_GUIDE_URL',
+    defaultValue: '',
+  );
+  static const String _servicesGuideEsDefault =
+      'https://www.taxitexi.com/es/services/';
+  static const String _servicesGuideEnDefault =
+      'https://www.taxitexi.com/en/services/';
+
+  /// Guía pública de tipos de servicio, preferencias y requerimientos.
+  static String servicesGuideUrl(Locale locale) {
+    final override = _servicesGuideUrlRaw.trim();
+    if (override.isNotEmpty) return override;
+    return _isSpanish(locale)
+        ? _servicesGuideEsDefault
+        : _servicesGuideEnDefault;
+  }
+
   static bool _isSpanish(Locale locale) {
     return locale.languageCode.toLowerCase().startsWith('es');
   }

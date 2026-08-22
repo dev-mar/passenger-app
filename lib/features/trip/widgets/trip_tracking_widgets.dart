@@ -6,6 +6,7 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../driver_avatar_premium.dart';
+import 'passenger_trip_active_addons.dart';
 
 export 'passenger_trip_searching_overlay.dart' show TripSearchingDriverOverlay;
 
@@ -125,6 +126,9 @@ class TripStatusCard extends StatelessWidget {
     this.onOpenChat,
     this.chatLabel,
     this.unreadChatCount = 0,
+    this.paymentMethod,
+    this.tripExtras = const [],
+    this.tripSpecials = const [],
   });
 
   final String status;
@@ -156,6 +160,9 @@ class TripStatusCard extends StatelessWidget {
   final VoidCallback? onOpenChat;
   final String? chatLabel;
   final int unreadChatCount;
+  final String? paymentMethod;
+  final List<String> tripExtras;
+  final List<String> tripSpecials;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -562,6 +569,29 @@ class TripStatusCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (paymentMethod != null ||
+                      tripExtras.isNotEmpty ||
+                      tripSpecials.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (paymentMethod != null)
+                          PassengerTripPaymentChip(
+                            l10n: l10n,
+                            paymentMethod: paymentMethod!,
+                          ),
+                        if (tripExtras.isNotEmpty || tripSpecials.isNotEmpty)
+                          PassengerTripAddonsStrip(
+                            l10n: l10n,
+                            extras: tripExtras,
+                            specials: tripSpecials,
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
