@@ -3,8 +3,47 @@ import 'package:flutter/material.dart';
 import '../constants/app_assets.dart';
 import '../../gen_l10n/app_localizations.dart';
 
+/// IDs canónicos de `fleet.transport_service_types` (dominio passenger).
+/// 1 economy, 2 comfort, 3 exclusive/premium, 4 motorbike.
+String? _iconKeyFromServiceTypeId(int? serviceTypeId) {
+  switch (serviceTypeId) {
+    case 1:
+      return 'standard';
+    case 2:
+      return 'comfort';
+    case 3:
+      return 'premium';
+    case 4:
+      return 'two_wheeler';
+    default:
+      return null;
+  }
+}
+
+String? _displayNameFromServiceTypeId(int? serviceTypeId, AppLocalizations l10n) {
+  switch (serviceTypeId) {
+    case 1:
+      return l10n.serviceTypeNameStandard;
+    case 2:
+      return l10n.serviceTypeNameComfort;
+    case 3:
+      return l10n.serviceTypeNamePremium;
+    case 4:
+      return l10n.serviceTypeNameTwoWheels;
+    default:
+      return null;
+  }
+}
+
 /// Etiqueta amigable para tipos de servicio mostrados al usuario (API puede traer nombres legacy).
-String displayServiceTypeName(String raw, AppLocalizations l10n) {
+/// Preferir [serviceTypeId] (1–4); el nombre solo es fallback.
+String displayServiceTypeName(
+  String raw,
+  AppLocalizations l10n, {
+  int? serviceTypeId,
+}) {
+  final fromId = _displayNameFromServiceTypeId(serviceTypeId, l10n);
+  if (fromId != null) return fromId;
   final s = raw.trim().toLowerCase();
   if (s.contains('económico') ||
       s.contains('economico') ||
@@ -32,7 +71,9 @@ String displayServiceTypeName(String raw, AppLocalizations l10n) {
 }
 
 /// Icono Material coherente con el tipo de servicio (cotización / selector).
-String serviceTypeIconKey(String raw) {
+String serviceTypeIconKey(String raw, {int? serviceTypeId}) {
+  final fromId = _iconKeyFromServiceTypeId(serviceTypeId);
+  if (fromId != null) return fromId;
   final s = raw.trim().toLowerCase();
   if (s.contains('moto') ||
       s.contains('motorbike') ||
@@ -52,8 +93,8 @@ String serviceTypeIconKey(String raw) {
 }
 
 /// Capacidad típica mostrada en la tarjeta de oferta (guía UI).
-int serviceTypeSeatCapacity(String raw) {
-  switch (serviceTypeIconKey(raw)) {
+int serviceTypeSeatCapacity(String raw, {int? serviceTypeId}) {
+  switch (serviceTypeIconKey(raw, serviceTypeId: serviceTypeId)) {
     case 'two_wheeler':
       return 1;
     case 'premium':
@@ -66,8 +107,8 @@ int serviceTypeSeatCapacity(String raw) {
 }
 
 /// Asset PNG del vehículo (orden visual: Estándar → Moto → Confort → Premium).
-String serviceTypeVehicleAsset(String raw) {
-  switch (serviceTypeIconKey(raw)) {
+String serviceTypeVehicleAsset(String raw, {int? serviceTypeId}) {
+  switch (serviceTypeIconKey(raw, serviceTypeId: serviceTypeId)) {
     case 'two_wheeler':
       return AppAssets.serviceTypeMoto;
     case 'comfort':
@@ -80,8 +121,8 @@ String serviceTypeVehicleAsset(String raw) {
 }
 
 /// Orden de carrusel: Estándar, Moto, Confort, Premium.
-int serviceTypeCarouselSortKey(String raw) {
-  switch (serviceTypeIconKey(raw)) {
+int serviceTypeCarouselSortKey(String raw, {int? serviceTypeId}) {
+  switch (serviceTypeIconKey(raw, serviceTypeId: serviceTypeId)) {
     case 'standard':
       return 0;
     case 'two_wheeler':
@@ -96,8 +137,8 @@ int serviceTypeCarouselSortKey(String raw) {
 }
 
 /// Icono Material coherente con el tipo de servicio (cotización / selector).
-IconData serviceTypeIconData(String raw) {
-  switch (serviceTypeIconKey(raw)) {
+IconData serviceTypeIconData(String raw, {int? serviceTypeId}) {
+  switch (serviceTypeIconKey(raw, serviceTypeId: serviceTypeId)) {
     case 'two_wheeler':
       return Icons.two_wheeler_outlined;
     case 'comfort':

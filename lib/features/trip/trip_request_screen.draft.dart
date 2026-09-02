@@ -690,7 +690,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       );
       return;
     }
-    final msg = result.message ?? l10n.commonError;
+    final msg = result.message ?? l10n.tripRequestUnavailable;
     if (msg == l10n.tripNoDriversAvailable) {
       PassengerTripToast.show(
         context,
@@ -1320,7 +1320,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     if (token == null || token.isEmpty) {
       setState(() {
         _d._loading = false;
-        _d._error = AppLocalizations.of(context)!.commonError;
+        _d._error = AppLocalizations.of(context)!.tripRbacSession;
       });
       return;
     }
@@ -1362,17 +1362,13 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       debugPrint('[Quote] stack: $st');
 
       final l10nQ = AppLocalizations.of(context)!;
-      String message = l10nQ.commonError;
-      if (e is DioException) {
-        final data = e.response?.data;
-        final code = TexiBackendError.codeFromResponse(data);
-        final rawMsg = TexiBackendError.messageFromResponse(data);
-        message = localizedTripApiError(l10nQ, code, fallbackMessage: rawMsg);
-        if (message == l10nQ.commonError && e.response?.statusCode != null) {
-          message = '${e.response?.statusCode}: ${e.message ?? message}';
-        }
-      }
-      setState(() => _d._error = message);
+      setState(() {
+        _d._error = localizedPassengerTripFailure(
+          l10nQ,
+          failureContext: PassengerTripFailureContext.quote,
+          error: e,
+        );
+      });
     } finally {
       if (mounted) setState(() => _d._loading = false);
     }

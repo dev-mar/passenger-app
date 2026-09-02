@@ -109,7 +109,7 @@ class _PassengerTripQuoteBottomSheetState
     }
     setState(() {
       _errorMessage =
-          result.message ?? AppLocalizations.of(context)!.commonError;
+          result.message ?? AppLocalizations.of(context)!.tripRequestUnavailable;
     });
   }
 
@@ -185,7 +185,9 @@ class _PassengerTripQuoteBottomSheetState
                         serviceName: displayServiceTypeName(
                           option.serviceTypeName,
                           l10n,
+                          serviceTypeId: option.serviceTypeId,
                         ),
+                        serviceTypeId: option.serviceTypeId,
                         priceText:
                             '${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: tripState.specials.selectedCount, surchargePct: tripState.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
                         isSelected: isSelected,

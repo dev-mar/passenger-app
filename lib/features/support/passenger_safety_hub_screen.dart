@@ -66,9 +66,7 @@ class PassengerSafetyHubScreen extends ConsumerWidget {
         );
         return;
       }
-      final who = (rt.driverName ?? '').trim().isEmpty
-          ? l10n.tripDriverNameFallback
-          : rt.driverName!.trim();
+      final who = displayDriverName(rt.driverName, l10n.tripDriverNameFallback);
       final plate = (rt.carPlate ?? '').trim().isEmpty
           ? l10n.commonEmptyDash
           : rt.carPlate!.trim();

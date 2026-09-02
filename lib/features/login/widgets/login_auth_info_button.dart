@@ -9,7 +9,47 @@ import '../../../core/theme/app_ui_tokens.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
 const Duration _kLoginAuthInfoVisibleDuration = Duration(seconds: 10);
-const IconData _kLoginAuthInfoIcon = Icons.info_outline_rounded;
+
+/// Letra (i) con un solo anillo — sin el doble contorno de `Icons.info_outline`.
+class LoginAuthInfoGlyph extends StatelessWidget {
+  const LoginAuthInfoGlyph({
+    super.key,
+    this.size = 32,
+  });
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final letterSize = size * 0.52;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.transparent,
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.95),
+            width: 1.6,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            'i',
+            style: TextStyle(
+              color: AppColors.primary.withValues(alpha: 0.98),
+              fontSize: letterSize,
+              fontWeight: FontWeight.w800,
+              height: 1,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Muestra información adicional centrada (seguridad + pasos) para botones (i).
 Future<void> showLoginAuthInfoGuide(
@@ -88,8 +128,7 @@ class LoginAuthInfoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = compact ? 30.0 : 34.0;
-    final iconSize = compact ? 17.0 : 19.0;
+    final size = compact ? 34.0 : 38.0;
 
     return Semantics(
       button: true,
@@ -108,36 +147,9 @@ class LoginAuthInfoButton extends StatelessWidget {
             );
           },
           customBorder: const CircleBorder(),
-          child: Ink(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.28),
-                  AppColors.primary.withValues(alpha: 0.12),
-                ],
-              ),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.72),
-                width: 1.4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.22),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Icon(
-              _kLoginAuthInfoIcon,
-              size: iconSize,
-              color: AppColors.primary.withValues(alpha: 0.98),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: LoginAuthInfoGlyph(size: size),
           ),
         ),
       ),
@@ -243,27 +255,7 @@ class _LoginAuthInfoGuideDialogState extends State<_LoginAuthInfoGuideDialog>
                         padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
                         child: Column(
                           children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.35),
-                                    AppColors.primary.withValues(alpha: 0.14),
-                                  ],
-                                ),
-                                border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.5),
-                                ),
-                              ),
-                              child: Icon(
-                                _kLoginAuthInfoIcon,
-                                color: AppColors.primary,
-                                size: 28,
-                              ),
-                            ),
+                            const LoginAuthInfoGlyph(size: 56),
                             const SizedBox(height: 14),
                             Text(
                               widget.title,

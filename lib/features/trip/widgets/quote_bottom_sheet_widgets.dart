@@ -63,12 +63,14 @@ class TripQuoteOptionTile extends StatelessWidget {
     required this.priceText,
     required this.isSelected,
     required this.onTap,
+    this.serviceTypeId,
   });
 
   final String serviceName;
   final String priceText;
   final bool isSelected;
   final VoidCallback onTap;
+  final int? serviceTypeId;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +94,10 @@ class TripQuoteOptionTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
                   child: Icon(
-                    serviceTypeIconData(serviceName),
+                    serviceTypeIconData(
+                      serviceName,
+                      serviceTypeId: serviceTypeId,
+                    ),
                     color: isSelected ? AppColors.primary : AppColors.textSecondary,
                     size: AppIconSizes.xl,
                   ),

@@ -165,8 +165,8 @@ Future<void> _runPassengerAccountDeletionCancel(
   }
 }
 
-/// Documentos legales + eliminación de cuenta (perfil).
-class PassengerProfileLegalSection extends ConsumerWidget {
+/// Documentos legales del perfil (privacidad y términos). La eliminación de cuenta está en Ajustes.
+class PassengerProfileLegalSection extends StatelessWidget {
   const PassengerProfileLegalSection({
     super.key,
     this.showTitle = true,
@@ -176,36 +176,8 @@ class PassengerProfileLegalSection extends ConsumerWidget {
   final bool showTitle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final profileAsync = ref.watch(passengerMeProfileDataProvider);
-
-    return profileAsync.when(
-      loading: () => _buildLegalBody(context, l10n, ref, null),
-      error: (_, _) => _buildLegalBody(context, l10n, ref, null),
-      data: (profile) {
-        final deletion = PassengerAccountDeletionStatus.fromJson(
-          profile['account_deletion'] as Map<String, dynamic>?,
-        );
-        return _buildLegalBody(context, l10n, ref, deletion);
-      },
-    );
-  }
-
-  Widget _buildLegalBody(
-    BuildContext context,
-    AppLocalizations l10n,
-    WidgetRef ref,
-    PassengerAccountDeletionStatus? deletion,
-  ) {
-    final graceDays = deletion?.graceDays ?? 20;
-    final pending = deletion?.pending == true;
-    final effectiveDate = formatPassengerAccountDeletionDate(
-          context,
-          deletion?.deletionEffectiveAt,
-        ) ??
-        l10n.passengerLegalDeleteAccountPendingDateFallback;
-    final daysRemaining = deletion?.daysRemaining ?? graceDays;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -223,163 +195,239 @@ class PassengerProfileLegalSection extends ConsumerWidget {
         Text(
           l10n.passengerLegalSectionSubtitle,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary.withValues(alpha: 0.85),
-                height: 1.35,
+                color: AppColors.textSecondary.withValues(alpha: 0.88),
+                height: 1.4,
               ),
         ),
         const SizedBox(height: AppSpacing.xl),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Column(
-            children: [
-              _LegalRow(
-                icon: Icons.privacy_tip_outlined,
-                label: l10n.passengerLegalPrivacyPolicy,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  openPassengerPrivacyPolicy(context);
-                },
-              ),
-              Divider(
-                height: 1,
-                indent: 52,
-                color: AppColors.border.withValues(alpha: 0.28),
-              ),
-              _LegalRow(
-                icon: Icons.description_outlined,
-                label: l10n.passengerLegalTermsOfService,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  openPassengerTerms(context);
-                },
-              ),
-              if (!pending) ...[
-                Divider(
-                  height: 1,
-                  indent: 52,
-                  color: AppColors.border.withValues(alpha: 0.28),
-                ),
-                _LegalRow(
-                  icon: Icons.person_remove_outlined,
-                  label: l10n.passengerLegalDeleteAccountTitle,
-                  labelColor: AppColors.error,
-                  iconColor: AppColors.error.withValues(alpha: 0.9),
-                  trailing: Icons.chevron_right_rounded,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    showPassengerAccountDeletionDialog(
-                      context,
-                      l10n,
-                      ref,
-                      graceDays: graceDays,
-                    );
-                  },
-                ),
-              ],
-            ],
-          ),
+        _LegalDocTile(
+          icon: Icons.shield_outlined,
+          accent: AppColors.primary,
+          label: l10n.passengerLegalPrivacyPolicy,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            openPassengerPrivacyPolicy(context);
+          },
         ),
-        if (pending) ...[
-          const SizedBox(height: AppSpacing.md),
-          Material(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.passengerLegalDeleteAccountPendingTitle,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.passengerLegalDeleteAccountPendingBody(
-                      effectiveDate,
-                      daysRemaining,
-                    ),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  FilledButton(
-                    onPressed: () =>
-                        _runPassengerAccountDeletionCancel(context, l10n, ref),
-                    child: Text(l10n.passengerLegalDeleteAccountCancelAction),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        const SizedBox(height: AppSpacing.md),
+        _LegalDocTile(
+          icon: Icons.menu_book_outlined,
+          accent: const Color(0xFF7EB6FF),
+          label: l10n.passengerLegalTermsOfService,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            openPassengerTerms(context);
+          },
+        ),
       ],
     );
   }
 }
 
-class _LegalRow extends StatelessWidget {
-  const _LegalRow({
+class _LegalDocTile extends StatelessWidget {
+  const _LegalDocTile({
     required this.icon,
+    required this.accent,
     required this.label,
     required this.onTap,
-    this.labelColor,
-    this.iconColor,
-    this.trailing = Icons.open_in_new_rounded,
   });
 
   final IconData icon;
+  final Color accent;
   final String label;
   final VoidCallback onTap;
-  final Color? labelColor;
-  final Color? iconColor;
-  final IconData trailing;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: const Color(0xFF161616),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xxx,
-            vertical: AppSpacing.xxxx,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: 0.28)),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                accent.withValues(alpha: 0.10),
+                const Color(0xFF161616),
+              ],
+            ),
           ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: AppIconSizes.lg,
-                color: iconColor ?? AppColors.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: labelColor ?? AppColors.textPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: AppTypography.bodyLarge,
-                      ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxx,
+              vertical: AppSpacing.xxl,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: accent, size: 22),
                 ),
+                const SizedBox(width: AppSpacing.xl),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: AppTypography.bodyLarge,
+                        ),
+                  ),
+                ),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 18,
+                  color: accent.withValues(alpha: 0.9),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Eliminación de cuenta: solo Ajustes (no perfil).
+class PassengerAccountDeletionSettingsBlock extends ConsumerWidget {
+  const PassengerAccountDeletionSettingsBlock({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final profileAsync = ref.watch(passengerMeProfileDataProvider);
+
+    return profileAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => _buildBody(context, l10n, ref, null),
+      data: (profile) {
+        final deletion = PassengerAccountDeletionStatus.fromJson(
+          profile['account_deletion'] as Map<String, dynamic>?,
+        );
+        return _buildBody(context, l10n, ref, deletion);
+      },
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    AppLocalizations l10n,
+    WidgetRef ref,
+    PassengerAccountDeletionStatus? deletion,
+  ) {
+    final graceDays = deletion?.graceDays ?? 20;
+    final pending = deletion?.pending == true;
+    final effectiveDate = formatPassengerAccountDeletionDate(
+          context,
+          deletion?.deletionEffectiveAt,
+        ) ??
+        l10n.passengerLegalDeleteAccountPendingDateFallback;
+    final daysRemaining = deletion?.daysRemaining ?? graceDays;
+
+    if (pending) {
+      return Material(
+        color: AppColors.error.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxx),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.passengerLegalDeleteAccountPendingTitle,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
-              Icon(
-                trailing,
-                size: AppIconSizes.sm,
-                color: AppColors.textSecondary.withValues(alpha: 0.7),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.passengerLegalDeleteAccountPendingBody(
+                  effectiveDate,
+                  daysRemaining,
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              FilledButton(
+                onPressed: () =>
+                    _runPassengerAccountDeletionCancel(context, l10n, ref),
+                child: Text(l10n.passengerLegalDeleteAccountCancelAction),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: const Color(0xFF161616),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          showPassengerAccountDeletionDialog(
+            context,
+            l10n,
+            ref,
+            graceDays: graceDays,
+          );
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xxx,
+              vertical: AppSpacing.xxl,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.person_remove_outlined,
+                    color: AppColors.error.withValues(alpha: 0.95),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xl),
+                Expanded(
+                  child: Text(
+                    l10n.passengerLegalDeleteAccountTitle,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.error.withValues(alpha: 0.7),
+                ),
+              ],
+            ),
           ),
         ),
       ),

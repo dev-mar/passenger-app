@@ -699,14 +699,15 @@ class LoginController extends StateNotifier<LoginState> {
     }
   }
 
-  /// Fase 7 — verificar OTP y elevar sesión a full.
+  /// Fase 7 — verificar OTP o posesión WA inbound y elevar sesión a full.
   Future<bool> linkPhoneVerify({
     required String countryCode,
     required String phoneNumber,
-    required String verificationCode,
+    String? verificationCode,
   }) async {
     try {
       final clientMeta = await passengerAuthClientMeta();
+      final code = verificationCode?.trim() ?? '';
       final response = await _api.postAuthWithRetry<Map<String, dynamic>>(
         path: AppConfig.authPhoneLinkVerifyPath,
         flow: 'passenger_phone_link_verify',
@@ -714,13 +715,22 @@ class LoginController extends StateNotifier<LoginState> {
           ...clientMeta,
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
-          'verification_code': verificationCode,
+          if (code.isNotEmpty) 'verification_code': code,
         },
       );
       final body = response.data;
-      if (body is! Map<String, dynamic> || body['success'] != true) return false;
+      if (body is! Map<String, dynamic> || body['success'] != true) {
+        _fail(
+          code: body is Map<String, dynamic>
+              ? (body['code']?.toString() ?? 'PASS_AUTH_ERROR')
+              : 'PASS_AUTH_ERROR',
+          message: body is Map<String, dynamic> ? body['message']?.toString() : null,
+        );
+        return false;
+      }
       return body['code']?.toString() == 'PASS_AUTH_PHONE_LINKED';
-    } on DioException catch (_) {
+    } on DioException catch (e) {
+      await _failFromDio(e, fallbackCode: 'PASS_AUTH_ERROR');
       return false;
     }
   }
@@ -737,7 +747,7 @@ class LoginController extends StateNotifier<LoginState> {
       );
     }
     state = LoginState(
-      errorMessage: message,
+      errorMessage: TexiBackendError.userSafeMessage(message),
       errorCode: code,
       accountDeletion: accountDeletion,
     );

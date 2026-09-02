@@ -8,16 +8,19 @@ import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/texi_backend_error.dart';
+import '../../core/privacy/mask_contact_display.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/widgets/premium_state_view.dart';
+import '../../core/input/passenger_text_limits.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'widgets/passenger_auth_captcha_card.dart';
+import 'widgets/passenger_auth_look.dart';
+import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 import 'widgets/passenger_turnstile_widget.dart';
-import 'services/passenger_google_sign_in_service.dart';
+import 'passenger_device_email.dart';
 
 /// Fase 2 — verificación adicional (email + captcha) para desbloquear login.
 class AuthStepUpScreen extends ConsumerStatefulWidget {
@@ -42,7 +45,7 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
   bool _emailSent = false;
   bool _isLoading = false;
   String? _errorMessage;
-  final _googleSignIn = PassengerGoogleSignInService();
+  String? _flashedError;
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
@@ -51,14 +54,6 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
     _emailController.dispose();
     _codeController.dispose();
     super.dispose();
-  }
-
-  String _maskEmail(String email) {
-    final parts = email.split('@');
-    if (parts.length != 2) return email;
-    final local = parts[0];
-    if (local.length <= 2) return email;
-    return '${local.substring(0, 2)}•••@${parts[1]}';
   }
 
   Future<void> _sendEmailCode() async {
@@ -88,7 +83,8 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
         setState(() {
           _isLoading = false;
           _errorMessage = body is Map<String, dynamic>
-              ? body['message']?.toString() ?? l10n.stepUpEmailSendFailed
+              ? (TexiBackendError.userSafeMessage(body['message']?.toString()) ??
+                  l10n.stepUpEmailSendFailed)
               : l10n.stepUpEmailSendFailed;
         });
         return;
@@ -105,24 +101,28 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = TexiBackendError.messageFromResponse(e.response?.data) ??
+        _errorMessage = TexiBackendError.userSafeMessage(
+              TexiBackendError.messageFromResponse(e.response?.data),
+            ) ??
             l10n.stepUpEmailSendFailed;
       });
     }
   }
 
   Future<void> _pickDeviceEmail() async {
-    if (!_googleSignIn.isConfigured) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      final email = await _googleSignIn.pickAccountEmail();
+      final email = await pickPassengerDeviceEmail();
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (email == null) return;
-      _emailController.text = email;
+      final clamped = clampPassengerText(email, kPassengerEmailMaxLength);
+      _emailController.text = clamped;
+      _emailController.selection =
+          TextSelection.collapsed(offset: clamped.length);
       TexiUiFeedback.softImpact();
     } catch (_) {
       if (!mounted) return;
@@ -169,7 +169,8 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
       final body = response.data;
       if (body is! Map<String, dynamic> || body['success'] != true) {
         final msg = body is Map<String, dynamic>
-            ? body['message']?.toString() ?? l10n.stepUpCompleteFailed
+            ? (TexiBackendError.userSafeMessage(body['message']?.toString()) ??
+                l10n.stepUpCompleteFailed)
             : l10n.stepUpCompleteFailed;
         final codeRaw = body is Map<String, dynamic> ? body['code']?.toString() : null;
         if (_isCaptchaFailure(msg, codeRaw)) {
@@ -197,7 +198,9 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       final data = e.response?.data;
-      final msg = TexiBackendError.messageFromResponse(data) ??
+      final msg = TexiBackendError.userSafeMessage(
+            TexiBackendError.messageFromResponse(data),
+          ) ??
           l10n.stepUpCompleteFailed;
       final codeRaw = data is Map ? data['code']?.toString() : null;
       if (_isCaptchaFailure(msg, codeRaw)) {
@@ -228,44 +231,30 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
         _codeController.text.trim().length == 6 &&
         _captchaToken != null &&
         !_isLoading;
+    final err = _errorMessage;
+    if (err == null) {
+      _flashedError = null;
+    } else if (err != _flashedError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _errorMessage != err) return;
+        _flashedError = err;
+        showPassengerAuthNotice(context, message: err);
+      });
+    }
 
     return PassengerAuthShell(
       loading: _isLoading,
       loadingMessage: l10n.commonLoading,
-      leading: Align(
-        alignment: Alignment.centerLeft,
-        child: IconButton(
-          onPressed: _isLoading ? null : () => context.goNamed('login'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-        ),
+      leading: PassengerAuthBackButton(
+        onPressed: _isLoading ? null : () => context.goNamed('login'),
       ),
       child: PassengerAuthEntrance(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(
-              Icons.verified_user_outlined,
-              size: 40,
-              color: AppColors.primary.withValues(alpha: 0.95),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              l10n.stepUpTitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.stepUpSubtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.45,
-                  ),
+            PassengerAuthHeadline(
+              title: l10n.stepUpTitle,
+              subtitle: l10n.stepUpSubtitle,
             ),
             const SizedBox(height: 22),
             PassengerAuthGlassCard(
@@ -279,20 +268,22 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
                       autofillHints: const [AutofillHints.email],
                       textInputAction: TextInputAction.done,
                       readOnly: _emailSent && _isLoading,
+                      maxLength: kPassengerEmailMaxLength,
+                      inputFormatters: passengerEmailInputFormatters(),
                       decoration: passengerAuthFieldDecoration(
                         label: l10n.stepUpEmailLabel,
                         hint: l10n.stepUpEmailHint,
                       ),
                     ),
                   ),
-                  if (_googleSignIn.isConfigured && !_emailSent) ...[
+                  if (!_emailSent) ...[
                     const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
                         onPressed: _isLoading ? null : _pickDeviceEmail,
-                        icon: const Icon(Icons.account_circle_outlined, size: 20),
-                        label: Text(l10n.stepUpUseGoogleEmail),
+                        icon: const Icon(Icons.alternate_email_rounded, size: 20),
+                        label: Text(l10n.loginEmailPickFromDevice),
                       ),
                     ),
                   ],
@@ -312,7 +303,9 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
                   if (_emailSent) ...[
                     const SizedBox(height: 16),
                     _EmailSentBanner(
-                      message: l10n.stepUpEmailSentBanner(_maskEmail(email)),
+                      message: l10n.stepUpEmailSentBanner(
+                        maskPassengerEmailDisplay(email),
+                      ),
                     ),
                     const SizedBox(height: 18),
                     TextField(
@@ -376,22 +369,9 @@ class _AuthStepUpScreenState extends ConsumerState<AuthStepUpScreen> {
                 },
               ),
               const SizedBox(height: 18),
-              SizedBox(
-                height: 52,
-                child: TexiScalePress(
-                  child: FilledButton(
-                    onPressed: canConfirm ? _completeStepUp : null,
-                    child: Text(l10n.stepUpConfirmButton),
-                  ),
-                ),
-              ),
-            ],
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 16),
-              PremiumStateView(
-                icon: Icons.shield_outlined,
-                title: l10n.loginReviewDataTitle,
-                message: _errorMessage!,
+              PassengerAuthPrimaryButton(
+                label: l10n.stepUpConfirmButton,
+                onPressed: canConfirm ? _completeStepUp : null,
               ),
             ],
           ],

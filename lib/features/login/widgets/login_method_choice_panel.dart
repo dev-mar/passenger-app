@@ -7,6 +7,7 @@ import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'login_auth_info_button.dart';
 import 'login_google_brand_icon.dart';
+import 'passenger_auth_look.dart';
 
 typedef LoginMethodSelected = void Function(LoginEntryMethod method);
 
@@ -25,30 +26,13 @@ class LoginMethodChoicePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n.loginMethodChoiceTitle,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.4,
-            height: 1.15,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          l10n.loginMethodChoiceSubtitle,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary.withValues(alpha: 0.92),
-            height: 1.45,
-            fontSize: 14,
-          ),
+        PassengerAuthHeadline(
+          title: l10n.loginMethodChoiceTitle,
+          subtitle: l10n.loginMethodChoiceSubtitle,
         ),
         const SizedBox(height: 28),
         _LoginMethodCard(
@@ -58,23 +42,23 @@ class LoginMethodChoicePanel extends StatelessWidget {
             onMethodSelected(LoginEntryMethod.phone);
           },
           leading: Container(
-            width: 46,
-            height: 46,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(AppRadii.md),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.smartphone_rounded,
               color: AppColors.primary,
-              size: 24,
+              size: 22,
             ),
           ),
           title: l10n.loginMethodPhoneTitle,
           subtitle: l10n.loginMethodPhoneSubtitle,
           infoMessage: l10n.loginMethodPhoneInfo,
         ),
-        const SizedBox(height: AppSpacing.xxx),
+        const SizedBox(height: 10),
         _LoginMethodCard(
           highlighted: false,
           badge: googleAuthEnabled ? null : l10n.loginMethodGoogleBadge,
@@ -83,14 +67,14 @@ class LoginMethodChoicePanel extends StatelessWidget {
             onMethodSelected(LoginEntryMethod.google);
           },
           leading: Container(
-            width: 46,
-            height: 46,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: PassengerAuthLook.hairline),
             ),
-            child: const Center(child: LoginGoogleBrandIcon(size: 24)),
+            child: const Center(child: LoginGoogleBrandIcon(size: 22)),
           ),
           title: l10n.loginMethodGoogleTitle,
           subtitle: l10n.loginMethodGoogleSubtitle,
@@ -122,31 +106,13 @@ class _LoginMethodCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = highlighted
-        ? AppColors.primary.withValues(alpha: 0.55)
-        : Colors.white.withValues(alpha: 0.1);
-    final fill = highlighted
-        ? AppColors.primary.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.04);
-
     return TexiScalePress(
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadii.dialog),
-          color: fill,
-          border: Border.all(color: borderColor, width: highlighted ? 1.4 : 1),
-          boxShadow: highlighted
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.12),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ]
-              : null,
-        ),
+        decoration: highlighted
+            ? PassengerAuthLook.highlightedDecoration(AppColors.primary)
+            : PassengerAuthLook.panelDecoration,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
+          padding: const EdgeInsets.fromLTRB(12, 12, 6, 12),
           child: Row(
             children: [
               Expanded(
@@ -160,7 +126,7 @@ class _LoginMethodCard extends StatelessWidget {
                       child: Row(
                         children: [
                           leading,
-                          const SizedBox(width: AppSpacing.xxx),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,42 +140,32 @@ class _LoginMethodCard extends StatelessWidget {
                                           color: AppColors.textPrimary,
                                           fontWeight: FontWeight.w700,
                                           fontSize: 15.5,
+                                          letterSpacing: -0.15,
                                         ),
                                       ),
                                     ),
                                     if (badge != null) ...[
                                       const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(AppRadii.pill),
-                                        ),
-                                        child: Text(
-                                          badge!,
-                                          style: TextStyle(
-                                            color: AppColors.textSecondary
-                                                .withValues(alpha: 0.95),
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      Text(
+                                        badge!,
+                                        style: const TextStyle(
+                                          color: PassengerAuthLook.muted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
                                   ],
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 3),
                                 Text(
                                   subtitle,
-                                  style: TextStyle(
-                                    color: AppColors.textSecondary
-                                        .withValues(alpha: 0.9),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: PassengerAuthLook.muted,
                                     fontSize: 12.5,
-                                    height: 1.35,
+                                    height: 1.25,
                                   ),
                                 ),
                               ],

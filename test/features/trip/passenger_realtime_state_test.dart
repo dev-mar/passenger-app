@@ -50,8 +50,25 @@ void main() {
       expect(displayDriverName('+591 71234567'), driverNameFallbackDefault);
     });
 
-    test('nombre legible se conserva', () {
+    test('nombre legible se acorta a primer nombre y primer apellido', () {
       expect(displayDriverName('  María López  '), 'María López');
+      expect(displayDriverName('Juan Pérez García'), 'Juan Pérez');
+      expect(displayDriverName('Juan Carlos Pérez García'), 'Juan Pérez');
+      expect(displayDriverName('María'), 'María');
+    });
+  });
+
+  group('driverNameForPassengerAlert', () {
+    test('solo interpola si hay nombre y apellido', () {
+      expect(
+        driverNameForPassengerAlert('Juan Carlos Pérez García'),
+        'Juan Pérez',
+      );
+      expect(driverNameForPassengerAlert('María López'), 'María López');
+      expect(driverNameForPassengerAlert('María'), isNull);
+      expect(driverNameForPassengerAlert(null), isNull);
+      expect(driverNameForPassengerAlert('+591 71234567'), isNull);
+      expect(driverNameForPassengerAlert('Conductor TEXI'), isNull);
     });
   });
 }

@@ -214,9 +214,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             PassengerNotificationService.instance.showDriverArrivedIfBackground(
               isAppInForeground: fg,
               tripId: tripIdData,
-              driverName: newDriverName == driverNameFallbackDefault
-                  ? null
-                  : newDriverName,
+              driverName: driverNameForPassengerAlert(newDriverName),
             ),
           );
         }

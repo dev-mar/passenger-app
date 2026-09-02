@@ -1,6 +1,8 @@
 import '../../core/config/app_config.dart';
 import '../../data/models/quote_response.dart';
 
+export '../../core/l10n/driver_display_name.dart';
+
 class PassengerRealtimeState {
   final bool connecting;
   final bool connected;
@@ -157,21 +159,6 @@ class TripChatMessage {
     required this.messageText,
     required this.createdAt,
   });
-}
-
-/// Fallback cuando el backend envía username (teléfono) en lugar de fullName.
-const String driverNameFallbackDefault = 'Conductor TEXI';
-
-/// Devuelve el nombre a mostrar del conductor.
-/// Si [raw] es null, vacío o solo dígitos/símbolos de teléfono, devuelve [fallback].
-String displayDriverName(
-  String? raw, [
-  String fallback = driverNameFallbackDefault,
-]) {
-  if (raw == null || raw.trim().isEmpty) return fallback;
-  final t = raw.trim();
-  if (RegExp(r'^[\d\s+\-()]+$').hasMatch(t)) return fallback;
-  return t;
 }
 
 /// Chat pasajero–conductor: solo entre aceptación y arranque del viaje (pickup).

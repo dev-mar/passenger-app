@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../app_lifecycle/passenger_app_visibility.dart';
 import '../auth/auth_service.dart';
+import '../l10n/driver_display_name.dart';
 import '../l10n/passenger_locale_holder.dart';
 import 'passenger_auth_notification_navigation.dart';
 import 'passenger_fcm_navigation.dart';
@@ -102,8 +103,9 @@ class PassengerNotificationService {
   static Future<void> showFcmDataOnlyMessage(RemoteMessage message) async {
     final inst = PassengerNotificationService.instance;
     await inst.initialize();
-    final title = message.data['title']?.toString().trim();
-    final body = message.data['body']?.toString().trim();
+    final arrived = inst._copyForDriverArrivedFcm(message);
+    final title = arrived?.title ?? message.data['title']?.toString().trim();
+    final body = arrived?.body ?? message.data['body']?.toString().trim();
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
       return;
     }
@@ -120,19 +122,45 @@ class PassengerNotificationService {
   /// En primer plano Android no muestra banner FCM: duplicamos con notificación local.
   Future<void> showFcmForegroundMessage(RemoteMessage message) async {
     if (!_initialized) await initialize();
+    final arrived = _copyForDriverArrivedFcm(message);
     final n = message.notification;
-    final title = n?.title?.trim().isNotEmpty == true
-        ? n!.title!.trim()
-        : (message.data['title']?.toString().trim().isNotEmpty == true
-              ? message.data['title']!.trim()
-              : 'TEXIAPP');
-    final body = n?.body?.trim().isNotEmpty == true
-        ? n!.body!.trim()
-        : (message.data['body']?.toString() ?? '');
+    final title = arrived?.title ??
+        (n?.title?.trim().isNotEmpty == true
+            ? n!.title!.trim()
+            : (message.data['title']?.toString().trim().isNotEmpty == true
+                  ? message.data['title']!.trim()
+                  : 'TEXIAPP'));
+    final body = arrived?.body ??
+        (n?.body?.trim().isNotEmpty == true
+            ? n!.body!.trim()
+            : (message.data['body']?.toString() ?? ''));
     final tripId =
         message.data['tripId']?.toString() ??
         message.data['trip_id']?.toString();
     await _showRaw(title: title, body: body, payload: tripId);
+  }
+
+  ({String title, String body})? _copyForDriverArrivedFcm(
+    RemoteMessage message,
+  ) {
+    final event = message.data['event']?.toString();
+    if (event != 'driver_arrived') return null;
+    return _driverArrivedCopy(
+      message.data['driverDisplayName']?.toString() ??
+          message.data['driverName']?.toString() ??
+          message.data['driver_name']?.toString(),
+    );
+  }
+
+  ({String title, String body}) _driverArrivedCopy(String? rawName) {
+    final l10n = _l10nForCurrentLocale();
+    final short = driverNameForPassengerAlert(rawName);
+    return (
+      title: l10n.passengerNotifyDriverArrivedTitle,
+      body: short == null
+          ? l10n.passengerNotifyDriverArrivedBody
+          : l10n.passengerNotifyDriverArrivedBodyNamed(short),
+    );
   }
 
   Future<void> _showRaw({
@@ -173,7 +201,8 @@ class PassengerNotificationService {
     if (_waInboundVerifiedNotifyChallengeId == challengeId) return;
 
     try {
-      if (await AuthService.hasStoredSession()) return;
+      // Login/registro no tienen sesión aún. Vincular teléfono (email/Google) sí.
+      if (!linkPhoneMode && await AuthService.hasStoredSession()) return;
     } catch (_) {
       return;
     }
@@ -245,11 +274,9 @@ class PassengerNotificationService {
         enableVibration: true,
       ),
     );
-    final title = l10n.passengerNotifyDriverArrivedTitle;
-    final who = (driverName ?? '').trim();
-    final body = who.isEmpty
-        ? l10n.passengerNotifyDriverArrivedBody
-        : l10n.passengerNotifyDriverArrivedBodyNamed(who);
+    final copy = _driverArrivedCopy(driverName);
+    final title = copy.title;
+    final body = copy.body;
     await _plugin.show(
       tripId.hashCode.abs() % 2147483647,
       title,

@@ -371,9 +371,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         );
         return;
       }
-      final who = (driverName ?? '').trim().isEmpty
-          ? l10n.tripDriverNameFallback
-          : driverName!.trim();
+      final who = displayDriverName(driverName, l10n.tripDriverNameFallback);
       final plateLabel = (plate ?? '').trim().isEmpty
           ? l10n.commonEmptyDash
           : plate!.trim();
@@ -382,14 +380,9 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     } catch (e, st) {
       debugPrint('[ShareTrip] $e\n$st');
       if (mounted) {
-        final detail = e.toString();
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(
-            content: Text(
-              detail.contains('SHARE_LINK_FAILED')
-                  ? '${l10n.tripShareError}\n$detail'
-                  : l10n.tripShareError,
-            ),
+            content: Text(l10n.tripShareError),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -398,6 +391,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
   }
 
   /// Stage 3: invalida ofertas en servidor y mantiene el overlay (Continuar / Cancelar).
+  /// No cancela si el viaje ya fue aceptado (GET previo + cancelScope=matching).
   Future<void> _onSearchingStage3Reached() async {
     if (_d._searchingStage3CancelInFlight || _d._searchingHoldUi) return;
     // Hold UI ANTES de limpiar tripId: evita un frame sin overlay (remount → reinicio visual).
@@ -422,7 +416,29 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         token != null &&
         token.isNotEmpty) {
       try {
-        await TripsApi(token: token).cancelPassengerTrip(tripId: tripId);
+        final live = await TripsApi(token: token).getPassengerTripStatus(
+          tripId: tripId,
+        );
+        if (passengerTripIsTrackingDriver(live.status) ||
+            live.status == 'completed') {
+          await _exitSearchingHoldForAssignedTrip(tripId);
+          return;
+        }
+      } catch (e, st) {
+        debugPrint('[SearchStage3Status] $e\n$st');
+      }
+      try {
+        await TripsApi(token: token).cancelPassengerTrip(
+          tripId: tripId,
+          cancelScope: 'matching',
+        );
+      } on DioException catch (e, st) {
+        final code = TexiBackendError.codeFromResponse(e.response?.data);
+        debugPrint('[SearchStage3Cancel] code=$code $e\n$st');
+        if (code == 'TRIP_MATCHING_ALREADY_ASSIGNED') {
+          await _exitSearchingHoldForAssignedTrip(tripId);
+          return;
+        }
       } catch (e, st) {
         debugPrint('[SearchStage3Cancel] $e\n$st');
       }
@@ -437,6 +453,20 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     if (mounted) {
       setState(() => _d._searchingStage3CancelInFlight = false);
     }
+  }
+
+  Future<void> _exitSearchingHoldForAssignedTrip(String tripId) async {
+    if (mounted) {
+      setState(() {
+        _d._searchingHoldUi = false;
+        _d._searchingStage3CancelInFlight = false;
+      });
+    }
+    try {
+      await ref
+          .read(passengerRealtimeProvider.notifier)
+          .syncTripStatusFromApi(tripId: tripId, force: true);
+    } catch (_) {}
   }
 
   /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
@@ -457,7 +487,10 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       final token = await AuthService.getValidToken();
       if (token != null && token.isNotEmpty) {
         try {
-          await TripsApi(token: token).cancelPassengerTrip(tripId: lingeringId);
+          await TripsApi(token: token).cancelPassengerTrip(
+            tripId: lingeringId,
+            cancelScope: 'matching',
+          );
         } catch (_) {}
       }
       ref.read(passengerRealtimeProvider.notifier).disconnect();
@@ -513,7 +546,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       return;
     }
     if (result.kind == PassengerTripSubmitResultKind.error) {
-      final msg = result.message ?? l10n.commonError;
+      final msg = result.message ?? l10n.tripRequestUnavailable;
       if (msg == l10n.tripNoDriversAvailable) {
         PassengerTripToast.show(
           context,

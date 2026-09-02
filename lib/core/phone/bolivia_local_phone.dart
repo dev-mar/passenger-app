@@ -44,6 +44,9 @@ class BoliviaLocalPhoneInputFormatter extends TextInputFormatter {
     if (d.startsWith(kBoliviaDialDigits) && d.length > kBoliviaLocalPhoneLength) {
       d = d.substring(kBoliviaDialDigits.length);
     }
+    if (d.isNotEmpty && !RegExp(r'^[567]').hasMatch(d)) {
+      d = '';
+    }
     if (d.length > kBoliviaLocalPhoneLength) {
       d = d.substring(0, kBoliviaLocalPhoneLength);
     }
@@ -77,4 +80,37 @@ List<TextInputFormatter> passengerLocalPhoneFormatters(String dialCode) {
     formatters.add(const BoliviaLocalPhoneInputFormatter());
   }
   return formatters;
+}
+
+/// Número completo `+591 71234567` (sin máscara).
+/// No altera el valor enviado al backend.
+String formatPassengerPhoneDisplay({
+  required String dialCode,
+  required String localNumber,
+}) {
+  final parts = passengerPhoneDisplayParts(
+    dialCode: dialCode,
+    localNumber: localNumber,
+  );
+  if (parts.local.isEmpty) return parts.cc;
+  if (parts.cc.isEmpty) return parts.local;
+  return '${parts.cc} ${parts.local}';
+}
+
+({String cc, String local}) passengerPhoneDisplayParts({
+  required String dialCode,
+  required String localNumber,
+}) {
+  final rawCc = dialCode.trim();
+  final cc = rawCc.isEmpty
+      ? ''
+      : (rawCc.startsWith('+') ? rawCc : '+$rawCc');
+  var local = localNumber.replaceAll(_nonDigits, '');
+  final ccDigits = cc.replaceAll(_nonDigits, '');
+  if (ccDigits.isNotEmpty &&
+      local.startsWith(ccDigits) &&
+      local.length > ccDigits.length) {
+    local = local.substring(ccDigits.length);
+  }
+  return (cc: cc, local: local);
 }

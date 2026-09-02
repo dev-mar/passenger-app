@@ -7,6 +7,7 @@ import '../../../core/network/passenger_api_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import '../passenger_support_labels.dart';
 import '../support_ticket_models.dart';
 import 'passenger_support_ticket_detail_sheet.dart';
 
@@ -43,7 +44,7 @@ Future<void> showPassengerSupportCenterSheet({
                 content: Text(
                   l10n.profileSupportTicketStatusChanged(
                     t.ticketNumber,
-                    t.status,
+                    localizedSupportStatus(l10n, t.status),
                   ),
                 ),
               ),
@@ -193,12 +194,7 @@ Future<void> showPassengerSupportCenterSheet({
                               if (ctx.mounted) {
                                 ScaffoldMessenger.of(ctx).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                      e.toString().replaceFirst(
-                                        RegExp(r'^Exception:\s*'),
-                                        '',
-                                      ),
-                                    ),
+                                    content: Text(l10n.profileSupportCreateFailed),
                                   ),
                                 );
                               }
@@ -270,16 +266,11 @@ Future<void> showPassengerSupportCenterSheet({
                               ref: ref,
                               detail: detail,
                             );
-                          } catch (e) {
+                          } catch (_) {
                             if (!ctx.mounted) return;
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  e.toString().replaceFirst(
-                                    RegExp(r'^Exception:\s*'),
-                                    '',
-                                  ),
-                                ),
+                                content: Text(l10n.profileSupportDetailLoadFailed),
                               ),
                             );
                           }
@@ -299,7 +290,9 @@ Future<void> showPassengerSupportCenterSheet({
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Text('${t.category} · ${t.status}'),
+                        subtitle: Text(
+                          '${localizedSupportCategory(l10n, t.category)} · ${localizedSupportStatus(l10n, t.status)}',
+                        ),
                       ),
                     ),
                 ],

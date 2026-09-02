@@ -4,6 +4,11 @@ String normalizeCurrencyCode(String? raw, {String fallback = 'BOB'}) {
   return code;
 }
 
+String currencyDisplaySymbol(String code) {
+  if (code == 'BOB') return 'Bs';
+  return code;
+}
+
 String formatMoney(
   double? amount, {
   String? currencyCode,
@@ -12,5 +17,6 @@ String formatMoney(
 }) {
   if (amount == null) return empty;
   final code = normalizeCurrencyCode(currencyCode);
-  return '$code ${amount.toStringAsFixed(decimals)}';
+  final symbol = currencyDisplaySymbol(code);
+  return '$symbol ${amount.toStringAsFixed(decimals)}';
 }

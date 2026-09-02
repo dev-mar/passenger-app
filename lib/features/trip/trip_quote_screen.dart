@@ -25,7 +25,7 @@ class TripQuoteScreen extends ConsumerWidget {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(title: Text(l10n.quoteTitle)),
-        body: Center(child: Text(l10n.commonError)),
+        body: Center(child: Text(l10n.tripQuoteUnavailable)),
       );
     }
 
@@ -72,7 +72,10 @@ class TripQuoteScreen extends ConsumerWidget {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.directions_car_rounded,
+                              serviceTypeIconData(
+                                option.serviceTypeName,
+                                serviceTypeId: option.serviceTypeId,
+                              ),
                               color: isSelected ? AppColors.primary : AppColors.textSecondary,
                               size: 32,
                             ),
@@ -85,6 +88,7 @@ class TripQuoteScreen extends ConsumerWidget {
                                     displayServiceTypeName(
                                       option.serviceTypeName,
                                       l10n,
+                                      serviceTypeId: option.serviceTypeId,
                                     ),
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                           color: isSelected ? AppColors.primary : AppColors.textPrimary,

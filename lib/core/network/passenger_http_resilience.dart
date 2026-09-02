@@ -8,6 +8,7 @@ import '../auth/auth_service.dart';
 import '../auth/passenger_session_expulsion.dart';
 import '../config/app_config.dart';
 import 'passenger_resilience_telemetry_service.dart';
+import 'texi_backend_error.dart';
 
 final Random _retryJitterRandom = Random();
 
@@ -95,25 +96,10 @@ String? safeAuthErrorMessage({
   String? backendMessage,
   String? dioMessage,
 }) {
-  final backend = backendMessage?.trim();
-  if (backend != null && backend.isNotEmpty) {
-    final lower = backend.toLowerCase();
-    if (lower.contains('<!doctype') ||
-        lower.contains('<html') ||
-        lower.contains('validateStatus') ||
-        lower.contains('status code of')) {
-      return null;
-    }
-    return backend;
-  }
-  final dio = dioMessage?.trim();
-  if (dio == null || dio.isEmpty) return null;
-  if (dio.contains('validateStatus') ||
-      dio.contains('status code of') ||
-      dio.toLowerCase().contains('<!doctype')) {
-    return null;
-  }
-  return dio;
+  final fromBackend = TexiBackendError.userSafeMessage(backendMessage);
+  if (fromBackend != null) return fromBackend;
+  // Los mensajes de Dio (status code, timeouts crudos) no van a la UI.
+  return null;
 }
 
 Future<T> requestWithRetry<T>({

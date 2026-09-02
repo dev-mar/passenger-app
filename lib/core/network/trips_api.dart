@@ -213,8 +213,18 @@ class TripsApi {
   }
 
   /// POST /passengers/trips/:tripId/cancel
-  Future<void> cancelPassengerTrip({required String tripId}) async {
-    await _dio.post('/passengers/trips/$tripId/cancel');
+  /// [cancelScope] `matching` = solo requested|searching|offered (timeout overlay).
+  Future<void> cancelPassengerTrip({
+    required String tripId,
+    String? cancelScope,
+  }) async {
+    final scope = cancelScope?.trim();
+    await _dio.post(
+      '/passengers/trips/$tripId/cancel',
+      data: (scope != null && scope.isNotEmpty)
+          ? <String, dynamic>{'cancelScope': scope}
+          : <String, dynamic>{},
+    );
   }
 
   /// POST /passengers/trips/:tripId/share-link — reutiliza token activo.

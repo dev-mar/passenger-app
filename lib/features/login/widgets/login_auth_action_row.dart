@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/feedback/texi_ui_feedback.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import 'login_auth_info_button.dart';
+import 'passenger_auth_look.dart';
 
 /// Fila compacta de acción en auth: icono, etiqueta, (i) y toda la fila es presionable.
 class LoginAuthActionRow extends StatelessWidget {
@@ -39,82 +39,73 @@ class LoginAuthActionRow extends StatelessWidget {
             : AppColors.textSecondary.withValues(alpha: 0.85));
 
     return Opacity(
-      opacity: enabled ? 1 : 0.45,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-          color: highlighted
-              ? resolvedAccent.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.04),
-          border: Border.all(
-            color: highlighted
-                ? resolvedAccent.withValues(alpha: 0.45)
-                : Colors.white.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: TexiScalePress(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: enabled
-                          ? () {
-                              TexiUiFeedback.softImpact();
-                              onTap();
-                            }
-                          : null,
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Row(
-                          children: [
-                            icon,
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      label,
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 15,
-                                      ),
-                                    ),
+      opacity: enabled ? 1 : 0.42,
+      child: TexiScalePress(
+        child: DecoratedBox(
+          decoration: highlighted
+              ? PassengerAuthLook.highlightedDecoration(resolvedAccent)
+              : PassengerAuthLook.panelDecoration,
+          child: SizedBox(
+            height: PassengerAuthLook.actionHeight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 6, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: enabled
+                            ? () {
+                                TexiUiFeedback.softImpact();
+                                onTap();
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              icon,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    letterSpacing: -0.1,
                                   ),
-                                  if (badge != null) ...[
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      badge!,
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary
-                                            .withValues(alpha: 0.85),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
-                            ),
-                          ],
+                              if (badge != null) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  badge!,
+                                  style: const TextStyle(
+                                    color: PassengerAuthLook.muted,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                  LoginAuthInfoButton(
+                    message: infoMessage,
+                    steps: infoSteps,
+                    compact: true,
+                  ),
+                ],
               ),
-              LoginAuthInfoButton(
-                message: infoMessage,
-                steps: infoSteps,
-                compact: true,
-              ),
-            ],
+            ),
           ),
         ),
       ),

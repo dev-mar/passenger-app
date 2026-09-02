@@ -12,6 +12,7 @@ import '../../gen_l10n/app_localizations.dart';
 import 'login_controller.dart';
 import 'models/passenger_auth_lockout.dart';
 import 'utils/passenger_auth_lockout_time_formatter.dart';
+import 'widgets/passenger_auth_look.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 class PassengerAuthLockoutScreen extends ConsumerStatefulWidget {
@@ -156,50 +157,20 @@ class _PassengerAuthLockoutScreenState
     return PassengerAuthShell(
       loading: _waLoading,
       loadingMessage: l10n.loginVerifyMethodLoadingWa,
-      leading: Align(
-        alignment: Alignment.centerLeft,
-        child: IconButton(
-          tooltip: l10n.loginBackToMethods,
-          onPressed: () => context.goNamed('login'),
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-        ),
+      leading: PassengerAuthBackButton(
+        onPressed: () => context.goNamed('login'),
+        tooltip: l10n.loginBackToMethods,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            Icons.hourglass_top_rounded,
-            size: 52,
-            color: AppColors.primary.withValues(alpha: 0.95),
+          PassengerAuthHeadline(
+            title: l10n.authLockoutTitle,
+            subtitle: l10n.authLockoutBody,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.authLockoutTitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w800,
-              fontSize: 22,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            l10n.authLockoutBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.textSecondary.withValues(alpha: 0.95),
-              fontSize: 15,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: 20),
           DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(AppRadii.dialog),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
+            decoration: PassengerAuthLook.panelDecoration,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
               child: Column(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/feedback/texi_ui_feedback.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'login_auth_action_row.dart';
@@ -66,30 +65,22 @@ class LoginPhoneVerificationMethodPanel extends StatelessWidget {
           infoMessage: l10n.loginVerifyMethodWaInboundInfo,
           onTap: () => onMethodSelected(PhoneVerificationMethod.whatsAppInbound),
         ),
-        const SizedBox(height: 10),
-        LoginAuthActionRow(
-          enabled: outboundEnabled,
-          highlighted: false,
-          icon: Icon(
-            Icons.pin_outlined,
-            color: AppColors.textPrimary.withValues(alpha: 0.88),
-            size: 22,
+        if (outboundEnabled) ...[
+          const SizedBox(height: 10),
+          LoginAuthActionRow(
+            enabled: true,
+            highlighted: false,
+            icon: Icon(
+              Icons.pin_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.88),
+              size: 22,
+            ),
+            label: l10n.loginVerifyMethodCodeShort,
+            infoMessage: l10n.loginVerifyMethodCodeInfo,
+            onTap: () =>
+                onMethodSelected(PhoneVerificationMethod.verificationCode),
           ),
-          label: l10n.loginVerifyMethodCodeShort,
-          badge: outboundEnabled ? null : l10n.loginMethodGoogleBadge,
-          infoMessage: l10n.loginVerifyMethodCodeInfo,
-          onTap: outboundEnabled
-              ? () => onMethodSelected(PhoneVerificationMethod.verificationCode)
-              : () {
-                  TexiUiFeedback.softImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      content: Text(l10n.loginVerifyMethodCodeComingSoon),
-                    ),
-                  );
-                },
-        ),
+        ],
       ],
     );
   }

@@ -29,14 +29,24 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final name = displayServiceTypeName(option.serviceTypeName, l10n);
+    final name = displayServiceTypeName(
+      option.serviceTypeName,
+      l10n,
+      serviceTypeId: option.serviceTypeId,
+    );
     final price = formatMoney(
       displayPrice ?? option.estimatedPrice,
       currencyCode: option.currencyCode,
       decimals: 1,
     );
-    final seats = serviceTypeSeatCapacity(option.serviceTypeName);
-    final asset = serviceTypeVehicleAsset(option.serviceTypeName);
+    final seats = serviceTypeSeatCapacity(
+      option.serviceTypeName,
+      serviceTypeId: option.serviceTypeId,
+    );
+    final asset = serviceTypeVehicleAsset(
+      option.serviceTypeName,
+      serviceTypeId: option.serviceTypeId,
+    );
     final etaLabel = etaMinutes > 0 ? '$etaMinutes min' : '—';
 
     return TexiScalePress(
@@ -78,8 +88,11 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
                   child: ServiceTypeVehicleImage(
                     asset: asset,
                     selected: selected,
-                    errorBuilder: (_, _, _) => Icon(
-                      serviceTypeIconData(option.serviceTypeName),
+                      errorBuilder: (_, _, _) => Icon(
+                      serviceTypeIconData(
+                        option.serviceTypeName,
+                        serviceTypeId: option.serviceTypeId,
+                      ),
                       color: AppColors.primary,
                       size: 34,
                     ),

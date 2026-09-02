@@ -19,7 +19,10 @@ TripPassengerServiceFamily passengerServiceFamily({
   if (id == 2) return TripPassengerServiceFamily.comfort;
   if (id == 3) return TripPassengerServiceFamily.exclusive;
   if (id == 4) return TripPassengerServiceFamily.motorbike;
-  final key = serviceTypeIconKey(serviceTypeName ?? '');
+  final key = serviceTypeIconKey(
+    serviceTypeName ?? '',
+    serviceTypeId: serviceTypeId,
+  );
   switch (key) {
     case 'two_wheeler':
       return TripPassengerServiceFamily.motorbike;

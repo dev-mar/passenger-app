@@ -438,6 +438,7 @@ class _ProfileBody extends StatelessWidget {
                           child: _QuickTile(
                             icon: Icons.headset_mic_rounded,
                             label: l10n.profileActionSupport,
+                            accent: const Color(0xFF7EB6FF),
                             onTap: onSupport,
                           ),
                         ),
@@ -446,6 +447,7 @@ class _ProfileBody extends StatelessWidget {
                           child: _QuickTile(
                             icon: Icons.settings_rounded,
                             label: l10n.profileSettingsTitle,
+                            accent: const Color(0xFFB8A4FF),
                             onTap: onLanguage,
                           ),
                         ),
@@ -454,6 +456,7 @@ class _ProfileBody extends StatelessWidget {
                           child: _QuickTile(
                             icon: Icons.refresh_rounded,
                             label: l10n.profileRefreshTooltip,
+                            accent: const Color(0xFF7DDC9A),
                             onTap: () {
                               TexiUiFeedback.lightTap();
                               onRefresh();
@@ -558,41 +561,65 @@ class _QuickTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.accent = AppColors.primary,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: const Color(0xFF141414),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         onTap: () {
           TexiUiFeedback.lightTap();
           onTap();
         },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-          child: Column(
-            children: [
-              Icon(icon, color: AppColors.primary, size: 24),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-              ),
-            ],
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: 0.22)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                accent.withValues(alpha: 0.10),
+                const Color(0xFF141414),
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 6),
+            child: Column(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: accent, size: 22),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

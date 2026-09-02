@@ -10,7 +10,6 @@ import '../../features/login/passenger_auth_lockout_screen.dart';
 import '../../features/login/auth_step_up_screen.dart';
 import '../../features/login/login_screen.dart';
 import '../../features/login/verify_code_screen.dart';
-import '../../features/login/verify_sms_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
 import '../../features/login/passenger_phone_link_screen.dart';
 import '../../features/home/home_screen.dart';
@@ -157,9 +156,9 @@ class AppRouter {
           final phone = q['phone'] ?? '';
           final channel = q['channel'];
           if (channel == 'sms' || channel == 'sms_firebase') {
-            return VerifySmsScreen(
-              countryCode: cc,
-              phoneNumber: phone,
+            return LoginScreen(
+              initialCountryCode: cc,
+              initialPhone: phone,
             );
           }
           return VerifyCodeScreen(
@@ -180,9 +179,9 @@ class AppRouter {
         name: verifySms,
         builder: (context, state) {
           final q = state.uri.queryParameters;
-          return VerifySmsScreen(
-            countryCode: q['cc'] ?? '+591',
-            phoneNumber: q['phone'] ?? '',
+          return LoginScreen(
+            initialCountryCode: q['cc'] ?? '+591',
+            initialPhone: q['phone'] ?? '',
           );
         },
       ),

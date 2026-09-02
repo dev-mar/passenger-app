@@ -25,8 +25,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginMethodChoiceTitle => 'Your ride starts here';
 
   @override
-  String get loginMethodChoiceSubtitle =>
-      'Choose how you want to sign in. Fast, secure, and simple.';
+  String get loginMethodChoiceSubtitle => 'Choose how you want to sign in.';
 
   @override
   String get loginMethodPhoneTitle => 'Mobile number';
@@ -63,7 +62,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginGoogleNotConfiguredInApp =>
-      'Google Sign-In isn\'t set up in this app build. Use your mobile number or contact support.';
+      'Google sign-in is unavailable right now. Use your mobile number or contact our team.';
 
   @override
   String get loginBackToMethods => 'Back to sign-in options';
@@ -73,7 +72,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginPhoneStepSubtitle =>
-      'Enter your number. Then confirm you\'re human and choose how to verify.';
+      'Then choose how to confirm it on WhatsApp.';
 
   @override
   String get loginAttemptsLimitTitle => 'Too many attempts';
@@ -117,7 +116,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginGoogleCaptchaSubtitle =>
-      'Complete the captcha to protect your account and continue with Google.';
+      'Complete the security check to protect your account and continue with Google.';
 
   @override
   String get loginCaptchaLoading => 'Loading verification…';
@@ -130,7 +129,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginCaptchaLoadFailed =>
-      'We couldn\'t load the captcha. Check your connection.';
+      'We couldn\'t load the security check. Check your connection.';
 
   @override
   String get loginCaptchaReadyHint =>
@@ -138,7 +137,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginCaptchaDevPlaceholder =>
-      'Cloudflare Turnstile appears here in production. Set TURNSTILE_SITE_KEY in the APK build.';
+      'Security verification is unavailable right now. Try again later.';
 
   @override
   String get loginVerifyMethodTitle => 'How do you want to verify?';
@@ -169,10 +168,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'We send a 6-digit code via WhatsApp for you to enter in the app.';
 
   @override
-  String get loginVerifyMethodCodeComingSoon =>
-      'Receive code will be available soon.';
-
-  @override
   String get loginVerifyMethodLoadingWa => 'Preparing verification…';
 
   @override
@@ -189,7 +184,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginVerifyMethodWaInboundInfo =>
-      'We open WhatsApp with a ready-to-send message. Send it unchanged and we confirm your identity automatically.';
+      'We open WhatsApp with a ready-to-send message. Send it and we confirm it\'s you.';
 
   @override
   String get loginVerifyMethodCodeInfo =>
@@ -203,7 +198,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginGoogleEmailInfo =>
-      'Enter the email you\'ll use in TEXIAPP. When you continue, we\'ll send a verification code to that inbox.';
+      'Enter your email or pick an account from this phone. We\'ll send you a code.';
+
+  @override
+  String get loginEmailPickFromDevice => 'Use email from this phone';
 
   @override
   String get loginGoogleSignInButton => 'Sign in with Google';
@@ -216,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String loginPhoneStepSubtitleGoogle(String email) {
-    return 'Google verified ($email). Now confirm your number via WhatsApp.';
+    return 'Confirm your number on WhatsApp ($email).';
   }
 
   @override
@@ -233,7 +231,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginCountryCodeHint => '+591';
 
   @override
-  String get loginPhoneHint => '8 digits; starts with 5, 6 or 7';
+  String get loginPhoneHint => 'E.g.: 70000000';
 
   @override
   String get loginContinue => 'Continue';
@@ -248,19 +246,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginErrorPhoneRegisteredAsDriver =>
-      'This number is already registered as a driver. Use another number for the passenger app, or sign in with the driver app using this same number.';
+      'This number is already registered as a driver.';
 
   @override
   String get loginErrorPhoneOtherAccountType =>
-      'This number is already linked to another type of TEXIAPP account. Use another number or the app that matches that account.';
+      'This number is already on another account.';
 
   @override
   String get loginErrorPhoneDuplicatePassenger =>
-      'We could not start passenger registration with this number. If you already use it as a driver, use the driver app or another number here.';
+      'This number is already registered on another passenger account.';
 
   @override
   String get loginErrorVerificationServiceUnavailable =>
-      'Verification service unavailable. Please try again later.';
+      'We could not verify right now. Try again later.';
 
   @override
   String get loginErrorBackendUnavailable =>
@@ -268,7 +266,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginErrorWhatsAppVerificationUnavailable =>
-      'WhatsApp verification is not available. Contact support or try again later.';
+      'WhatsApp verification is not available. Contact our team or try again later.';
 
   @override
   String get loginErrorSessionSuperseded =>
@@ -291,11 +289,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceTypeNamePremium => 'Premium';
 
   @override
-  String get loginPhoneRequired => 'Enter your phone number';
+  String get loginPhoneRequired => 'Enter your number.';
 
   @override
-  String get loginPhoneInvalidBolivia =>
-      'Invalid number. It must have 8 digits and start with 5, 6 or 7.';
+  String get loginPhoneInvalidBolivia => 'Enter your number. E.g.: 70000000';
 
   @override
   String get homeRequestRide => 'Request ride';
@@ -408,7 +405,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripDraftEditStop => 'Edit';
 
   @override
-  String get tripSecureChat => 'Secure chat';
+  String get tripSecureChat => 'Chat';
 
   @override
   String get tripShareRide => 'Share trip';
@@ -426,7 +423,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passengerTripChatTitle => 'Trip chat';
 
   @override
-  String get passengerTripChatSubtitle => 'Live conversation with your driver.';
+  String get passengerTripChatSubtitle => 'You can message your driver.';
 
   @override
   String get passengerTripChatOnline => 'Online';
@@ -449,20 +446,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerTripChatErrorStorage =>
-      'Chat unavailable. Contact support.';
+      'Chat isn\'t available. Contact our team.';
 
   @override
   String get passengerTripChatErrorPhase =>
-      'Chat isn\'t available at this trip stage.';
+      'Chat isn\'t available at this point in the trip.';
 
   @override
   String get passengerTripChatErrorNotReady =>
-      'Chat isn\'t ready yet. Try again in a few seconds.';
+      'Chat is still connecting. Try again in a few seconds.';
 
   @override
-  String passengerTripChatErrorSendReceive(String code) {
-    return 'Couldn\'t send the message ($code). Check your connection.';
-  }
+  String get passengerTripChatErrorSendReceive =>
+      'Couldn\'t send the message. Check your connection.';
 
   @override
   String get passengerTripChatEmptyState =>
@@ -487,7 +483,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerTripChatDriverTemplateConfirmLocation =>
-      'Please confirm your exact location';
+      'Confirma tu ubicación exacta';
 
   @override
   String get commonEmptyDash => '—';
@@ -497,8 +493,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'We don\'t have service coverage in this area at the moment. Try another location or move to a service zone.';
 
   @override
+  String get tripFaresNotConfigured =>
+      'Fares are not available in this city yet. Try another area or try again later.';
+
+  @override
+  String get tripInvalidCoordinates =>
+      'We couldn\'t locate the origin or destination. Choose the points on the map again.';
+
+  @override
+  String get tripServiceTypeUnavailable =>
+      'That service type isn\'t available right now. Choose another option.';
+
+  @override
+  String get tripRequestInvalid =>
+      'We couldn\'t create your request. Check origin and destination and try again.';
+
+  @override
+  String get tripCreateRateLimited =>
+      'You sent several requests in a row. Wait a moment and try again.';
+
+  @override
+  String get tripQuoteNetworkError =>
+      'We couldn\'t calculate the fare. Check your connection and try again.';
+
+  @override
+  String get tripQuoteUnavailable =>
+      'We couldn\'t calculate the fare right now. Try again in a few seconds.';
+
+  @override
+  String get tripRequestNetworkError =>
+      'We couldn\'t send your request. Check your connection and try again.';
+
+  @override
+  String get tripRequestUnavailable =>
+      'We couldn\'t send your request right now. Try again in a few seconds.';
+
+  @override
   String get tripNoDriversAvailable =>
-      'We couldn\'t find drivers nearby right now. Please try again in a few minutes.';
+      'We couldn\'t find drivers nearby right now. Try again in a few minutes.';
 
   @override
   String get tripNext => 'Next';
@@ -558,7 +590,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripRequestDetailsDone => 'Done';
 
   @override
-  String get tripRequestDetailsLearnMore => 'Learn more about this feature';
+  String get tripRequestDetailsLearnMore => 'Learn more about these settings';
 
   @override
   String get tripRequestDetailsLearnMoreError =>
@@ -754,23 +786,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripSearchingContinueCta => 'Continue';
 
   @override
-  String get tripSearchingEtaHint => 'Estimated match: 1–3 min';
+  String get tripSearchingEtaHint => 'Usually takes 1–3 min';
 
   @override
-  String get tripSearchingRotateCheck2km => 'Checking drivers within 2 km…';
+  String get tripSearchingRotateCheck2km => 'Looking for drivers near you…';
 
   @override
-  String get tripSearchingRotateAvailability => 'Checking availability…';
+  String get tripSearchingRotateAvailability =>
+      'Looking for someone who can take you…';
 
   @override
-  String get tripSearchingRotateOptimizeRoute => 'Optimizing your route…';
+  String get tripSearchingRotateOptimizeRoute => 'Getting your trip ready…';
 
   @override
-  String get tripSearchingOfflineBanner => 'No internet connection. Retrying…';
+  String get tripSearchingOfflineBanner => 'No internet. Trying again…';
 
   @override
   String get tripSearchingLocationBanner =>
-      'Turn on location to improve matching.';
+      'Turn on location to improve the search.';
 
   @override
   String get tripSearchingPatienceHint =>
@@ -788,11 +821,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripConnectionError =>
-      'Could not connect to receive trip updates. Check your connection.';
+      'We couldn’t update your trip. Check your connection.';
 
   @override
   String get tripRbacForbidden =>
-      'Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.';
+      'We could not complete this action. If it keeps happening, sign out and sign back in or contact our team.';
 
   @override
   String get tripRbacSession =>
@@ -800,7 +833,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripRbacTechnical =>
-      'We couldn’t verify permissions. Please try again in a few seconds.';
+      'We couldn’t complete this action. Try again in a few seconds.';
 
   @override
   String get tripPhoneRequired =>
@@ -824,7 +857,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get phoneLinkSubtitle =>
-      'To request a trip you need to confirm your number. We’ll send you a verification code.';
+      'Confirm your number on WhatsApp to request a ride.';
 
   @override
   String get phoneLinkContinue => 'Send code';
@@ -856,12 +889,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripRatingYourRating => 'Your rating';
 
   @override
-  String get tripRatingFeedbackPromptLow =>
-      'What affected your experience? (multiple)';
+  String get tripRatingFeedbackPromptLow => 'What affected your experience?';
 
   @override
   String get tripRatingFeedbackPromptHigh =>
-      'What stood out about the service? (multiple)';
+      'What stood out about the service?';
 
   @override
   String get tripFinishedBackToHome => 'Back to home';
@@ -1114,7 +1146,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profileSetupPhotoSoon => 'Photo selection coming soon.';
+  String get profileSetupPhotoSoon => 'You can choose a profile photo.';
 
   @override
   String get profileSetupNameLabel => 'Your name';
@@ -1123,10 +1155,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSetupNameHint => 'e.g. Juan Perez';
 
   @override
-  String get profileSetupNameRequired => 'Name is required';
+  String get profileSetupNameRequired => 'Enter your name.';
 
   @override
-  String get profileSetupNameTooShort => 'Enter at least 2 characters';
+  String get profileSetupNameTooShort => 'That name is too short.';
 
   @override
   String get profileSetupContinue => 'Continue';
@@ -1175,7 +1207,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripRecoveringCheckLocation => 'Location permission and GPS';
 
   @override
-  String get tripRecoveringRetryCta => 'Retry reconnection';
+  String get tripRecoveringRetryCta => 'Try again';
 
   @override
   String get tripCancelBlockedActiveBody =>
@@ -1190,6 +1222,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get verifyCodeEmailTitle => 'Verify your email';
+
+  @override
+  String verifyCodeEmailSubtitle(String email) {
+    return 'We sent a 6-digit code to $email. Enter it to continue.';
+  }
+
+  @override
+  String get verifyCodeEmailInfo =>
+      'Check your email for a 6-digit code. Enter all six digits here. It may take a few seconds to arrive.';
+
+  @override
+  String get verifyCodeEmailRetryHint =>
+      'If you did not receive the code, check your email (including spam) and try again in a few minutes.';
+
+  @override
   String get verifyCodeFieldLabel => '6-digit verification code';
 
   @override
@@ -1200,15 +1248,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String verifyCodeWaSubtitle(String phone) {
-    return 'Send the pre-filled message from WhatsApp to confirm $phone. After sending, return to TEXIAPP — we\'ll detect your message automatically.';
+    return 'Send the WhatsApp message to confirm $phone. Then come back here.';
   }
 
   @override
   String get verifyCodeWaOpenButton => 'Open WhatsApp';
 
   @override
-  String get verifyCodeWaWaiting =>
-      'Waiting for your WhatsApp message… Return to TEXIAPP after you send it.';
+  String get verifyCodeWaWaiting => 'Waiting for your WhatsApp message…';
 
   @override
   String get verifyCodeWaVerified => 'Message received! Continuing…';
@@ -1271,7 +1318,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifySmsFirebaseNotConfigured =>
-      'SMS verification is not available in this version yet. Try WhatsApp sign-in while we enable this method.';
+      'SMS verification is not available yet. Try signing in with WhatsApp.';
 
   @override
   String get verifySmsFirebaseShaMissing =>
@@ -1308,11 +1355,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifySmsFirebaseError39 =>
-      'Firebase could not send the SMS after the anti-bot check. This often happens after too many attempts or carrier limits. Wait 15–30 minutes or use WhatsApp.';
+      'The SMS could not be sent. This often happens after too many attempts. Wait a few minutes or use WhatsApp.';
 
   @override
   String get verifySmsFirebaseCaptchaFailed =>
-      'We could not complete Firebase security verification. Try again in a few minutes or verify your number with WhatsApp.';
+      'We could not complete the security check. Try again in a few minutes or verify your number with WhatsApp.';
 
   @override
   String get verifySmsTryWhatsApp => 'Verify with WhatsApp';
@@ -1322,15 +1369,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loginErrorWaOutboundRateLimit =>
-      'We sent a WhatsApp code recently. Wait a few minutes or use the pre-filled message.';
+      'We sent a WhatsApp code recently. Wait a few minutes or send the WhatsApp message.';
 
   @override
   String get tripMapsRestKeyMissing =>
-      'Address search is unavailable: missing Google Maps key in this build.';
+      'Address search is unavailable right now. Try again later.';
 
   @override
   String get tripMapsRestKeyDenied =>
-      'Address search and routes are blocked: check the passenger Maps REST key (Places, Geocoding, Directions).';
+      'We could not search addresses or routes. Try again later.';
 
   @override
   String get tripMapsRestUnavailable =>
@@ -1345,7 +1392,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stepUpSubtitle =>
-      'For your security, confirm your email and complete the captcha to continue.';
+      'For your security, confirm your email and complete the verification to continue.';
 
   @override
   String get stepUpEmailLabel => 'Email address';
@@ -1384,27 +1431,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stepUpEmailInvalid => 'Enter a valid email address.';
 
   @override
-  String get stepUpCodeInvalid => 'Enter the 6-digit code from your email.';
+  String get stepUpCodeInvalid => 'Enter the 6-digit code.';
 
   @override
-  String get stepUpCaptchaRequired => 'Complete the captcha before continuing.';
+  String get stepUpCaptchaRequired =>
+      'Complete the security check before continuing.';
 
   @override
   String get stepUpCaptchaLoadFailed =>
-      'We could not load the captcha. Check your connection and try again.';
+      'We could not load the security check. Check your connection and try again.';
 
   @override
   String get stepUpCaptchaLoading => 'Loading security verification…';
 
   @override
   String get stepUpCaptchaInteractiveHint =>
-      'Complete the Cloudflare checkbox above.';
+      'Complete the security check above.';
 
   @override
   String get stepUpCaptchaReady => 'Security verification completed.';
 
   @override
-  String get stepUpCaptchaRetry => 'Retry captcha';
+  String get stepUpCaptchaRetry => 'Retry verification';
 
   @override
   String get stepUpEmailSendFailed =>
@@ -1423,7 +1471,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyCodeWaInfo =>
-      'We open WhatsApp with a ready-to-send message. Send it unchanged, return to TEXIAPP, and we\'ll confirm you in seconds.';
+      'We open WhatsApp with a ready-to-send message. Send it, return to the app, and we\'ll confirm it\'s you.';
 
   @override
   String get verifyCodeRetryHint =>
@@ -1451,18 +1499,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not activate the passenger account.';
 
   @override
-  String get verifyCodeErrorIncompleteResponse => 'Incomplete server response.';
+  String get verifyCodeErrorIncompleteResponse =>
+      'We could not complete registration. Try again.';
 
   @override
-  String get verifyCodeErrorTokenMissing => 'Token not received.';
+  String get verifyCodeErrorTokenMissing => 'We could not sign in. Try again.';
 
   @override
   String get verifyCodeErrorNetwork =>
       'Could not connect. Check your internet and try again.';
 
   @override
-  String get verifyCodeErrorConnection =>
-      'No connection to the server. Check your network.';
+  String get verifyCodeErrorConnection => 'No connection. Check your network.';
 
   @override
   String get verifyCodeErrorInvalidCodeInput =>
@@ -1473,7 +1521,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get verifyCodeErrorUnexpected =>
-      'Unexpected error while validating the code.';
+      'We could not validate the code. Try again.';
 
   @override
   String get profileSetupErrorCompleteRegistration =>
@@ -1485,12 +1533,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileSetupErrorConnection =>
-      'No connection to the server. Check your network.';
+      'No connection. Check your network.';
 
   @override
-  String profileSetupErrorRegisterStatus(String status) {
-    return 'Error $status while registering profile.';
-  }
+  String get profileSetupErrorRegisterStatus =>
+      'Could not complete registration.';
 
   @override
   String get profilePhotoTooLarge =>
@@ -1542,14 +1589,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSectionBasics => 'Account';
 
   @override
-  String get profilePhotoFromServer => 'Profile photo (server)';
+  String get profilePhotoFromServer => 'Profile photo';
 
   @override
   String get profileNoServerPhoto =>
       'No profile photo on file. You can add one when editing your profile.';
 
   @override
-  String get profileErrorNoSession => 'Session expired. Sign in again.';
+  String get profileErrorNoSession => 'Your session expired. Sign in again.';
 
   @override
   String get profileErrorForbidden =>
@@ -1557,10 +1604,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileErrorNotFound =>
-      'We could not find your passenger profile. If this continues, contact support.';
+      'We could not find your passenger profile. If this continues, contact our team.';
 
   @override
-  String get profileTaglinePassenger => 'Texi passenger';
+  String get profileTaglinePassenger => 'TEXIAPP passenger';
 
   @override
   String get profileAccountLabel => 'Account';
@@ -1569,26 +1616,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenTitle => 'My profile';
 
   @override
-  String get profileStateLoaded => 'State: loaded';
+  String get profileStateLoaded => 'Ready';
 
   @override
-  String get profileStateLoading => 'State: loading';
+  String get profileStateLoading => 'Loading…';
 
   @override
-  String get profileStateEmpty => 'State: empty';
+  String get profileStateEmpty => 'No saved places yet.';
 
   @override
-  String get profileStateError => 'State: error';
+  String get profileStateError => 'Couldn\'t load.';
 
   @override
-  String get profileStateOffline => 'State: offline';
+  String get profileStateOffline => 'Offline.';
 
   @override
   String get profileEmptyTitle => 'Complete your profile';
 
   @override
   String get profileEmptyBody =>
-      'We could not find profile data yet. You can create it in a few steps.';
+      'We couldn\'t find your profile yet. You can complete it in a few steps.';
 
   @override
   String get profileCompleteNow => 'Complete now';
@@ -1648,6 +1695,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripMissingDataTitle => 'Missing trip data';
+
+  @override
+  String get tripMissingDataBody =>
+      'Choose origin and destination again to continue.';
 
   @override
   String get loginReviewDataTitle => 'Review your details';
@@ -1773,7 +1824,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileEditSaveChanges => 'Save changes';
 
   @override
-  String get profileSupportCenterTitle => 'Support center';
+  String get profileSupportCenterTitle => 'Help center';
 
   @override
   String get profileSupportCategoryGeneral => 'General';
@@ -1791,7 +1842,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSupportCategorySafety => 'Safety';
 
   @override
-  String get profileSupportCategoryTechnical => 'Technical';
+  String get profileSupportCategoryTechnical => 'App';
 
   @override
   String get profileSupportCategoryLabel => 'Category';
@@ -1804,36 +1855,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileSupportValidationError =>
-      'Complete subject and details (min. 3/10 characters).';
+      'Write a subject and tell us what happened.';
 
   @override
-  String get profileSupportCreateFailed => 'Could not create ticket';
+  String get profileSupportCreateFailed => 'We couldn\'t create your request.';
 
   @override
-  String get profileSupportSentSuccess => 'Ticket submitted successfully';
+  String get profileSupportSentSuccess => 'Your request was sent.';
 
   @override
   String get profileSupportSending => 'Sending...';
 
   @override
-  String get profileSupportSendTicket => 'Submit ticket';
+  String get profileSupportSendTicket => 'Send request';
 
   @override
-  String get profileSupportRecentTickets => 'My recent tickets';
+  String get profileSupportRecentTickets => 'My recent requests';
 
   @override
-  String get profileSupportNoTickets => 'You have no tickets yet.';
+  String get profileSupportNoTickets => 'You have no requests yet.';
 
   @override
-  String get profileSupportTicketsLoadFailed => 'Could not load tickets';
+  String get profileSupportTicketsLoadFailed =>
+      'We couldn\'t load your requests.';
 
   @override
   String profileSupportTicketStatusChanged(String ticketNumber, String status) {
-    return 'Ticket $ticketNumber changed to $status';
+    return 'Your request $ticketNumber is now $status';
   }
 
   @override
-  String get profileSupportDetailLoadFailed => 'Could not load details';
+  String get profileSupportDetailLoadFailed => 'We couldn\'t load the details.';
 
   @override
   String get profileSupportAttachUploading => 'Uploading...';
@@ -1842,26 +1894,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSupportAttachImage => 'Attach image';
 
   @override
-  String get profileSupportAttachSuccess => 'Attachment uploaded successfully';
+  String get profileSupportAttachSuccess => 'Image sent.';
 
   @override
-  String get profileSupportAttachPrepFailed => 'Could not prepare attachment';
+  String get profileSupportAttachPrepFailed =>
+      'We couldn\'t prepare the image.';
 
   @override
-  String get profileSupportPresignInvalid => 'Invalid presign response';
+  String get profileSupportPresignInvalid =>
+      'We could not upload the file. Try again.';
 
   @override
   String get profileSupportAttachRegisterFailed =>
-      'Could not register attachment';
+      'We couldn\'t save the image.';
 
   @override
-  String get profileSupportTimeline => 'Timeline';
+  String get profileSupportTimeline => 'History';
 
   @override
-  String get profileSupportAttachments => 'Attachments';
+  String get profileSupportStatusOpen => 'Open';
 
   @override
-  String get profileSupportNoAttachments => 'No attachments';
+  String get profileSupportStatusClosed => 'Closed';
+
+  @override
+  String get profileSupportStatusPending => 'In review';
+
+  @override
+  String get profileSupportStatusResolved => 'Resolved';
+
+  @override
+  String get profileSupportEventUpdate => 'Update';
+
+  @override
+  String get profileSupportAttachments => 'Images';
+
+  @override
+  String get profileSupportNoAttachments => 'No images yet.';
 
   @override
   String get passengerRatingFallbackDelay => 'Took too long to arrive';
@@ -1902,7 +1971,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerNotifyDriverArrivedBody =>
-      'They\'re waiting at the pickup point.';
+      'Your driver is waiting at the pickup point.';
 
   @override
   String passengerNotifyDriverArrivedBodyNamed(String name) {
@@ -1927,7 +1996,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerNotificationChannelFcmDescription =>
-      'FCM alerts and trip status.';
+      'Trip alerts and status.';
 
   @override
   String get passengerNotificationChannelDriverArrivedDescription =>
@@ -1963,8 +2032,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passengerLabsGateError => 'Error checking access.';
 
   @override
-  String get passengerLabsDescription =>
-      'Reserved space for product testing (map, sockets, flags). The flask icon on Home only appears with a QA number or dart-define.';
+  String get passengerLabsDescription => 'Test tools.';
 
   @override
   String tripHistoryDriverName(String name) {
@@ -2002,7 +2070,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerLegalSectionSubtitle =>
-      'Review the documents that apply to your account and manage your data.';
+      'Review the privacy policy and terms.';
+
+  @override
+  String get passengerSettingsAccountSection => 'Account';
 
   @override
   String get passengerLegalPrivacyPolicy => 'Privacy policy';
@@ -2109,7 +2180,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerAccountDeletionErrorSessionExpired =>
-      'Session expired. Sign in and try again.';
+      'Your session expired. Sign in and try again.';
 
   @override
   String get passengerAccountDeletionErrorScheduleFailed =>
@@ -2124,14 +2195,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get passengerPlayCameraDisclosureBody =>
-      'TEXIAPP uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.';
+      'TEXIAPP uses the camera to take your profile photo or attach images in a help request. Photos are sent securely to our servers.';
 
   @override
   String get passengerPlayGalleryDisclosureTitle => 'Photo library access';
 
   @override
   String get passengerPlayGalleryDisclosureBody =>
-      'TEXIAPP accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.';
+      'TEXIAPP accesses photos you choose from your library for your profile or help requests. Only the image you select is uploaded.';
 
   @override
   String get passengerPlayNotificationDisclosureTitle => 'Trip notifications';
@@ -2178,7 +2249,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get safetyLiveTrackingUnavailable =>
-      'This feature is only available once your trip is underway.';
+      'Live tracking is available once your trip is underway.';
 
   @override
   String get supportHelpSubtitle => 'Emergency and assistance 24/7';
@@ -2201,7 +2272,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get supportWhatsAppTitle => 'WhatsApp';
 
   @override
-  String get supportTicketsSubtitle => 'Create or review support tickets';
+  String get supportTicketsSubtitle => 'Create or review your help requests';
 
   @override
   String get supportCompanyCallTitle => 'Call TEXIAPP';
@@ -2212,11 +2283,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get supportTrustFooter =>
-      'Your safety comes first. Operators and protocols ready to assist you.';
+      'Your safety comes first. Our team is ready to help you.';
 
   @override
   String get operatorTexiSubtitle =>
-      'Contact our Operators and learn more about our services.';
+      'Call the operator and learn more about our services.';
 
   @override
   String get operatorSecurityCtaTitle => 'Safety';
@@ -2251,7 +2322,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get operatorCheckBackgroundTitle => 'Background checks';
 
   @override
-  String get operatorCheckBackgroundBody => 'Security filters applied';
+  String get operatorCheckBackgroundBody => 'Security review';
 
   @override
   String get operatorCheckInspectionTitle => 'Vehicle inspection';
@@ -2301,14 +2372,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appUpdateRequiredMessage =>
-      'A new version of Texi is available. Update the app to continue.';
+      'A new version of TEXIAPP is available. Update the app to continue.';
 
   @override
   String get appUpdateOptionalTitle => 'New version available';
 
   @override
   String get appUpdateOptionalMessage =>
-      'An update is available on the Play Store. We recommend installing it for the best experience.';
+      'An update is available on the Play Store. Install it to get the latest version.';
 
   @override
   String get appUpdateOpenStore => 'Go to Play Store';

@@ -54,5 +54,40 @@ void main() {
     test('si pegan 591 + local, deja el número local', () {
       expect(apply('59171234567').text, '71234567');
     });
+
+    test('rechaza primer dígito distinto de 5, 6 o 7', () {
+      expect(apply('4').text, '');
+      expect(apply('81234567').text, '');
+      expect(apply('41234567').text, '');
+    });
+  });
+
+  group('formatPassengerPhoneDisplay', () {
+    test('junta código de país y número local', () {
+      expect(
+        formatPassengerPhoneDisplay(
+          dialCode: '+591',
+          localNumber: '71234567',
+        ),
+        '+591 71234567',
+      );
+    });
+
+    test('no duplica el código de país si ya viene en el número', () {
+      expect(
+        formatPassengerPhoneDisplay(
+          dialCode: '591',
+          localNumber: '59171234567',
+        ),
+        '+591 71234567',
+      );
+    });
+
+    test('sin número local no inventa un destino', () {
+      expect(
+        formatPassengerPhoneDisplay(dialCode: '+591', localNumber: ''),
+        '+591',
+      );
+    });
   });
 }

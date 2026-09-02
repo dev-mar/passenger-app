@@ -146,7 +146,7 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
                     if (code == '23503') {
                       return sheetL10n.passengerTripChatErrorNotReady;
                     }
-                    return sheetL10n.passengerTripChatErrorSendReceive(code);
+                    return sheetL10n.passengerTripChatErrorSendReceive;
                   }
 
                   return Material(

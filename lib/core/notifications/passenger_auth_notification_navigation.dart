@@ -76,7 +76,7 @@ class PassengerAuthNotificationNavigation {
     final parsed = parsePayload(payload);
     if (parsed == null) return;
 
-    if (await AuthService.hasStoredSession()) {
+    if (parsed.action != 'link' && await AuthService.hasStoredSession()) {
       await PassengerNotificationService.instance
           .cancelWaInboundVerifiedReturnPrompt();
       return;

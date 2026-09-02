@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/input/passenger_text_limits.dart';
 import '../../../core/network/passenger_api_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
@@ -18,8 +19,12 @@ Future<bool> showPassengerProfileEditSheet({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final repo = ref.read(passengerProfileRepositoryProvider);
-  final nameCtrl = TextEditingController(text: profile.displayName);
-  final emailCtrl = TextEditingController(text: profile.email ?? '');
+  final nameCtrl = TextEditingController(
+    text: clampPassengerText(profile.displayName, kPassengerDisplayNameMaxLength),
+  );
+  final emailCtrl = TextEditingController(
+    text: clampPassengerText(profile.email ?? '', kPassengerEmailMaxLength),
+  );
   Uint8List? selectedPhotoBytes;
   String? selectedPhotoB64;
   var saving = false;
@@ -116,9 +121,12 @@ Future<bool> showPassengerProfileEditSheet({
                 TextField(
                   controller: nameCtrl,
                   textInputAction: TextInputAction.next,
+                  maxLength: kPassengerDisplayNameMaxLength,
+                  inputFormatters: passengerDisplayNameInputFormatters(),
                   decoration: InputDecoration(
                     labelText: l10n.profileEditDisplayNameLabel,
                     prefixIcon: const Icon(Icons.badge_outlined),
+                    counterText: '',
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -126,9 +134,12 @@ Future<bool> showPassengerProfileEditSheet({
                   controller: emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
+                  maxLength: kPassengerEmailMaxLength,
+                  inputFormatters: passengerEmailInputFormatters(),
                   decoration: InputDecoration(
                     labelText: l10n.profileFieldEmail,
                     prefixIcon: const Icon(Icons.alternate_email_rounded),
+                    counterText: '',
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -162,12 +173,7 @@ Future<bool> showPassengerProfileEditSheet({
                             if (!ctx.mounted) return;
                             ScaffoldMessenger.of(ctx).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  e.toString().replaceFirst(
-                                    RegExp(r'^Exception:\s*'),
-                                    '',
-                                  ),
-                                ),
+                                content: Text(l10n.profileEditSaveFailed),
                               ),
                             );
                           } finally {

@@ -146,9 +146,7 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
           PassengerNotificationService.instance.showDriverArrivedIfBackground(
             isAppInForeground: fg,
             tripId: tripId,
-            driverName: mergedDriverName == driverNameFallbackDefault
-                ? null
-                : mergedDriverName,
+            driverName: driverNameForPassengerAlert(mergedDriverName),
           ),
         );
       }

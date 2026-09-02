@@ -7,6 +7,7 @@ import '../../core/config/locale_provider.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/passenger_api_providers.dart';
+import '../../core/network/texi_backend_error.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
@@ -132,8 +133,22 @@ class _PassengerProfilePreviewScreenState
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: _PreferencesCard(l10n: l10n),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text(
+                  l10n.passengerSettingsAccountSection,
+                  style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 20),
+                child: PassengerAccountDeletionSettingsBlock(),
               ),
             ],
           ),
@@ -181,10 +196,11 @@ class _PassengerProfilePreviewScreenState
           return l10n.profileErrorNoSession;
       }
       if (e.message.isNotEmpty && e.message != 'profile') {
-        return e.message;
+        return TexiBackendError.userSafeMessage(e.message) ??
+            l10n.commonError;
       }
     }
-    return e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+    return l10n.commonError;
   }
 
   @override

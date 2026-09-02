@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginMethodChoiceSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose how you want to sign in. Fast, secure, and simple.'**
+  /// **'Choose how you want to sign in.'**
   String get loginMethodChoiceSubtitle;
 
   /// No description provided for @loginMethodPhoneTitle.
@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginGoogleNotConfiguredInApp.
   ///
   /// In en, this message translates to:
-  /// **'Google Sign-In isn\'t set up in this app build. Use your mobile number or contact support.'**
+  /// **'Google sign-in is unavailable right now. Use your mobile number or contact our team.'**
   String get loginGoogleNotConfiguredInApp;
 
   /// No description provided for @loginBackToMethods.
@@ -215,7 +215,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginPhoneStepSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Enter your number. Then confirm you\'re human and choose how to verify.'**
+  /// **'Then choose how to confirm it on WhatsApp.'**
   String get loginPhoneStepSubtitle;
 
   /// No description provided for @loginAttemptsLimitTitle.
@@ -293,7 +293,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginGoogleCaptchaSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Complete the captcha to protect your account and continue with Google.'**
+  /// **'Complete the security check to protect your account and continue with Google.'**
   String get loginGoogleCaptchaSubtitle;
 
   /// No description provided for @loginCaptchaLoading.
@@ -317,7 +317,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginCaptchaLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'We couldn\'t load the captcha. Check your connection.'**
+  /// **'We couldn\'t load the security check. Check your connection.'**
   String get loginCaptchaLoadFailed;
 
   /// No description provided for @loginCaptchaReadyHint.
@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginCaptchaDevPlaceholder.
   ///
   /// In en, this message translates to:
-  /// **'Cloudflare Turnstile appears here in production. Set TURNSTILE_SITE_KEY in the APK build.'**
+  /// **'Security verification is unavailable right now. Try again later.'**
   String get loginCaptchaDevPlaceholder;
 
   /// No description provided for @loginVerifyMethodTitle.
@@ -380,12 +380,6 @@ abstract class AppLocalizations {
   /// **'We send a 6-digit code via WhatsApp for you to enter in the app.'**
   String get loginVerifyMethodCodeSubtitle;
 
-  /// No description provided for @loginVerifyMethodCodeComingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive code will be available soon.'**
-  String get loginVerifyMethodCodeComingSoon;
-
   /// No description provided for @loginVerifyMethodLoadingWa.
   ///
   /// In en, this message translates to:
@@ -419,7 +413,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginVerifyMethodWaInboundInfo.
   ///
   /// In en, this message translates to:
-  /// **'We open WhatsApp with a ready-to-send message. Send it unchanged and we confirm your identity automatically.'**
+  /// **'We open WhatsApp with a ready-to-send message. Send it and we confirm it\'s you.'**
   String get loginVerifyMethodWaInboundInfo;
 
   /// No description provided for @loginVerifyMethodCodeInfo.
@@ -443,8 +437,14 @@ abstract class AppLocalizations {
   /// No description provided for @loginGoogleEmailInfo.
   ///
   /// In en, this message translates to:
-  /// **'Enter the email you\'ll use in TEXIAPP. When you continue, we\'ll send a verification code to that inbox.'**
+  /// **'Enter your email or pick an account from this phone. We\'ll send you a code.'**
   String get loginGoogleEmailInfo;
+
+  /// No description provided for @loginEmailPickFromDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Use email from this phone'**
+  String get loginEmailPickFromDevice;
 
   /// No description provided for @loginGoogleSignInButton.
   ///
@@ -467,7 +467,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginPhoneStepSubtitleGoogle.
   ///
   /// In en, this message translates to:
-  /// **'Google verified ({email}). Now confirm your number via WhatsApp.'**
+  /// **'Confirm your number on WhatsApp ({email}).'**
   String loginPhoneStepSubtitleGoogle(String email);
 
   /// No description provided for @loginGoogleError.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginPhoneHint.
   ///
   /// In en, this message translates to:
-  /// **'8 digits; starts with 5, 6 or 7'**
+  /// **'E.g.: 70000000'**
   String get loginPhoneHint;
 
   /// No description provided for @loginContinue.
@@ -521,25 +521,25 @@ abstract class AppLocalizations {
   /// No description provided for @loginErrorPhoneRegisteredAsDriver.
   ///
   /// In en, this message translates to:
-  /// **'This number is already registered as a driver. Use another number for the passenger app, or sign in with the driver app using this same number.'**
+  /// **'This number is already registered as a driver.'**
   String get loginErrorPhoneRegisteredAsDriver;
 
   /// No description provided for @loginErrorPhoneOtherAccountType.
   ///
   /// In en, this message translates to:
-  /// **'This number is already linked to another type of TEXIAPP account. Use another number or the app that matches that account.'**
+  /// **'This number is already on another account.'**
   String get loginErrorPhoneOtherAccountType;
 
   /// No description provided for @loginErrorPhoneDuplicatePassenger.
   ///
   /// In en, this message translates to:
-  /// **'We could not start passenger registration with this number. If you already use it as a driver, use the driver app or another number here.'**
+  /// **'This number is already registered on another passenger account.'**
   String get loginErrorPhoneDuplicatePassenger;
 
   /// No description provided for @loginErrorVerificationServiceUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Verification service unavailable. Please try again later.'**
+  /// **'We could not verify right now. Try again later.'**
   String get loginErrorVerificationServiceUnavailable;
 
   /// No description provided for @loginErrorBackendUnavailable.
@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginErrorWhatsAppVerificationUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'WhatsApp verification is not available. Contact support or try again later.'**
+  /// **'WhatsApp verification is not available. Contact our team or try again later.'**
   String get loginErrorWhatsAppVerificationUnavailable;
 
   /// No description provided for @loginErrorSessionSuperseded.
@@ -593,13 +593,13 @@ abstract class AppLocalizations {
   /// No description provided for @loginPhoneRequired.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number'**
+  /// **'Enter your number.'**
   String get loginPhoneRequired;
 
   /// No description provided for @loginPhoneInvalidBolivia.
   ///
   /// In en, this message translates to:
-  /// **'Invalid number. It must have 8 digits and start with 5, 6 or 7.'**
+  /// **'Enter your number. E.g.: 70000000'**
   String get loginPhoneInvalidBolivia;
 
   /// No description provided for @homeRequestRide.
@@ -809,7 +809,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripSecureChat.
   ///
   /// In en, this message translates to:
-  /// **'Secure chat'**
+  /// **'Chat'**
   String get tripSecureChat;
 
   /// CTA on active trip panel to share live tracking
@@ -839,7 +839,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerTripChatSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Live conversation with your driver.'**
+  /// **'You can message your driver.'**
   String get passengerTripChatSubtitle;
 
   /// No description provided for @passengerTripChatOnline.
@@ -881,26 +881,26 @@ abstract class AppLocalizations {
   /// No description provided for @passengerTripChatErrorStorage.
   ///
   /// In en, this message translates to:
-  /// **'Chat unavailable. Contact support.'**
+  /// **'Chat isn\'t available. Contact our team.'**
   String get passengerTripChatErrorStorage;
 
   /// No description provided for @passengerTripChatErrorPhase.
   ///
   /// In en, this message translates to:
-  /// **'Chat isn\'t available at this trip stage.'**
+  /// **'Chat isn\'t available at this point in the trip.'**
   String get passengerTripChatErrorPhase;
 
   /// No description provided for @passengerTripChatErrorNotReady.
   ///
   /// In en, this message translates to:
-  /// **'Chat isn\'t ready yet. Try again in a few seconds.'**
+  /// **'Chat is still connecting. Try again in a few seconds.'**
   String get passengerTripChatErrorNotReady;
 
   /// No description provided for @passengerTripChatErrorSendReceive.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t send the message ({code}). Check your connection.'**
-  String passengerTripChatErrorSendReceive(String code);
+  /// **'Couldn\'t send the message. Check your connection.'**
+  String get passengerTripChatErrorSendReceive;
 
   /// No description provided for @passengerTripChatEmptyState.
   ///
@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerTripChatDriverTemplateConfirmLocation.
   ///
   /// In en, this message translates to:
-  /// **'Please confirm your exact location'**
+  /// **'Confirma tu ubicación exacta'**
   String get passengerTripChatDriverTemplateConfirmLocation;
 
   /// No description provided for @commonEmptyDash.
@@ -956,10 +956,64 @@ abstract class AppLocalizations {
   /// **'We don\'t have service coverage in this area at the moment. Try another location or move to a service zone.'**
   String get tripNoCoverageInZone;
 
+  /// No description provided for @tripFaresNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Fares are not available in this city yet. Try another area or try again later.'**
+  String get tripFaresNotConfigured;
+
+  /// No description provided for @tripInvalidCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t locate the origin or destination. Choose the points on the map again.'**
+  String get tripInvalidCoordinates;
+
+  /// No description provided for @tripServiceTypeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'That service type isn\'t available right now. Choose another option.'**
+  String get tripServiceTypeUnavailable;
+
+  /// No description provided for @tripRequestInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t create your request. Check origin and destination and try again.'**
+  String get tripRequestInvalid;
+
+  /// No description provided for @tripCreateRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'You sent several requests in a row. Wait a moment and try again.'**
+  String get tripCreateRateLimited;
+
+  /// No description provided for @tripQuoteNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t calculate the fare. Check your connection and try again.'**
+  String get tripQuoteNetworkError;
+
+  /// No description provided for @tripQuoteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t calculate the fare right now. Try again in a few seconds.'**
+  String get tripQuoteUnavailable;
+
+  /// No description provided for @tripRequestNetworkError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t send your request. Check your connection and try again.'**
+  String get tripRequestNetworkError;
+
+  /// No description provided for @tripRequestUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t send your request right now. Try again in a few seconds.'**
+  String get tripRequestUnavailable;
+
   /// No description provided for @tripNoDriversAvailable.
   ///
   /// In en, this message translates to:
-  /// **'We couldn\'t find drivers nearby right now. Please try again in a few minutes.'**
+  /// **'We couldn\'t find drivers nearby right now. Try again in a few minutes.'**
   String get tripNoDriversAvailable;
 
   /// No description provided for @tripNext.
@@ -1073,7 +1127,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripRequestDetailsLearnMore.
   ///
   /// In en, this message translates to:
-  /// **'Learn more about this feature'**
+  /// **'Learn more about these settings'**
   String get tripRequestDetailsLearnMore;
 
   /// No description provided for @tripRequestDetailsLearnMoreError.
@@ -1415,37 +1469,37 @@ abstract class AppLocalizations {
   /// No description provided for @tripSearchingEtaHint.
   ///
   /// In en, this message translates to:
-  /// **'Estimated match: 1–3 min'**
+  /// **'Usually takes 1–3 min'**
   String get tripSearchingEtaHint;
 
   /// No description provided for @tripSearchingRotateCheck2km.
   ///
   /// In en, this message translates to:
-  /// **'Checking drivers within 2 km…'**
+  /// **'Looking for drivers near you…'**
   String get tripSearchingRotateCheck2km;
 
   /// No description provided for @tripSearchingRotateAvailability.
   ///
   /// In en, this message translates to:
-  /// **'Checking availability…'**
+  /// **'Looking for someone who can take you…'**
   String get tripSearchingRotateAvailability;
 
   /// No description provided for @tripSearchingRotateOptimizeRoute.
   ///
   /// In en, this message translates to:
-  /// **'Optimizing your route…'**
+  /// **'Getting your trip ready…'**
   String get tripSearchingRotateOptimizeRoute;
 
   /// No description provided for @tripSearchingOfflineBanner.
   ///
   /// In en, this message translates to:
-  /// **'No internet connection. Retrying…'**
+  /// **'No internet. Trying again…'**
   String get tripSearchingOfflineBanner;
 
   /// No description provided for @tripSearchingLocationBanner.
   ///
   /// In en, this message translates to:
-  /// **'Turn on location to improve matching.'**
+  /// **'Turn on location to improve the search.'**
   String get tripSearchingLocationBanner;
 
   /// Legacy alias stage 2; prefer tripSearchingStage2Body
@@ -1475,13 +1529,13 @@ abstract class AppLocalizations {
   /// No description provided for @tripConnectionError.
   ///
   /// In en, this message translates to:
-  /// **'Could not connect to receive trip updates. Check your connection.'**
+  /// **'We couldn’t update your trip. Check your connection.'**
   String get tripConnectionError;
 
   /// No description provided for @tripRbacForbidden.
   ///
   /// In en, this message translates to:
-  /// **'Your account doesn’t have permission for this trip action. If it keeps happening, sign out and sign back in or contact support.'**
+  /// **'We could not complete this action. If it keeps happening, sign out and sign back in or contact our team.'**
   String get tripRbacForbidden;
 
   /// No description provided for @tripRbacSession.
@@ -1493,7 +1547,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripRbacTechnical.
   ///
   /// In en, this message translates to:
-  /// **'We couldn’t verify permissions. Please try again in a few seconds.'**
+  /// **'We couldn’t complete this action. Try again in a few seconds.'**
   String get tripRbacTechnical;
 
   /// No description provided for @tripPhoneRequired.
@@ -1535,7 +1589,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneLinkSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'To request a trip you need to confirm your number. We’ll send you a verification code.'**
+  /// **'Confirm your number on WhatsApp to request a ride.'**
   String get phoneLinkSubtitle;
 
   /// No description provided for @phoneLinkContinue.
@@ -1595,13 +1649,13 @@ abstract class AppLocalizations {
   /// No description provided for @tripRatingFeedbackPromptLow.
   ///
   /// In en, this message translates to:
-  /// **'What affected your experience? (multiple)'**
+  /// **'What affected your experience?'**
   String get tripRatingFeedbackPromptLow;
 
   /// No description provided for @tripRatingFeedbackPromptHigh.
   ///
   /// In en, this message translates to:
-  /// **'What stood out about the service? (multiple)'**
+  /// **'What stood out about the service?'**
   String get tripRatingFeedbackPromptHigh;
 
   /// No description provided for @tripFinishedBackToHome.
@@ -2069,7 +2123,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileSetupPhotoSoon.
   ///
   /// In en, this message translates to:
-  /// **'Photo selection coming soon.'**
+  /// **'You can choose a profile photo.'**
   String get profileSetupPhotoSoon;
 
   /// No description provided for @profileSetupNameLabel.
@@ -2087,13 +2141,13 @@ abstract class AppLocalizations {
   /// No description provided for @profileSetupNameRequired.
   ///
   /// In en, this message translates to:
-  /// **'Name is required'**
+  /// **'Enter your name.'**
   String get profileSetupNameRequired;
 
   /// No description provided for @profileSetupNameTooShort.
   ///
   /// In en, this message translates to:
-  /// **'Enter at least 2 characters'**
+  /// **'That name is too short.'**
   String get profileSetupNameTooShort;
 
   /// No description provided for @profileSetupContinue.
@@ -2189,7 +2243,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripRecoveringRetryCta.
   ///
   /// In en, this message translates to:
-  /// **'Retry reconnection'**
+  /// **'Try again'**
   String get tripRecoveringRetryCta;
 
   /// SnackBar if cancel is attempted on an accepted trip
@@ -2209,6 +2263,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We sent a 6-digit code to {phone}. Enter it to continue.'**
   String verifyCodeSubtitle(String phone);
+
+  /// No description provided for @verifyCodeEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get verifyCodeEmailTitle;
+
+  /// No description provided for @verifyCodeEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}. Enter it to continue.'**
+  String verifyCodeEmailSubtitle(String email);
+
+  /// No description provided for @verifyCodeEmailInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email for a 6-digit code. Enter all six digits here. It may take a few seconds to arrive.'**
+  String get verifyCodeEmailInfo;
+
+  /// No description provided for @verifyCodeEmailRetryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'If you did not receive the code, check your email (including spam) and try again in a few minutes.'**
+  String get verifyCodeEmailRetryHint;
 
   /// No description provided for @verifyCodeFieldLabel.
   ///
@@ -2231,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Send the pre-filled message from WhatsApp to confirm {phone}. After sending, return to TEXIAPP — we\'ll detect your message automatically.'**
+  /// **'Send the WhatsApp message to confirm {phone}. Then come back here.'**
   String verifyCodeWaSubtitle(String phone);
 
   /// No description provided for @verifyCodeWaOpenButton.
@@ -2243,7 +2321,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaWaiting.
   ///
   /// In en, this message translates to:
-  /// **'Waiting for your WhatsApp message… Return to TEXIAPP after you send it.'**
+  /// **'Waiting for your WhatsApp message…'**
   String get verifyCodeWaWaiting;
 
   /// No description provided for @verifyCodeWaVerified.
@@ -2345,7 +2423,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifySmsFirebaseNotConfigured.
   ///
   /// In en, this message translates to:
-  /// **'SMS verification is not available in this version yet. Try WhatsApp sign-in while we enable this method.'**
+  /// **'SMS verification is not available yet. Try signing in with WhatsApp.'**
   String get verifySmsFirebaseNotConfigured;
 
   /// No description provided for @verifySmsFirebaseShaMissing.
@@ -2411,13 +2489,13 @@ abstract class AppLocalizations {
   /// No description provided for @verifySmsFirebaseError39.
   ///
   /// In en, this message translates to:
-  /// **'Firebase could not send the SMS after the anti-bot check. This often happens after too many attempts or carrier limits. Wait 15–30 minutes or use WhatsApp.'**
+  /// **'The SMS could not be sent. This often happens after too many attempts. Wait a few minutes or use WhatsApp.'**
   String get verifySmsFirebaseError39;
 
   /// No description provided for @verifySmsFirebaseCaptchaFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not complete Firebase security verification. Try again in a few minutes or verify your number with WhatsApp.'**
+  /// **'We could not complete the security check. Try again in a few minutes or verify your number with WhatsApp.'**
   String get verifySmsFirebaseCaptchaFailed;
 
   /// No description provided for @verifySmsTryWhatsApp.
@@ -2435,19 +2513,19 @@ abstract class AppLocalizations {
   /// No description provided for @loginErrorWaOutboundRateLimit.
   ///
   /// In en, this message translates to:
-  /// **'We sent a WhatsApp code recently. Wait a few minutes or use the pre-filled message.'**
+  /// **'We sent a WhatsApp code recently. Wait a few minutes or send the WhatsApp message.'**
   String get loginErrorWaOutboundRateLimit;
 
   /// No description provided for @tripMapsRestKeyMissing.
   ///
   /// In en, this message translates to:
-  /// **'Address search is unavailable: missing Google Maps key in this build.'**
+  /// **'Address search is unavailable right now. Try again later.'**
   String get tripMapsRestKeyMissing;
 
   /// No description provided for @tripMapsRestKeyDenied.
   ///
   /// In en, this message translates to:
-  /// **'Address search and routes are blocked: check the passenger Maps REST key (Places, Geocoding, Directions).'**
+  /// **'We could not search addresses or routes. Try again later.'**
   String get tripMapsRestKeyDenied;
 
   /// No description provided for @tripMapsRestUnavailable.
@@ -2471,7 +2549,7 @@ abstract class AppLocalizations {
   /// No description provided for @stepUpSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'For your security, confirm your email and complete the captcha to continue.'**
+  /// **'For your security, confirm your email and complete the verification to continue.'**
   String get stepUpSubtitle;
 
   /// No description provided for @stepUpEmailLabel.
@@ -2543,19 +2621,19 @@ abstract class AppLocalizations {
   /// No description provided for @stepUpCodeInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 6-digit code from your email.'**
+  /// **'Enter the 6-digit code.'**
   String get stepUpCodeInvalid;
 
   /// No description provided for @stepUpCaptchaRequired.
   ///
   /// In en, this message translates to:
-  /// **'Complete the captcha before continuing.'**
+  /// **'Complete the security check before continuing.'**
   String get stepUpCaptchaRequired;
 
   /// No description provided for @stepUpCaptchaLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not load the captcha. Check your connection and try again.'**
+  /// **'We could not load the security check. Check your connection and try again.'**
   String get stepUpCaptchaLoadFailed;
 
   /// No description provided for @stepUpCaptchaLoading.
@@ -2567,7 +2645,7 @@ abstract class AppLocalizations {
   /// No description provided for @stepUpCaptchaInteractiveHint.
   ///
   /// In en, this message translates to:
-  /// **'Complete the Cloudflare checkbox above.'**
+  /// **'Complete the security check above.'**
   String get stepUpCaptchaInteractiveHint;
 
   /// No description provided for @stepUpCaptchaReady.
@@ -2579,7 +2657,7 @@ abstract class AppLocalizations {
   /// No description provided for @stepUpCaptchaRetry.
   ///
   /// In en, this message translates to:
-  /// **'Retry captcha'**
+  /// **'Retry verification'**
   String get stepUpCaptchaRetry;
 
   /// No description provided for @stepUpEmailSendFailed.
@@ -2609,7 +2687,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeWaInfo.
   ///
   /// In en, this message translates to:
-  /// **'We open WhatsApp with a ready-to-send message. Send it unchanged, return to TEXIAPP, and we\'ll confirm you in seconds.'**
+  /// **'We open WhatsApp with a ready-to-send message. Send it, return to the app, and we\'ll confirm it\'s you.'**
   String get verifyCodeWaInfo;
 
   /// No description provided for @verifyCodeRetryHint.
@@ -2657,13 +2735,13 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeErrorIncompleteResponse.
   ///
   /// In en, this message translates to:
-  /// **'Incomplete server response.'**
+  /// **'We could not complete registration. Try again.'**
   String get verifyCodeErrorIncompleteResponse;
 
   /// No description provided for @verifyCodeErrorTokenMissing.
   ///
   /// In en, this message translates to:
-  /// **'Token not received.'**
+  /// **'We could not sign in. Try again.'**
   String get verifyCodeErrorTokenMissing;
 
   /// No description provided for @verifyCodeErrorNetwork.
@@ -2675,7 +2753,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeErrorConnection.
   ///
   /// In en, this message translates to:
-  /// **'No connection to the server. Check your network.'**
+  /// **'No connection. Check your network.'**
   String get verifyCodeErrorConnection;
 
   /// No description provided for @verifyCodeErrorInvalidCodeInput.
@@ -2693,7 +2771,7 @@ abstract class AppLocalizations {
   /// No description provided for @verifyCodeErrorUnexpected.
   ///
   /// In en, this message translates to:
-  /// **'Unexpected error while validating the code.'**
+  /// **'We could not validate the code. Try again.'**
   String get verifyCodeErrorUnexpected;
 
   /// No description provided for @profileSetupErrorCompleteRegistration.
@@ -2711,14 +2789,14 @@ abstract class AppLocalizations {
   /// No description provided for @profileSetupErrorConnection.
   ///
   /// In en, this message translates to:
-  /// **'No connection to the server. Check your network.'**
+  /// **'No connection. Check your network.'**
   String get profileSetupErrorConnection;
 
   /// No description provided for @profileSetupErrorRegisterStatus.
   ///
   /// In en, this message translates to:
-  /// **'Error {status} while registering profile.'**
-  String profileSetupErrorRegisterStatus(String status);
+  /// **'Could not complete registration.'**
+  String get profileSetupErrorRegisterStatus;
 
   /// No description provided for @profilePhotoTooLarge.
   ///
@@ -2813,7 +2891,7 @@ abstract class AppLocalizations {
   /// No description provided for @profilePhotoFromServer.
   ///
   /// In en, this message translates to:
-  /// **'Profile photo (server)'**
+  /// **'Profile photo'**
   String get profilePhotoFromServer;
 
   /// No description provided for @profileNoServerPhoto.
@@ -2825,7 +2903,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileErrorNoSession.
   ///
   /// In en, this message translates to:
-  /// **'Session expired. Sign in again.'**
+  /// **'Your session expired. Sign in again.'**
   String get profileErrorNoSession;
 
   /// No description provided for @profileErrorForbidden.
@@ -2837,13 +2915,13 @@ abstract class AppLocalizations {
   /// No description provided for @profileErrorNotFound.
   ///
   /// In en, this message translates to:
-  /// **'We could not find your passenger profile. If this continues, contact support.'**
+  /// **'We could not find your passenger profile. If this continues, contact our team.'**
   String get profileErrorNotFound;
 
   /// No description provided for @profileTaglinePassenger.
   ///
   /// In en, this message translates to:
-  /// **'Texi passenger'**
+  /// **'TEXIAPP passenger'**
   String get profileTaglinePassenger;
 
   /// No description provided for @profileAccountLabel.
@@ -2861,31 +2939,31 @@ abstract class AppLocalizations {
   /// No description provided for @profileStateLoaded.
   ///
   /// In en, this message translates to:
-  /// **'State: loaded'**
+  /// **'Ready'**
   String get profileStateLoaded;
 
   /// No description provided for @profileStateLoading.
   ///
   /// In en, this message translates to:
-  /// **'State: loading'**
+  /// **'Loading…'**
   String get profileStateLoading;
 
   /// No description provided for @profileStateEmpty.
   ///
   /// In en, this message translates to:
-  /// **'State: empty'**
+  /// **'No saved places yet.'**
   String get profileStateEmpty;
 
   /// No description provided for @profileStateError.
   ///
   /// In en, this message translates to:
-  /// **'State: error'**
+  /// **'Couldn\'t load.'**
   String get profileStateError;
 
   /// No description provided for @profileStateOffline.
   ///
   /// In en, this message translates to:
-  /// **'State: offline'**
+  /// **'Offline.'**
   String get profileStateOffline;
 
   /// No description provided for @profileEmptyTitle.
@@ -2897,7 +2975,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'We could not find profile data yet. You can create it in a few steps.'**
+  /// **'We couldn\'t find your profile yet. You can complete it in a few steps.'**
   String get profileEmptyBody;
 
   /// No description provided for @profileCompleteNow.
@@ -3013,6 +3091,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Missing trip data'**
   String get tripMissingDataTitle;
+
+  /// No description provided for @tripMissingDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose origin and destination again to continue.'**
+  String get tripMissingDataBody;
 
   /// No description provided for @loginReviewDataTitle.
   ///
@@ -3263,7 +3347,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileSupportCenterTitle.
   ///
   /// In en, this message translates to:
-  /// **'Support center'**
+  /// **'Help center'**
   String get profileSupportCenterTitle;
 
   /// No description provided for @profileSupportCategoryGeneral.
@@ -3299,7 +3383,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileSupportCategoryTechnical.
   ///
   /// In en, this message translates to:
-  /// **'Technical'**
+  /// **'App'**
   String get profileSupportCategoryTechnical;
 
   /// No description provided for @profileSupportCategoryLabel.
@@ -3323,19 +3407,19 @@ abstract class AppLocalizations {
   /// No description provided for @profileSupportValidationError.
   ///
   /// In en, this message translates to:
-  /// **'Complete subject and details (min. 3/10 characters).'**
+  /// **'Write a subject and tell us what happened.'**
   String get profileSupportValidationError;
 
   /// No description provided for @profileSupportCreateFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not create ticket'**
+  /// **'We couldn\'t create your request.'**
   String get profileSupportCreateFailed;
 
   /// No description provided for @profileSupportSentSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Ticket submitted successfully'**
+  /// **'Your request was sent.'**
   String get profileSupportSentSuccess;
 
   /// No description provided for @profileSupportSending.
@@ -3347,37 +3431,37 @@ abstract class AppLocalizations {
   /// No description provided for @profileSupportSendTicket.
   ///
   /// In en, this message translates to:
-  /// **'Submit ticket'**
+  /// **'Send request'**
   String get profileSupportSendTicket;
 
   /// No description provided for @profileSupportRecentTickets.
   ///
   /// In en, this message translates to:
-  /// **'My recent tickets'**
+  /// **'My recent requests'**
   String get profileSupportRecentTickets;
 
   /// No description provided for @profileSupportNoTickets.
   ///
   /// In en, this message translates to:
-  /// **'You have no tickets yet.'**
+  /// **'You have no requests yet.'**
   String get profileSupportNoTickets;
 
   /// No description provided for @profileSupportTicketsLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not load tickets'**
+  /// **'We couldn\'t load your requests.'**
   String get profileSupportTicketsLoadFailed;
 
   /// No description provided for @profileSupportTicketStatusChanged.
   ///
   /// In en, this message translates to:
-  /// **'Ticket {ticketNumber} changed to {status}'**
+  /// **'Your request {ticketNumber} is now {status}'**
   String profileSupportTicketStatusChanged(String ticketNumber, String status);
 
   /// No description provided for @profileSupportDetailLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not load details'**
+  /// **'We couldn\'t load the details.'**
   String get profileSupportDetailLoadFailed;
 
   /// No description provided for @profileSupportAttachUploading.
@@ -3395,43 +3479,73 @@ abstract class AppLocalizations {
   /// No description provided for @profileSupportAttachSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Attachment uploaded successfully'**
+  /// **'Image sent.'**
   String get profileSupportAttachSuccess;
 
   /// No description provided for @profileSupportAttachPrepFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not prepare attachment'**
+  /// **'We couldn\'t prepare the image.'**
   String get profileSupportAttachPrepFailed;
 
   /// No description provided for @profileSupportPresignInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Invalid presign response'**
+  /// **'We could not upload the file. Try again.'**
   String get profileSupportPresignInvalid;
 
   /// No description provided for @profileSupportAttachRegisterFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not register attachment'**
+  /// **'We couldn\'t save the image.'**
   String get profileSupportAttachRegisterFailed;
 
   /// No description provided for @profileSupportTimeline.
   ///
   /// In en, this message translates to:
-  /// **'Timeline'**
+  /// **'History'**
   String get profileSupportTimeline;
+
+  /// No description provided for @profileSupportStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get profileSupportStatusOpen;
+
+  /// No description provided for @profileSupportStatusClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get profileSupportStatusClosed;
+
+  /// No description provided for @profileSupportStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'In review'**
+  String get profileSupportStatusPending;
+
+  /// No description provided for @profileSupportStatusResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get profileSupportStatusResolved;
+
+  /// No description provided for @profileSupportEventUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get profileSupportEventUpdate;
 
   /// No description provided for @profileSupportAttachments.
   ///
   /// In en, this message translates to:
-  /// **'Attachments'**
+  /// **'Images'**
   String get profileSupportAttachments;
 
   /// No description provided for @profileSupportNoAttachments.
   ///
   /// In en, this message translates to:
-  /// **'No attachments'**
+  /// **'No images yet.'**
   String get profileSupportNoAttachments;
 
   /// No description provided for @passengerRatingFallbackDelay.
@@ -3509,7 +3623,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerNotifyDriverArrivedBody.
   ///
   /// In en, this message translates to:
-  /// **'They\'re waiting at the pickup point.'**
+  /// **'Your driver is waiting at the pickup point.'**
   String get passengerNotifyDriverArrivedBody;
 
   /// No description provided for @passengerNotifyDriverArrivedBodyNamed.
@@ -3551,7 +3665,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerNotificationChannelFcmDescription.
   ///
   /// In en, this message translates to:
-  /// **'FCM alerts and trip status.'**
+  /// **'Trip alerts and status.'**
   String get passengerNotificationChannelFcmDescription;
 
   /// No description provided for @passengerNotificationChannelDriverArrivedDescription.
@@ -3617,7 +3731,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerLabsDescription.
   ///
   /// In en, this message translates to:
-  /// **'Reserved space for product testing (map, sockets, flags). The flask icon on Home only appears with a QA number or dart-define.'**
+  /// **'Test tools.'**
   String get passengerLabsDescription;
 
   /// No description provided for @tripHistoryDriverName.
@@ -3671,8 +3785,14 @@ abstract class AppLocalizations {
   /// No description provided for @passengerLegalSectionSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Review the documents that apply to your account and manage your data.'**
+  /// **'Review the privacy policy and terms.'**
   String get passengerLegalSectionSubtitle;
+
+  /// No description provided for @passengerSettingsAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get passengerSettingsAccountSection;
 
   /// No description provided for @passengerLegalPrivacyPolicy.
   ///
@@ -3848,7 +3968,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerAccountDeletionErrorSessionExpired.
   ///
   /// In en, this message translates to:
-  /// **'Session expired. Sign in and try again.'**
+  /// **'Your session expired. Sign in and try again.'**
   String get passengerAccountDeletionErrorSessionExpired;
 
   /// No description provided for @passengerAccountDeletionErrorScheduleFailed.
@@ -3872,7 +3992,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayCameraDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'TEXIAPP uses the camera to take your profile photo or attach images in support. Photos are sent securely to our servers.'**
+  /// **'TEXIAPP uses the camera to take your profile photo or attach images in a help request. Photos are sent securely to our servers.'**
   String get passengerPlayCameraDisclosureBody;
 
   /// No description provided for @passengerPlayGalleryDisclosureTitle.
@@ -3884,7 +4004,7 @@ abstract class AppLocalizations {
   /// No description provided for @passengerPlayGalleryDisclosureBody.
   ///
   /// In en, this message translates to:
-  /// **'TEXIAPP accesses photos you choose from your library for your profile or support tickets. Only the image you select is uploaded.'**
+  /// **'TEXIAPP accesses photos you choose from your library for your profile or help requests. Only the image you select is uploaded.'**
   String get passengerPlayGalleryDisclosureBody;
 
   /// No description provided for @passengerPlayNotificationDisclosureTitle.
@@ -3968,7 +4088,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyLiveTrackingUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'This feature is only available once your trip is underway.'**
+  /// **'Live tracking is available once your trip is underway.'**
   String get safetyLiveTrackingUnavailable;
 
   /// No description provided for @supportHelpSubtitle.
@@ -4010,7 +4130,7 @@ abstract class AppLocalizations {
   /// No description provided for @supportTicketsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Create or review support tickets'**
+  /// **'Create or review your help requests'**
   String get supportTicketsSubtitle;
 
   /// No description provided for @supportCompanyCallTitle.
@@ -4028,13 +4148,13 @@ abstract class AppLocalizations {
   /// No description provided for @supportTrustFooter.
   ///
   /// In en, this message translates to:
-  /// **'Your safety comes first. Operators and protocols ready to assist you.'**
+  /// **'Your safety comes first. Our team is ready to help you.'**
   String get supportTrustFooter;
 
   /// No description provided for @operatorTexiSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Contact our Operators and learn more about our services.'**
+  /// **'Call the operator and learn more about our services.'**
   String get operatorTexiSubtitle;
 
   /// No description provided for @operatorSecurityCtaTitle.
@@ -4100,7 +4220,7 @@ abstract class AppLocalizations {
   /// No description provided for @operatorCheckBackgroundBody.
   ///
   /// In en, this message translates to:
-  /// **'Security filters applied'**
+  /// **'Security review'**
   String get operatorCheckBackgroundBody;
 
   /// No description provided for @operatorCheckInspectionTitle.
@@ -4190,7 +4310,7 @@ abstract class AppLocalizations {
   /// No description provided for @appUpdateRequiredMessage.
   ///
   /// In en, this message translates to:
-  /// **'A new version of Texi is available. Update the app to continue.'**
+  /// **'A new version of TEXIAPP is available. Update the app to continue.'**
   String get appUpdateRequiredMessage;
 
   /// No description provided for @appUpdateOptionalTitle.
@@ -4202,7 +4322,7 @@ abstract class AppLocalizations {
   /// No description provided for @appUpdateOptionalMessage.
   ///
   /// In en, this message translates to:
-  /// **'An update is available on the Play Store. We recommend installing it for the best experience.'**
+  /// **'An update is available on the Play Store. Install it to get the latest version.'**
   String get appUpdateOptionalMessage;
 
   /// No description provided for @appUpdateOpenStore.

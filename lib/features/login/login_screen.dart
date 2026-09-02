@@ -19,6 +19,8 @@ import 'widgets/login_google_unified_panel.dart';
 import 'widgets/login_method_choice_panel.dart';
 import 'widgets/login_phone_unified_panel.dart';
 import 'widgets/login_phone_verification_method_panel.dart';
+import 'widgets/passenger_auth_look.dart';
+import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 import 'widgets/passenger_turnstile_widget.dart';
 
@@ -71,9 +73,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
 
   bool get _showPhoneCaptcha => _phoneValid;
-
-  bool get _showPhoneVerifyActions =>
-      _phoneValid && (_captchaReady || !_captchaGateRequired);
 
   bool get _isUnifiedStep =>
       _step == LoginScreenStep.phoneUnified ||
@@ -183,9 +182,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return l10n.loginPhoneRequired;
   }
 
+  void _flashError(String? message) {
+    if (message == null || message.trim().isEmpty || !mounted) return;
+    showPassengerAuthNotice(context, message: message);
+  }
+
   void _onVerificationMethodSelected(PhoneVerificationMethod method) {
     if (!_phoneValid) {
-      setState(() => _errorMessage = _phoneInvalidMessage());
+      _flashError(_phoneInvalidMessage());
       return;
     }
     if (_captchaGateRequired && !_captchaReady) return;
@@ -197,7 +201,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   ) async {
     if (_isLoading) return;
     if (!_phoneValid) {
-      setState(() => _errorMessage = _phoneInvalidMessage());
+      _flashError(_phoneInvalidMessage());
       return;
     }
     final countryCode = _countryCodeController.text.trim();
@@ -307,6 +311,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           return;
         }
         setState(() => _errorMessage = loginState.errorMessage);
+        _flashError(loginState.errorMessage);
       });
     }
   }
@@ -343,6 +348,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           return;
         }
         setState(() => _errorMessage = loginState.errorMessage);
+        _flashError(loginState.errorMessage);
       });
     }
   }
@@ -478,6 +484,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'CLIENT_UNEXPECTED' => l10n.verifyCodeErrorUnexpected,
                   'PASS_AUTH_PHONE_REGISTERED_AS_DRIVER' =>
                     l10n.loginErrorPhoneRegisteredAsDriver,
+                  'PASS_AUTH_PHONE_OTHER_ACCOUNT' =>
+                    l10n.loginErrorPhoneDuplicatePassenger,
                   'PASS_AUTH_PHONE_OTHER_ACCOUNT_TYPE' =>
                     l10n.loginErrorPhoneOtherAccountType,
                   'PASS_AUTH_DUPLICATE_USER' =>
@@ -500,6 +508,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         l10n.loginErrorInvalidCredentials,
                 };
     });
+    _flashError(_errorMessage);
   }
 
   void _handleBack() {
@@ -583,6 +592,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage =
           loginState.errorMessage ?? l10n.loginErrorInvalidCredentials;
     });
+    _flashError(_errorMessage);
   }
 
   String? _loadingMessage(AppLocalizations l10n) {
@@ -604,20 +614,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return PassengerAuthShell(
       loading: _isLoading,
       loadingMessage: _loadingMessage(l10n),
-      maxContentWidth: _isUnifiedStep ? 560 : 420,
-      horizontalPadding: _isUnifiedStep ? 12 : 24,
+      maxContentWidth: 400,
+      horizontalPadding: 22,
       leading: showBack
-          ? Padding(
-              padding: const EdgeInsets.only(left: 8, top: 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: _handleBack,
-                  tooltip: l10n.loginBackToMethods,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  color: AppColors.textPrimary,
-                ),
-              ),
+          ? PassengerAuthBackButton(
+              onPressed: _handleBack,
+              tooltip: l10n.loginBackToMethods,
             )
           : null,
       child: PassengerAuthEntrance(
@@ -626,18 +628,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 8),
               Center(
                 child: Image.asset(
                   AppAssets.logoAmaBlanco,
-                  width: showBack ? 72 : 88,
-                  height: showBack ? 72 : 88,
+                  width: showBack ? 56 : 72,
+                  height: showBack ? 56 : 72,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) =>
-                      SizedBox(height: showBack ? 72 : 88),
+                      SizedBox(height: showBack ? 56 : 72),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),
                 switchInCurve: Curves.easeOutCubic,
@@ -659,7 +660,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   outboundEnabled: authChannelsEnabled,
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
               if (_step == LoginScreenStep.methodChoice)
                 PassengerLoginLegalFooter(
                   tone: PassengerLegalNoticeTone.methodChoice,
@@ -699,12 +700,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           phoneValid: _phoneValid,
           showCaptcha: _showPhoneCaptcha,
           captchaReady: _captchaReady,
-          showVerifyActions: _showPhoneVerifyActions,
           onCaptchaToken: _onCaptchaToken,
           onMethodSelected: _onVerificationMethodSelected,
           isLoading: _isLoading,
           outboundEnabled: outboundEnabled,
-          errorMessage: _errorMessage,
           linkedGoogleEmail: loginState.googleEmail,
         );
       case LoginScreenStep.googleUnified:
@@ -718,7 +717,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onSignInWithGoogle: _signInWithGoogle,
           googleAuthEnabled: googleEnabled,
           isLoading: _isLoading,
-          errorMessage: _errorMessage,
         );
     }
   }

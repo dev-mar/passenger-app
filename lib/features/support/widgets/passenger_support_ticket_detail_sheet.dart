@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
 import '../../../core/compliance/passenger_play_media_disclosures.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import '../passenger_support_labels.dart';
 import '../support_ticket_models.dart';
 
 Future<void> showPassengerSupportTicketDetailSheet({
@@ -47,7 +48,7 @@ Future<void> showPassengerSupportTicketDetailSheet({
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${detail.category} · ${detail.status} · ${detail.priority}',
+                    '${localizedSupportCategory(l10n, detail.category)} · ${localizedSupportStatus(l10n, detail.status)}',
                   ),
                   const SizedBox(height: 12),
                   Text(detail.message),
@@ -108,12 +109,7 @@ Future<void> showPassengerSupportTicketDetailSheet({
                               if (detailCtx.mounted) {
                                 ScaffoldMessenger.of(detailCtx).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                      e.toString().replaceFirst(
-                                        RegExp(r'^Exception:\s*'),
-                                        '',
-                                      ),
-                                    ),
+                                    content: Text(l10n.profileSupportAttachRegisterFailed),
                                   ),
                                 );
                               }
@@ -155,8 +151,11 @@ Future<void> showPassengerSupportTicketDetailSheet({
                         Icons.timeline_rounded,
                         color: AppColors.primary,
                       ),
-                      title: Text(e.message),
-                      subtitle: Text('${e.actorType} · ${e.eventType}'),
+                      title: Text(
+                        e.message.trim().isEmpty
+                            ? l10n.profileSupportEventUpdate
+                            : e.message,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),

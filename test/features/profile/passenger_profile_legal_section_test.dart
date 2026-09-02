@@ -25,6 +25,24 @@ void main() {
     expect(find.text('Legal y privacidad'), findsOneWidget);
     expect(find.text('Política de privacidad'), findsOneWidget);
     expect(find.text('Términos de servicio'), findsOneWidget);
+    expect(find.text('Eliminar cuenta'), findsNothing);
+  });
+
+  testWidgets('PassengerAccountDeletionSettingsBlock muestra eliminar cuenta', (tester) async {
+    await tester.pumpWidget(
+      wrapPassengerApp(
+        overrides: [
+          passengerMeProfileDataProvider.overrideWith((ref) async => {}),
+        ],
+        child: const Scaffold(
+          body: SingleChildScrollView(
+            child: PassengerAccountDeletionSettingsBlock(),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Eliminar cuenta'), findsOneWidget);
   });
 }

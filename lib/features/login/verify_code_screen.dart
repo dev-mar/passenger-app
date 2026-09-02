@@ -12,10 +12,7 @@ import '../../core/config/app_config.dart';
 import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_ui_tokens.dart';
-import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
@@ -23,6 +20,7 @@ import '../../core/network/texi_backend_error.dart';
 import '../../core/config/passenger_app_environment.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/notifications/passenger_notification_service.dart';
+import '../../core/privacy/mask_contact_display.dart';
 import '../../core/router/app_router.dart';
 import 'login_controller.dart';
 import 'utils/login_attempts_limit_dialog.dart';
@@ -30,6 +28,8 @@ import 'utils/login_auth_rate_limit.dart';
 import 'widgets/login_auth_action_row.dart';
 import 'widgets/login_auth_info_button.dart';
 import 'widgets/login_whatsapp_brand_icon.dart';
+import 'widgets/passenger_auth_look.dart';
+import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 /// Pantalla para ingresar el código de 6 dígitos y activar al pasajero.
@@ -70,12 +70,12 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
   final _codeFocusNode = FocusNode();
   bool _isLoading = false;
   String? _errorMessage;
+  String? _flashedError;
   Timer? _waPollTimer;
   bool _waWaiting = false;
   bool _waExpired = false;
   bool _waOutboundLoading = false;
   bool _outboundFallbackAvailable = false;
-  bool _smsFallbackAvailable = false;
   bool _waVerifiedSuccess = false;
   bool _waVerifiedPendingNavigation = false;
   bool _waVerifiedReuseDriver = false;
@@ -95,13 +95,33 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       widget.verificationChannel == 'email' &&
       (widget.email?.trim().isNotEmpty ?? false);
 
+  String get _resolvedEmail {
+    final fromRoute = widget.email?.trim() ?? '';
+    if (fromRoute.isNotEmpty) return fromRoute;
+    return ref.read(loginControllerProvider).loginEmail?.trim() ?? '';
+  }
+
+  bool get _showEmailCopy {
+    if (widget.verificationChannel == 'email') return true;
+    if (_resolvedEmail.isEmpty) return false;
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    return phoneDigits.isEmpty;
+  }
+
+  String get _displayPhone => maskPassengerPhoneDisplay(
+        dialCode: widget.countryCode,
+        localNumber: widget.phoneNumber,
+      );
+
+  String get _displayEmail => maskPassengerEmailDisplay(_resolvedEmail);
+
   bool get _isSmsFirebase =>
       widget.verificationChannel == 'sms_firebase' ||
       widget.verificationChannel == 'sms';
 
   void _openSmsVerifyScreen() {
     context.goNamed(
-      'verify_sms',
+      'login',
       queryParameters: {
         'cc': widget.countryCode,
         'phone': widget.phoneNumber,
@@ -177,7 +197,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
           _waExpired = true;
           _outboundFallbackAvailable =
               data['fallback_channel'] == 'whatsapp_outbound';
-          _smsFallbackAvailable = data['fallback_channel'] == 'sms_firebase';
         });
         return;
       }
@@ -238,11 +257,20 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         : '+${widget.countryCode}';
     final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
     final fullPhone = '$cc$phoneDigits';
-    final next = await ref.read(loginControllerProvider.notifier).requestWhatsAppOutbound(
-          countryCode: widget.countryCode,
-          phoneNumber: widget.phoneNumber,
-          fullPhone: fullPhone,
-        );
+    final LoginNextStep next;
+    if (widget.linkPhoneMode) {
+      next = await ref.read(loginControllerProvider.notifier).linkPhoneChallenge(
+            countryCode: widget.countryCode,
+            phoneNumber: widget.phoneNumber,
+            otpChannel: 'whatsapp_outbound',
+          );
+    } else {
+      next = await ref.read(loginControllerProvider.notifier).requestWhatsAppOutbound(
+            countryCode: widget.countryCode,
+            phoneNumber: widget.phoneNumber,
+            fullPhone: fullPhone,
+          );
+    }
     if (!mounted) return;
     setState(() => _waOutboundLoading = false);
     if (next == LoginNextStep.stepUp ||
@@ -282,6 +310,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
           'cc': widget.countryCode,
           'phone': widget.phoneNumber,
           'channel': 'whatsapp_outbound',
+          if (widget.linkPhoneMode) 'link': '1',
+          if (widget.returnTo != null && widget.returnTo!.isNotEmpty)
+            'return_to': widget.returnTo!,
         },
       );
       return;
@@ -306,12 +337,21 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       _errorMessage = null;
     });
 
-    final next = await ref.read(loginControllerProvider.notifier).login(
-          countryCode: widget.countryCode,
-          phoneNumber: widget.phoneNumber,
-          fullPhone: fullPhone,
-          otpChannel: 'whatsapp_inbound',
-        );
+    final LoginNextStep next;
+    if (widget.linkPhoneMode) {
+      next = await ref.read(loginControllerProvider.notifier).linkPhoneChallenge(
+            countryCode: widget.countryCode,
+            phoneNumber: widget.phoneNumber,
+            otpChannel: 'whatsapp_inbound',
+          );
+    } else {
+      next = await ref.read(loginControllerProvider.notifier).login(
+            countryCode: widget.countryCode,
+            phoneNumber: widget.phoneNumber,
+            fullPhone: fullPhone,
+            otpChannel: 'whatsapp_inbound',
+          );
+    }
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -351,6 +391,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
           if (loginState.waDeepLink != null &&
               loginState.waDeepLink!.isNotEmpty)
             'wa_deep_link': loginState.waDeepLink!,
+          if (widget.linkPhoneMode) 'link': '1',
+          if (widget.returnTo != null && widget.returnTo!.isNotEmpty)
+            'return_to': widget.returnTo!,
         },
       );
       return;
@@ -373,7 +416,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     }
     if (!_isWhatsAppOutbound) {
       return Text(
-        l10n.verifyCodeRetryHint,
+        _showEmailCopy
+            ? l10n.verifyCodeEmailRetryHint
+            : l10n.verifyCodeRetryHint,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.9),
               height: 1.4,
@@ -462,30 +507,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
             infoMessage: l10n.loginVerifyMethodCodeInfo,
             onTap: _resendWhatsAppOutboundCode,
           ),
-          if (multichannel) ...[
-            const SizedBox(height: 10),
-            LoginAuthActionRow(
-              enabled: actionsEnabled,
-              highlighted: false,
-              icon: Icon(
-                Icons.sms_outlined,
-                color: AppColors.textPrimary.withValues(alpha: 0.88),
-                size: 22,
-              ),
-              label: l10n.verifyCodeWaRequestSms,
-              infoMessage: l10n.verifyCodeSmsSubtitle(
-                '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}',
-              ),
-              onTap: _requestSmsFirebaseCode,
-            ),
-          ],
         ],
       ),
     );
-  }
-
-  void _requestSmsFirebaseCode() {
-    _openSmsVerifyScreen();
   }
 
   @override
@@ -586,18 +610,24 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         ? widget.countryCode
         : '+${widget.countryCode}';
     final fullPhone = '$cc$phoneDigits';
-    await AuthService.persistLoginPhoneE164(fullPhone);
     if (!mounted) return;
 
     if (widget.linkPhoneMode) {
-      final returnTo = widget.returnTo?.trim();
-      if (returnTo != null && returnTo.isNotEmpty) {
-        context.go(returnTo);
-      } else {
-        context.goNamed(AppRouter.tripRequest);
+      setState(() => _isLoading = true);
+      final ok = await _completePhoneLinkAfterPossession();
+      if (!ok && mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = ref.read(loginControllerProvider).errorMessage ??
+              l10n.verifyCodeErrorValidateCode;
+        });
       }
       return;
     }
+
+    await AuthService.persistLoginPhoneE164(fullPhone);
+    if (!mounted) return;
 
     context.goNamed(
       AppRouter.profileSetup,
@@ -606,6 +636,40 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         'phone': widget.phoneNumber,
       },
     );
+  }
+
+  /// Persiste el teléfono en la identidad (sesión limitada email/Google → full).
+  Future<bool> _completePhoneLinkAfterPossession({String? verificationCode}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    final ok = await ref.read(loginControllerProvider.notifier).linkPhoneVerify(
+          countryCode: widget.countryCode,
+          phoneNumber: phoneDigits,
+          verificationCode: verificationCode,
+        );
+    if (!mounted) return false;
+    if (!ok) return false;
+
+    final ccNav = widget.countryCode.startsWith('+')
+        ? widget.countryCode
+        : '+${widget.countryCode}';
+    await AuthService.persistLoginPhoneE164('$ccNav$phoneDigits');
+    await ref.read(passengerMeProfileServiceProvider).fetchData(forceRefresh: true);
+    if (!mounted) return false;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(l10n.phoneLinkSuccess),
+      ),
+    );
+    final dest = widget.returnTo?.trim();
+    if (dest != null && dest.isNotEmpty) {
+      context.goNamed(dest);
+    } else {
+      context.goNamed(AppRouter.tripRequest);
+    }
+    return true;
   }
 
   /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
@@ -649,7 +713,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         if (!mounted) return;
         setState(() {
           _isLoading = false;
-          _errorMessage = envelope['message']?.toString() ??
+          _errorMessage = TexiBackendError.userSafeMessage(
+                envelope['message']?.toString(),
+              ) ??
               l10n.verifyCodeErrorActivateAccount;
         });
         return;
@@ -791,38 +857,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
 
     if (widget.linkPhoneMode) {
-      final ok = await ref.read(loginControllerProvider.notifier).linkPhoneVerify(
-            countryCode: widget.countryCode,
-            phoneNumber: phoneOnlyDigits,
-            verificationCode: codeText,
-          );
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      if (ok) {
-        final ccNav = widget.countryCode.startsWith('+')
-            ? widget.countryCode
-            : '+${widget.countryCode}';
-        await AuthService.persistLoginPhoneE164('$ccNav$phoneOnlyDigits');
-        await ref
-            .read(passengerMeProfileServiceProvider)
-            .fetchData(forceRefresh: true);
-        if (!mounted) return;
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text(l10n.phoneLinkSuccess),
-          ),
-        );
-        final dest = widget.returnTo?.trim();
-        if (dest != null && dest.isNotEmpty) {
-          context.goNamed(dest);
-        } else {
-          context.goNamed('trip_request');
-        }
-        return;
+      final ok = await _completePhoneLinkAfterPossession(
+        verificationCode: codeText,
+      );
+      if (!ok && mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = ref.read(loginControllerProvider).errorMessage ??
+              l10n.verifyCodeErrorValidateCode;
+        });
       }
-      setState(() => _errorMessage = l10n.verifyCodeErrorValidateCode);
       return;
     }
 
@@ -848,7 +892,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       }
       final envelope = Map<String, dynamic>.from(body as Map);
       if (envelope['success'] != true) {
-        final message = envelope['message']?.toString() ??
+        final message = TexiBackendError.userSafeMessage(
+              envelope['message']?.toString(),
+            ) ??
             l10n.verifyCodeErrorValidateCode;
         final code = envelope['code']?.toString();
         if (!mounted) return;
@@ -911,17 +957,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         return;
       }
       final backendMsg = TexiBackendError.messageFromResponse(data);
-      String? detail;
-      if (data is Map<String, dynamic>) {
-        final err = data['error'];
-        if (err is Map) {
-          detail = err['details']?.toString();
-        }
-      }
-      final fallback = detail ??
-          backendMsg ??
-          (data is Map ? data['message']?.toString() : null) ??
-          (e.message != null && e.message!.isNotEmpty ? e.message! : null);
+      final fallback = TexiBackendError.userSafeMessage(backendMsg);
       if (!mounted) return;
       if (await _navigateIfAuthLockout(code: code, responseData: data)) {
         return;
@@ -944,72 +980,69 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final maskedPhone =
-        '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}';
+    final destinationPhone = _displayPhone;
+    final destinationEmail = _displayEmail;
+    final err = _errorMessage;
+    if (err == null) {
+      _flashedError = null;
+    } else if (err != _flashedError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _errorMessage != err) return;
+        _flashedError = err;
+        showPassengerAuthNotice(context, message: err);
+      });
+    }
 
     return PassengerAuthShell(
       loading: _isLoading,
       loadingMessage: l10n.commonLoading,
-      leading: Align(
-        alignment: Alignment.centerLeft,
-        child: IconButton(
-          onPressed: _isLoading ? null : () => context.goNamed('login'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        ),
+      leading: PassengerAuthBackButton(
+        onPressed: _isLoading
+            ? null
+            : () {
+                if (widget.linkPhoneMode) {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.goNamed(AppRouter.tripRequest);
+                  }
+                  return;
+                }
+                context.goNamed('login');
+              },
       ),
       child: PassengerAuthEntrance(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 42),
-                  child: Text(
-                    _isWhatsAppInbound
-                        ? l10n.verifyCodeWaTitle
-                        : l10n.verifyCodeTitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.95),
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: LoginAuthInfoButton(
-                    message: _isWhatsAppInbound
-                        ? l10n.verifyCodeWaInfo
-                        : l10n.verifyCodeEntryInfo,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _isWhatsAppInbound
-                  ? l10n.verifyCodeWaSubtitle(maskedPhone)
+            PassengerAuthHeadline(
+              title: _isWhatsAppInbound
+                  ? l10n.verifyCodeWaTitle
+                  : _showEmailCopy
+                      ? l10n.verifyCodeEmailTitle
+                      : l10n.verifyCodeTitle,
+              subtitle: _isWhatsAppInbound
+                  ? l10n.verifyCodeWaSubtitle(destinationPhone)
                   : _isPlayReview
                       ? l10n.verifyCodePlayReviewSubtitle
-                      : l10n.verifyCodeSubtitle(maskedPhone),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary.withValues(alpha: 0.95),
-                    height: 1.4,
-                    fontSize: 13.5,
-                  ),
+                      : _showEmailCopy
+                          ? l10n.verifyCodeEmailSubtitle(destinationEmail)
+                          : l10n.verifyCodeSubtitle(destinationPhone),
+              trailing: LoginAuthInfoButton(
+                message: _isWhatsAppInbound
+                    ? l10n.verifyCodeWaInfo
+                    : _showEmailCopy
+                        ? l10n.verifyCodeEmailInfo
+                        : l10n.verifyCodeEntryInfo,
+                compact: true,
+              ),
             ),
             if (_isWhatsAppInbound) ...[
-              const SizedBox(height: 20),
-              FilledButton.icon(
+              const SizedBox(height: 22),
+              PassengerAuthPrimaryButton(
+                label: l10n.verifyCodeWaOpenButton,
                 onPressed: _isLoading ? null : _openWhatsAppDeepLink,
-                icon: const Icon(Icons.chat_rounded),
-                label: Text(l10n.verifyCodeWaOpenButton),
+                icon: const Icon(Icons.chat_rounded, size: 18),
               ),
               if (_waWaiting || _waVerifiedSuccess) ...[
                 const SizedBox(height: 16),
@@ -1020,21 +1053,23 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
                       _waVerifiedSuccess
                           ? Icons.check_circle_rounded
                           : Icons.hourglass_top_rounded,
-                      size: 20,
+                      size: 18,
                       color: _waVerifiedSuccess
                           ? AppColors.success
-                          : AppColors.textSecondary,
+                          : PassengerAuthLook.muted,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Text(
                         _waVerifiedSuccess
                             ? l10n.verifyCodeWaVerified
                             : l10n.verifyCodeWaWaiting,
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: _waVerifiedSuccess
                                   ? AppColors.success
-                                  : AppColors.textSecondary,
+                                  : PassengerAuthLook.muted,
+                              fontSize: 13,
                             ),
                       ),
                     ),
@@ -1046,102 +1081,64 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
                 l10n.verifyCodeWaFallbackHint,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary.withValues(alpha: 0.85),
+                      color: PassengerAuthLook.muted,
+                      fontSize: 12.5,
                     ),
               ),
               if (_waExpired && _outboundFallbackAvailable) ...[
                 const SizedBox(height: 16),
                 OutlinedButton(
-                  onPressed: _waOutboundLoading ? null : _requestWhatsAppOutboundCode,
+                  onPressed:
+                      _waOutboundLoading ? null : _requestWhatsAppOutboundCode,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: PassengerAuthLook.hairlineStrong),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
                   child: Text(l10n.verifyCodeWaRequestOutbound),
                 ),
               ],
-              if (_waExpired && _smsFallbackAvailable) ...[
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _requestSmsFirebaseCode,
-                  child: Text(l10n.verifyCodeWaRequestSms),
-                ),
-              ],
-            ],
-            if (_isWhatsAppInbound && _errorMessage != null) ...[
-              const SizedBox(height: 12),
-              PremiumStateView(
-                icon: Icons.error_outline_rounded,
-                title: l10n.loginReviewDataTitle,
-                message: _errorMessage!,
-                actionLabel: l10n.homeRetry,
-                onAction: () {
-                  setState(() => _errorMessage = null);
-                  _pollWhatsAppChallenge();
-                },
-              ),
             ],
             if (!_isWhatsAppInbound && !_isSmsFirebase) ...[
-            const SizedBox(height: 22),
-            PassengerAuthGlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Semantics(
-                    label: l10n.verifyCodeFieldLabel,
-                    child: TextField(
-                      controller: _codeController,
-                      focusNode: _codeFocusNode,
-                      maxLength: 6,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        letterSpacing: 8,
-                        fontWeight: FontWeight.w600,
+              const SizedBox(height: 22),
+              PassengerAuthFieldPanel(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Semantics(
+                      label: l10n.verifyCodeFieldLabel,
+                      child: TextField(
+                        controller: _codeController,
+                        focusNode: _codeFocusNode,
+                        maxLength: 6,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          letterSpacing: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: passengerAuthInlineFieldDecoration(
+                          hint: l10n.verifyCodeMaskHint,
+                        ).copyWith(counterText: ''),
+                        onSubmitted: (_) => _verify(),
                       ),
-                      decoration: passengerAuthFieldDecoration(
-                        label: l10n.verifyCodeFieldLabel,
-                        hint: l10n.verifyCodeMaskHint,
-                      ).copyWith(counterText: ''),
-                      onSubmitted: (_) => _verify(),
                     ),
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.xxx),
-                    PremiumStateView(
-                      icon: Icons.sms_failed_rounded,
-                      title: l10n.loginReviewDataTitle,
-                      message: _errorMessage!,
-                      actionLabel: l10n.homeRetry,
-                      onAction: _verify,
+                    const SizedBox(height: 18),
+                    PassengerAuthPrimaryButton(
+                      label: l10n.verifyCodeConfirm,
+                      onPressed: _isLoading ? null : _verify,
                     ),
                   ],
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    height: 52,
-                    width: double.infinity,
-                    child: TexiScalePress(
-                      child: FilledButton(
-                        onPressed: _isLoading ? null : _verify,
-                        style: FilledButton.styleFrom(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadii.lg),
-                          ),
-                        ),
-                        child: Text(
-                          l10n.verifyCodeConfirm,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildOutboundDeliveryHelp(l10n),
+              const SizedBox(height: 16),
+              _buildOutboundDeliveryHelp(l10n),
             ],
           ],
         ),

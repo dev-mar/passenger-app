@@ -91,7 +91,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
     if (token == null || token.isEmpty) {
       setState(() {
         _loading = false;
-        _error = AppLocalizations.of(context)!.commonError;
+        _error = AppLocalizations.of(context)!.tripRbacSession;
       });
       return;
     }
@@ -183,11 +183,13 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
         debugPrint('[CreateTrip] statusCode=${e.response?.statusCode} data=${e.response?.data}');
       }
       final l10n = AppLocalizations.of(context)!;
-      String message = l10n.commonError;
+      String message = localizedPassengerTripFailure(
+        l10n,
+        failureContext: PassengerTripFailureContext.create,
+        error: e,
+      );
       if (e is DioException) {
-        final data = e.response?.data;
-        final code = TexiBackendError.codeFromResponse(data);
-        final rawMsg = TexiBackendError.messageFromResponse(data);
+        final code = TexiBackendError.codeFromResponse(e.response?.data);
         if (code == 'PASS_AUTH_PHONE_REQUIRED') {
           if (await handlePassengerTripPhoneRequired(
             context,
@@ -198,10 +200,6 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             setState(() => _loading = false);
             return;
           }
-        }
-        message = localizedTripApiError(l10n, code, fallbackMessage: rawMsg);
-        if (message == l10n.commonError && e.response?.statusCode != null) {
-          message = '${e.response?.statusCode}: ${e.message ?? message}';
         }
       }
       setState(() {
@@ -228,7 +226,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             child: PremiumStateView(
               icon: Icons.route_rounded,
               title: l10n.tripMissingDataTitle,
-              message: l10n.commonError,
+              message: l10n.tripMissingDataBody,
               actionLabel: 'Volver',
               onAction: () => context.goNamed('trip_request'),
             ),
@@ -257,7 +255,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
           _card(
             context,
             l10n.quoteTitle,
-            '${displayServiceTypeName(option.serviceTypeName, l10n)} — ${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)}',
+            '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)}',
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),

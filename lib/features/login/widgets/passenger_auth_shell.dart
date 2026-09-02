@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
+import 'passenger_auth_look.dart';
 
 /// Fondo + gradiente compartido del embudo login / OTP / perfil.
 class PassengerAuthShell extends StatelessWidget {
@@ -16,8 +17,8 @@ class PassengerAuthShell extends StatelessWidget {
     this.leading,
     this.loading = false,
     this.loadingMessage,
-    this.maxContentWidth = 420,
-    this.horizontalPadding = 24,
+    this.maxContentWidth = 400,
+    this.horizontalPadding = 22,
   });
 
   final Widget child;
@@ -38,17 +39,29 @@ class PassengerAuthShell extends StatelessWidget {
             AppAssets.loginBackground,
             fit: BoxFit.cover,
           ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.85),
+                radius: 1.15,
+                colors: [
+                  Color(0x33FFD600),
+                  Color(0x00000000),
+                ],
+              ),
+            ),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.28),
-                  Colors.black.withValues(alpha: 0.55),
-                  Colors.black.withValues(alpha: 0.88),
+                  Colors.black.withValues(alpha: 0.38),
+                  Colors.black.withValues(alpha: 0.62),
+                  const Color(0xF2070605),
                 ],
-                stops: const [0.0, 0.45, 1.0],
+                stops: const [0.0, 0.42, 1.0],
               ),
             ),
           ),
@@ -145,12 +158,12 @@ class PassengerAuthGlassCard extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.78),
-            borderRadius: BorderRadius.circular(AppRadii.dialog),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            color: const Color(0xE3181511),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: child,
           ),
         ),
@@ -213,9 +226,15 @@ InputDecoration passengerAuthFieldDecoration({
   Widget? suffixIcon,
 }) {
   return InputDecoration(
-    labelText: label,
-    hintText: hint,
+    hintText: hint ?? label,
+    hintStyle: const TextStyle(
+      color: PassengerAuthLook.muted,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    ),
     suffixIcon: suffixIcon,
+    floatingLabelBehavior: FloatingLabelBehavior.never,
+    counterText: '',
     filled: true,
     fillColor: AppColors.background.withValues(alpha: 0.55),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -234,5 +253,32 @@ InputDecoration passengerAuthFieldDecoration({
         width: 1.4,
       ),
     ),
+  );
+}
+
+/// Campo dentro de [PassengerAuthFieldPanel]: guía solo como hint, nunca label flotante.
+InputDecoration passengerAuthInlineFieldDecoration({
+  String? hint,
+  Widget? suffixIcon,
+}) {
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(
+      color: PassengerAuthLook.muted,
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+    ),
+    suffixIcon: suffixIcon,
+    floatingLabelBehavior: FloatingLabelBehavior.never,
+    counterText: '',
+    filled: false,
+    isDense: true,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    disabledBorder: InputBorder.none,
+    errorBorder: InputBorder.none,
+    focusedErrorBorder: InputBorder.none,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
   );
 }

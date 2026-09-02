@@ -73,7 +73,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   if (token == null || token.isEmpty) {
     return PassengerTripSubmitResult(
       PassengerTripSubmitResultKind.error,
-      message: l10n.commonError,
+      message: l10n.tripRbacSession,
     );
   }
 
@@ -206,9 +206,11 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
           }
         }
       }
-      final message = localizedTripApiError(
+      final message = localizedPassengerTripFailure(
         l10n,
-        code,
+        failureContext: PassengerTripFailureContext.create,
+        error: e,
+        code: code,
         fallbackMessage: rawMsg,
       );
       if (code == 'PASS_AUTH_PHONE_REQUIRED') {
@@ -224,7 +226,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
     }
     return PassengerTripSubmitResult(
       PassengerTripSubmitResultKind.error,
-      message: l10n.commonError,
+      message: l10n.tripRequestUnavailable,
     );
   }
 }

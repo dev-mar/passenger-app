@@ -78,7 +78,11 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
     final quoteData = quote;
     final selectedName = selectedQuoteOption == null
         ? null
-        : displayServiceTypeName(selectedQuoteOption!.serviceTypeName, l10n);
+        : displayServiceTypeName(
+            selectedQuoteOption!.serviceTypeName,
+            l10n,
+            serviceTypeId: selectedQuoteOption!.serviceTypeId,
+          );
     final requestLabel = (selectedName != null && selectedName.isNotEmpty)
         ? l10n.confirmRequestRideWithService(selectedName)
         : l10n.confirmRequestRide;
@@ -260,10 +264,15 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                   builder: (context) {
                     final options = List<QuoteOption>.from(quoteData.options)
                       ..sort(
-                        (a, b) => serviceTypeCarouselSortKey(a.serviceTypeName)
-                            .compareTo(
-                              serviceTypeCarouselSortKey(b.serviceTypeName),
-                            ),
+                        (a, b) => serviceTypeCarouselSortKey(
+                          a.serviceTypeName,
+                          serviceTypeId: a.serviceTypeId,
+                        ).compareTo(
+                          serviceTypeCarouselSortKey(
+                            b.serviceTypeName,
+                            serviceTypeId: b.serviceTypeId,
+                          ),
+                        ),
                       );
                     return SizedBox(
                       height: 78,

@@ -6,7 +6,6 @@ import '../../core/config/passenger_app_environment.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/phone/bolivia_local_phone.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/premium_state_view.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'login_controller.dart';
 import 'utils/login_country_flag.dart';
@@ -14,6 +13,8 @@ import 'widgets/login_auth_action_row.dart';
 import 'widgets/login_phone_entry_panel.dart';
 import 'widgets/login_phone_verification_method_panel.dart';
 import 'widgets/login_whatsapp_brand_icon.dart';
+import 'widgets/passenger_auth_look.dart';
+import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 /// Vincular teléfono verificado a sesión limitada (email/Google) — Fase 7.
@@ -32,8 +33,6 @@ class _PassengerPhoneLinkScreenState
   final _countryCodeController = TextEditingController(text: '+591');
   final _phoneController = TextEditingController();
   bool _isLoading = false;
-  String? _errorMessage;
-  bool _showVerifyMethods = false;
 
   LoginCountryDial get _country =>
       loginCountryFromDialCode(_countryCodeController.text);
@@ -44,24 +43,14 @@ class _PassengerPhoneLinkScreenState
       );
 
   @override
-  void initState() {
-    super.initState();
-    _phoneController.addListener(_onPhoneChanged);
-  }
-
-  @override
   void dispose() {
-    _phoneController.removeListener(_onPhoneChanged);
     _countryCodeController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
 
-  void _onPhoneChanged() {
-    final show = _phoneValid;
-    if (show != _showVerifyMethods) {
-      setState(() => _showVerifyMethods = show);
-    }
+  void _flashError(String message) {
+    showPassengerAuthNotice(context, message: message);
   }
 
   String _phoneInvalidMessage(AppLocalizations l10n) {
@@ -76,16 +65,13 @@ class _PassengerPhoneLinkScreenState
   Future<void> _startLinkChallenge(PhoneVerificationMethod method) async {
     if (_isLoading) return;
     if (!_phoneValid) {
-      setState(() {
-        _errorMessage = _phoneInvalidMessage(AppLocalizations.of(context)!);
-      });
+      _flashError(_phoneInvalidMessage(AppLocalizations.of(context)!));
       return;
     }
     final phone = _phoneController.text.trim();
     final countryCode = _countryCodeController.text.trim();
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     final otpChannel = method == PhoneVerificationMethod.verificationCode
@@ -103,6 +89,14 @@ class _PassengerPhoneLinkScreenState
 
     if (next == LoginNextStep.verifyCode) {
       final loginState = ref.read(loginControllerProvider);
+      if (otpChannel == 'whatsapp_inbound' &&
+          (loginState.challengeId == null || loginState.challengeId!.isEmpty)) {
+        _flashError(
+          loginState.errorMessage ??
+              AppLocalizations.of(context)!.verifyCodeWaOutboundFailed,
+        );
+        return;
+      }
       context.pushNamed(
         'verify_code',
         queryParameters: {
@@ -122,30 +116,11 @@ class _PassengerPhoneLinkScreenState
     }
 
     if (next == LoginNextStep.error) {
-      setState(() {
-        _errorMessage = ref.read(loginControllerProvider).errorMessage;
-      });
+      final message = ref.read(loginControllerProvider).errorMessage;
+      if (message != null && message.isNotEmpty) {
+        _flashError(message);
+      }
     }
-  }
-
-  void _openSmsVerifyScreen() {
-    if (_isLoading) return;
-    if (!_phoneValid) {
-      setState(() {
-        _errorMessage = _phoneInvalidMessage(AppLocalizations.of(context)!);
-      });
-      return;
-    }
-    context.pushNamed(
-      'verify_sms',
-      queryParameters: {
-        'cc': _countryCodeController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        if (widget.returnTo != null && widget.returnTo!.isNotEmpty)
-          'return_to': widget.returnTo!,
-        'link': '1',
-      },
-    );
   }
 
   @override
@@ -156,8 +131,7 @@ class _PassengerPhoneLinkScreenState
     return PassengerAuthShell(
       loading: _isLoading,
       loadingMessage: l10n.commonLoading,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+      leading: PassengerAuthBackButton(
         onPressed: _isLoading
             ? null
             : () {
@@ -169,97 +143,60 @@ class _PassengerPhoneLinkScreenState
               },
       ),
       child: PassengerAuthEntrance(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PremiumStateView(
-                icon: Icons.phone_android_rounded,
-                title: l10n.phoneLinkTitle,
-                message: l10n.phoneLinkSubtitle,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            PassengerAuthHeadline(
+              title: l10n.phoneLinkTitle,
+              subtitle: l10n.phoneLinkSubtitle,
+            ),
+            const SizedBox(height: 22),
+            LoginPhoneEntryPanel(
+              country: _country,
+              phoneController: _phoneController,
+              isLoading: _isLoading,
+              showHeadline: false,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              l10n.loginVerifySectionLabel,
+              style: PassengerAuthLook.sectionLabelStyle,
+            ),
+            const SizedBox(height: 10),
+            LoginAuthActionRow(
+              enabled: !_isLoading,
+              highlighted: true,
+              accent: LoginWhatsAppBrandIcon.brandGreen,
+              icon: const LoginWhatsAppBrandIcon(size: 26),
+              label: l10n.loginVerifyMethodWaInboundShort,
+              badge: l10n.loginVerifyMethodRecommendedBadge,
+              infoMessage: l10n.loginVerifyMethodWaInboundInfo,
+              onTap: () {
+                TexiUiFeedback.softImpact();
+                _startLinkChallenge(PhoneVerificationMethod.whatsAppInbound);
+              },
+            ),
+            if (outboundEnabled) ...[
+              const SizedBox(height: 8),
+              LoginAuthActionRow(
+                enabled: !_isLoading,
+                highlighted: false,
+                icon: Icon(
+                  Icons.pin_outlined,
+                  color: AppColors.textPrimary.withValues(alpha: 0.88),
+                  size: 22,
+                ),
+                label: l10n.loginVerifyMethodCodeShort,
+                infoMessage: l10n.loginVerifyMethodCodeInfo,
+                onTap: () {
+                  TexiUiFeedback.softImpact();
+                  _startLinkChallenge(
+                    PhoneVerificationMethod.verificationCode,
+                  );
+                },
               ),
-              const SizedBox(height: 24),
-              LoginPhoneEntryPanel(
-                country: _country,
-                phoneController: _phoneController,
-                errorMessage: null,
-                isLoading: _isLoading,
-                onSubmit: _isLoading
-                    ? () {}
-                    : () => _startLinkChallenge(
-                          PhoneVerificationMethod.whatsAppInbound,
-                        ),
-              ),
-              if (_showVerifyMethods) ...[
-                const SizedBox(height: 20),
-                Text(
-                  l10n.loginVerifySectionLabel,
-                  style: TextStyle(
-                    color: AppColors.textSecondary.withValues(alpha: 0.85),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                LoginAuthActionRow(
-                  enabled: !_isLoading,
-                  highlighted: true,
-                  accent: LoginWhatsAppBrandIcon.brandGreen,
-                  icon: const LoginWhatsAppBrandIcon(size: 28),
-                  label: l10n.loginVerifyMethodWaInboundShort,
-                  badge: l10n.loginVerifyMethodRecommendedBadge,
-                  infoMessage: l10n.loginVerifyMethodWaInboundInfo,
-                  onTap: () {
-                    TexiUiFeedback.softImpact();
-                    _startLinkChallenge(PhoneVerificationMethod.whatsAppInbound);
-                  },
-                ),
-                const SizedBox(height: 10),
-                LoginAuthActionRow(
-                  enabled: outboundEnabled && !_isLoading,
-                  highlighted: false,
-                  icon: Icon(
-                    Icons.pin_outlined,
-                    color: AppColors.textPrimary.withValues(alpha: 0.88),
-                    size: 22,
-                  ),
-                  label: l10n.loginVerifyMethodCodeShort,
-                  infoMessage: l10n.loginVerifyMethodCodeInfo,
-                  onTap: outboundEnabled
-                      ? () {
-                          TexiUiFeedback.softImpact();
-                          _startLinkChallenge(
-                            PhoneVerificationMethod.verificationCode,
-                          );
-                        }
-                      : () {},
-                ),
-                const SizedBox(height: 10),
-                LoginAuthActionRow(
-                  enabled: !_isLoading,
-                  highlighted: false,
-                  icon: Icon(
-                    Icons.sms_outlined,
-                    color: AppColors.textPrimary.withValues(alpha: 0.88),
-                    size: 22,
-                  ),
-                  label: l10n.verifyCodeWaRequestSms,
-                  infoMessage: l10n.verifySmsGoogleHint,
-                  onTap: _openSmsVerifyScreen,
-                ),
-              ],
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                PremiumStateView(
-                  icon: Icons.info_outline_rounded,
-                  title: l10n.loginReviewDataTitle,
-                  message: _errorMessage!,
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

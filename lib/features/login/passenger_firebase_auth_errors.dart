@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/network/texi_backend_error.dart';
 import '../../gen_l10n/app_localizations.dart';
 
 enum PassengerFirebaseAuthErrorKind {
@@ -170,15 +171,11 @@ PassengerSmsAuthErrorPresentation passengerSmsAuthErrorPresentation(
       );
     case PassengerFirebaseAuthErrorKind.generic:
       final fallback = rawMessage?.trim();
-      final safeMessage = (fallback != null &&
-              fallback.isNotEmpty &&
-              !isTechnicalFirebaseAuthMessage(fallback))
-          ? fallback
-          : l10n.verifyCodeSmsFailed;
       return PassengerSmsAuthErrorPresentation(
         kind: kind,
         title: l10n.verifySmsErrorTitleGeneric,
-        message: safeMessage,
+        message: TexiBackendError.userSafeMessage(fallback) ??
+            l10n.verifyCodeSmsFailed,
         icon: Icons.info_outline_rounded,
         suggestWhatsAppAlternative: isTechnicalFirebaseAuthMessage(fallback),
       );
@@ -192,7 +189,8 @@ PassengerSmsAuthErrorPresentation passengerSmsGenericErrorPresentation(
   return PassengerSmsAuthErrorPresentation(
     kind: PassengerFirebaseAuthErrorKind.generic,
     title: l10n.verifySmsErrorTitleGeneric,
-    message: message,
+        message: TexiBackendError.userSafeMessage(message) ??
+            l10n.verifyCodeSmsFailed,
     icon: Icons.info_outline_rounded,
   );
 }

@@ -12,6 +12,7 @@ import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/texi_backend_error.dart';
+import '../../core/privacy/mask_contact_display.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/widgets/premium_state_view.dart';
@@ -62,9 +63,10 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
     return '$cc$phoneDigits';
   }
 
-  String get _maskedPhone {
-    return '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}';
-  }
+  String get _displayPhone => maskPassengerPhoneDisplay(
+        dialCode: widget.countryCode,
+        localNumber: widget.phoneNumber,
+      );
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
@@ -392,7 +394,8 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
         setState(() {
           _isLoading = false;
           _errorMessage = body is Map<String, dynamic>
-              ? body['message']?.toString() ?? l10n.verifyCodeErrorActivateAccount
+              ? (TexiBackendError.userSafeMessage(body['message']?.toString()) ??
+                  l10n.verifyCodeErrorActivateAccount)
               : l10n.verifyCodeErrorActivateAccount;
         });
         return;
@@ -457,8 +460,8 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
   }) {
     final muted = AppColors.textSecondary.withValues(alpha: 0.55);
     return InputDecoration(
-      labelText: label,
-      hintText: hint,
+      hintText: hint.isNotEmpty ? hint : label,
+      floatingLabelBehavior: FloatingLabelBehavior.never,
       filled: false,
       border: InputBorder.none,
       enabledBorder: UnderlineInputBorder(
@@ -496,7 +499,7 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          l10n.verifySmsGoogleSubtitle(_maskedPhone),
+          l10n.verifySmsGoogleSubtitle(_displayPhone),
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.92),
@@ -572,7 +575,7 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          l10n.verifyCodeSmsSubtitle(_maskedPhone),
+          l10n.verifyCodeSmsSubtitle(_displayPhone),
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppColors.textSecondary.withValues(alpha: 0.9),

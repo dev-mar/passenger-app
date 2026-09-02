@@ -15,14 +15,15 @@ import '../../core/network/passenger_client_meta.dart';
 import '../../core/network/passenger_http_resilience.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
-import '../../core/ui/texi_scale_press.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/widgets/premium_state_view.dart';
+import '../../core/input/passenger_text_limits.dart';
 import '../../core/compliance/passenger_login_legal_footer.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import 'login_controller.dart';
+import 'widgets/passenger_auth_look.dart';
+import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
 /// Tercera pantalla del onboarding:
@@ -52,6 +53,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   Uint8List? _profileImageBytes;
   String? _profileImageBase64;
   String? _errorMessage;
+  String? _flashedError;
 
   PassengerApiClient get _api => ref.read(passengerApiClientProvider);
 
@@ -70,7 +72,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (googleName != null &&
           googleName.isNotEmpty &&
           _nameController.text.trim().isEmpty) {
-        _nameController.text = googleName;
+        _nameController.text =
+            clampPassengerText(googleName, kPassengerDisplayNameMaxLength);
       }
     });
   }
@@ -155,8 +158,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       if (envelope['success'] != true) {
         setState(() => _saving = false);
         if (!mounted) return;
-        final msg = envelope['message']?.toString();
-        setState(() => _errorMessage = msg ?? l10n.profileSetupErrorCompleteRegistration);
+        final msg = TexiBackendError.userSafeMessage(
+              envelope['message']?.toString(),
+            ) ??
+            l10n.profileSetupErrorCompleteRegistration;
+        setState(() => _errorMessage = msg);
         context.goNamed('login');
         return;
       }
@@ -216,23 +222,17 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         });
         return;
       }
-      final status = e.response?.statusCode;
       final data = e.response?.data;
       final code = TexiBackendError.codeFromResponse(data);
-      final backendMsg = (data is Map)
-          ? (data['message']?.toString() ??
-              (data['error'] as Map?)?['details']?.toString())
-          : null;
-      final mapped = localizedTripApiError(l10n, code, fallbackMessage: backendMsg);
-      final msg = mapped == l10n.commonError &&
-              backendMsg == null &&
-              (code == null || code.isEmpty)
-          ? (status != null
-              ? l10n.profileSetupErrorRegisterStatus(status.toString())
-              : l10n.profileSetupErrorCompleteRegistration)
-          : mapped;
+      final backendMsg = TexiBackendError.userSafeMessage(
+        TexiBackendError.messageFromResponse(data),
+      );
       setState(() {
-        _errorMessage = msg;
+        _errorMessage = localizedTripApiError(
+          l10n,
+          code,
+          fallbackMessage: backendMsg,
+        );
       });
       context.goNamed('login');
     } catch (_) {
@@ -247,26 +247,30 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final l10n = AppLocalizations.of(context)!;
     final maskedPhone =
         '${widget.countryCode} ${widget.phoneNumber.replaceAll(RegExp(r".(?=.{2})"), "•")}';
+    final err = _errorMessage;
+    if (err == null) {
+      _flashedError = null;
+    } else if (err != _flashedError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _errorMessage != err) return;
+        _flashedError = err;
+        showPassengerAuthNotice(context, message: err);
+      });
+    }
 
     return PassengerAuthShell(
       loading: _saving,
       loadingMessage: l10n.commonLoading,
-      leading: Align(
-        alignment: Alignment.centerLeft,
-        child: IconButton(
-          onPressed: _saving
-              ? null
-              : () => context.goNamed(
-                    'verify_code',
-                    queryParameters: {
-                      'cc': widget.countryCode,
-                      'phone': widget.phoneNumber,
-                    },
-                  ),
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-        ),
+      leading: PassengerAuthBackButton(
+        onPressed: _saving
+            ? null
+            : () => context.goNamed(
+                  'verify_code',
+                  queryParameters: {
+                    'cc': widget.countryCode,
+                    'phone': widget.phoneNumber,
+                  },
+                ),
       ),
       child: PassengerAuthEntrance(
         child: Form(
@@ -274,23 +278,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.profileSetupTitle,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.textPrimary.withValues(alpha: 0.95),
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.profileSetupSubtitle(maskedPhone),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary.withValues(alpha: 0.95),
-                      height: 1.4,
-                      fontSize: 13.5,
-                    ),
+              PassengerAuthHeadline(
+                title: l10n.profileSetupTitle,
+                subtitle: l10n.profileSetupSubtitle(maskedPhone),
               ),
               const SizedBox(height: 22),
               PassengerAuthGlassCard(
@@ -372,22 +362,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         ],
                       ),
                     ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: AppSpacing.xxx),
-                      PremiumStateView(
-                        icon: Icons.warning_amber_rounded,
-                        title: l10n.loginReviewDataTitle,
-                        message: _errorMessage!,
-                        actionLabel: l10n.profileAcknowledge,
-                        onAction: () => setState(() => _errorMessage = null),
-                      ),
-                    ],
                     const SizedBox(height: AppSpacing.xxx),
                     TextFormField(
                       controller: _nameController,
                       focusNode: _nameFocusNode,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.done,
+                      maxLength: kPassengerDisplayNameMaxLength,
+                      inputFormatters: passengerDisplayNameInputFormatters(),
                       decoration: passengerAuthFieldDecoration(
                         label: l10n.profileSetupNameLabel,
                         hint: l10n.profileSetupNameHint,
@@ -403,43 +385,15 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       onFieldSubmitted: (_) => _save(),
                     ),
                     const SizedBox(height: 22),
-                    SizedBox(
-                      height: 52,
-                      width: double.infinity,
-                      child: TexiScalePress(
-                        child: FilledButton(
-                          onPressed: _saving
-                              ? null
-                              : () {
-                                  TexiUiFeedback.lightTap();
-                                  _save();
-                                },
-                          style: FilledButton.styleFrom(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadii.lg),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                l10n.profileSetupContinue,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15.5,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    PassengerAuthPrimaryButton(
+                      label: l10n.profileSetupContinue,
+                      onPressed: _saving
+                          ? null
+                          : () {
+                              TexiUiFeedback.lightTap();
+                              _save();
+                            },
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                     ),
                   ],
                 ),

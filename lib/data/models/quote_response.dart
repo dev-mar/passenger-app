@@ -28,9 +28,15 @@ class QuoteResponse {
               ?.toString() ??
           'BOB',
       distanceKm: distanceKm != null ? (distanceKm as num).toDouble() : 0.0,
-      durationMinutes: (json['durationMinutes'] as int?) ?? 0,
+      durationMinutes: () {
+        final raw = json['durationMinutes'];
+        if (raw is int) return raw;
+        if (raw is num) return raw.round();
+        return 0;
+      }(),
       options: optionsList
-          .map((e) => QuoteOption.fromJson(e as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((e) => QuoteOption.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       specialRequirementSurchargePct: () {
         final raw = json['specialRequirementSurchargePct'] ??

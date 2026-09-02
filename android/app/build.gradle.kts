@@ -86,6 +86,13 @@ android {
         checkReleaseBuilds = false
         abortOnError = false
     }
+
+    // Play AAB partido: extrae .so nativos (Maps). APK sideload suele ir bien sin esto.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 flutter {
