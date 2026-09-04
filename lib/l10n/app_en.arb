@@ -367,6 +367,29 @@
     }
   },
   "tripLiveEtaAtPickup": "Already at the pickup point",
+  "tripPickupWaitWaiting": "Waiting at the pickup point · {time}",
+  "@tripPickupWaitWaiting": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tripPickupWaitGrace": "Wait time is up. Extra time · {time}",
+  "@tripPickupWaitGrace": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tripPickupWaitEnded": "The wait time has ended.",
+  "tripPassengerEnRouteCta": "On my way",
+  "tripPassengerEnRouteSent": "We let the driver know.",
+  "tripPassengerEnRouteCooldown": "You can send this again in {seconds} s",
+  "@tripPassengerEnRouteCooldown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "tripPassengerEnRouteNeedConnection": "You're offline, so we can't send this. Try again when you're back online.",
+  "tripPassengerEnRouteError": "We couldn't reach the driver. Try again.",
   "tripStatusKm": "{value} km",
   "@tripStatusKm": {
     "placeholders": {

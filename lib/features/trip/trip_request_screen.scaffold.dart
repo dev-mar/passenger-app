@@ -891,6 +891,26 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                               tripState.destination?.lat,
                           destLng: _d._destination?.longitude ??
                               tripState.destination?.lng,
+                          pickupWaitSpec: pickupWaitSpecFromFields(
+                            status: rtState.status,
+                            arrivedAt: rtState.arrivedAt,
+                            waitSec: rtState.waitSec,
+                            waitGraceSec: rtState.waitGraceSec,
+                          ),
+                          onPassengerEnRoute: rtState.status == 'arrived'
+                              ? () => unawaited(
+                                    ref
+                                        .read(
+                                          passengerRealtimeProvider.notifier,
+                                        )
+                                        .sendPassengerEnRoute(
+                                          tripId: effectiveTripId,
+                                        ),
+                                  )
+                              : null,
+                          passengerEnRouteConnected: rtState.connected,
+                          enRouteCooldownUntilMs: rtState.enRouteCooldownUntilMs,
+                          enRouteErrorCode: rtState.enRouteErrorCode,
                         ),
                       ],
                     ),

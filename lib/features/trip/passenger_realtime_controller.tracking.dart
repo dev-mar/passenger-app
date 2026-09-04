@@ -125,6 +125,9 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
         tripExtras: res.tripExtras.isNotEmpty ? res.tripExtras : state.tripExtras,
         tripSpecials:
             res.tripSpecials.isNotEmpty ? res.tripSpecials : state.tripSpecials,
+        arrivedAt: res.arrivedAt ?? state.arrivedAt,
+        waitSec: res.waitSec ?? state.waitSec,
+        waitGraceSec: res.waitGraceSec ?? state.waitGraceSec,
         chatMessages: chatOk ? state.chatMessages : const [],
         tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
       );

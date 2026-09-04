@@ -7,6 +7,7 @@ import '../../../core/ui/texi_motion.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../driver_avatar_premium.dart';
+import '../passenger_pickup_wait.dart';
 import '../passenger_trip_live_eta.dart';
 import 'passenger_trip_active_addons.dart';
 
@@ -137,6 +138,11 @@ class TripStatusCard extends StatelessWidget {
     this.pickupLng,
     this.destLat,
     this.destLng,
+    this.pickupWaitSpec,
+    this.onPassengerEnRoute,
+    this.passengerEnRouteConnected = false,
+    this.enRouteCooldownUntilMs,
+    this.enRouteErrorCode,
   });
 
   final String status;
@@ -177,6 +183,11 @@ class TripStatusCard extends StatelessWidget {
   final double? pickupLng;
   final double? destLat;
   final double? destLng;
+  final TripPickupWaitSpec? pickupWaitSpec;
+  final VoidCallback? onPassengerEnRoute;
+  final bool passengerEnRouteConnected;
+  final int? enRouteCooldownUntilMs;
+  final String? enRouteErrorCode;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -398,6 +409,18 @@ class TripStatusCard extends StatelessWidget {
               accent: accent,
               l10n: l10n,
             ),
+            if (status == 'arrived' && pickupWaitSpec != null)
+              PickupWaitClockStrip(
+                spec: pickupWaitSpec!,
+                accent: accent,
+              ),
+            if (status == 'arrived' && onPassengerEnRoute != null)
+              PassengerEnRouteCta(
+                connected: passengerEnRouteConnected,
+                onPressed: onPassengerEnRoute!,
+                cooldownUntilMs: enRouteCooldownUntilMs,
+                errorCode: enRouteErrorCode,
+              ),
             const SizedBox(height: AppSpacing.xxx),
             Container(
               padding: const EdgeInsets.symmetric(

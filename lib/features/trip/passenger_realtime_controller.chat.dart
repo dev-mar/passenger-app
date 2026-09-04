@@ -45,6 +45,26 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
     });
   }
 
+  Future<void> sendPassengerEnRoute({required String tripId}) async {
+    if (state.status != 'arrived') return;
+    final until = state.enRouteCooldownUntilMs;
+    if (until != null && until > DateTime.now().millisecondsSinceEpoch) {
+      return;
+    }
+    final live = await _rt.ensureSocketConnected(tripId: tripId);
+    if (!live) {
+      state = state.copyWith(enRouteErrorCode: 'SOCKET');
+      return;
+    }
+    state = state.copyWith(
+      enRouteErrorCode: null,
+      enRouteCooldownUntilMs: DateTime.now()
+          .add(const Duration(seconds: 2))
+          .millisecondsSinceEpoch,
+    );
+    _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
+  }
+
   /// Hidrata chat desde FCM solo si el WS no puede entregar `trip:chat:new`.
   /// Con socket vivo no insertamos: el push y el WS llegaban a la vez con ids
   /// distintos (`fcm-…` vs UUID) y se veían dos burbujas con horas desfasadas.

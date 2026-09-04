@@ -938,6 +938,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tripLiveEtaAtPickup => 'Ya está en el punto de recojo';
 
   @override
+  String tripPickupWaitWaiting(String time) {
+    return 'Esperando en el punto de recojo · $time';
+  }
+
+  @override
+  String tripPickupWaitGrace(String time) {
+    return 'Espera cumplida. Tiempo extra · $time';
+  }
+
+  @override
+  String get tripPickupWaitEnded => 'El tiempo de espera se cumplió.';
+
+  @override
+  String get tripPassengerEnRouteCta => 'Ya salgo';
+
+  @override
+  String get tripPassengerEnRouteSent => 'Le avisamos al conductor.';
+
+  @override
+  String tripPassengerEnRouteCooldown(int seconds) {
+    return 'Puedes avisar de nuevo en $seconds s';
+  }
+
+  @override
+  String get tripPassengerEnRouteNeedConnection =>
+      'Sin conexión no podemos avisar. Inténtalo cuando vuelva la señal.';
+
+  @override
+  String get tripPassengerEnRouteError =>
+      'No pudimos avisar al conductor. Inténtalo de nuevo.';
+
+  @override
   String tripStatusKm(String value) {
     return '$value km';
   }

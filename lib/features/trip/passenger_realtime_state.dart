@@ -31,6 +31,11 @@ class PassengerRealtimeState {
   final String? paymentMethod;
   final List<String> tripExtras;
   final List<String> tripSpecials;
+  final DateTime? arrivedAt;
+  final int? waitSec;
+  final int? waitGraceSec;
+  final int? enRouteCooldownUntilMs;
+  final String? enRouteErrorCode;
 
   const PassengerRealtimeState({
     required this.connecting,
@@ -57,6 +62,11 @@ class PassengerRealtimeState {
     this.paymentMethod,
     this.tripExtras = const [],
     this.tripSpecials = const [],
+    this.arrivedAt,
+    this.waitSec,
+    this.waitGraceSec,
+    this.enRouteCooldownUntilMs,
+    this.enRouteErrorCode,
   });
 
   static const initial = PassengerRealtimeState(
@@ -84,6 +94,11 @@ class PassengerRealtimeState {
     paymentMethod: null,
     tripExtras: [],
     tripSpecials: [],
+    arrivedAt: null,
+    waitSec: null,
+    waitGraceSec: null,
+    enRouteCooldownUntilMs: null,
+    enRouteErrorCode: null,
   );
 
   PassengerRealtimeState copyWith({
@@ -111,6 +126,11 @@ class PassengerRealtimeState {
     String? paymentMethod,
     List<String>? tripExtras,
     List<String>? tripSpecials,
+    DateTime? arrivedAt,
+    int? waitSec,
+    int? waitGraceSec,
+    int? enRouteCooldownUntilMs,
+    String? enRouteErrorCode,
   }) {
     return PassengerRealtimeState(
       connecting: connecting ?? this.connecting,
@@ -137,6 +157,11 @@ class PassengerRealtimeState {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       tripExtras: tripExtras ?? this.tripExtras,
       tripSpecials: tripSpecials ?? this.tripSpecials,
+      arrivedAt: arrivedAt ?? this.arrivedAt,
+      waitSec: waitSec ?? this.waitSec,
+      waitGraceSec: waitGraceSec ?? this.waitGraceSec,
+      enRouteCooldownUntilMs: enRouteCooldownUntilMs ?? this.enRouteCooldownUntilMs,
+      enRouteErrorCode: enRouteErrorCode,
     );
   }
 }

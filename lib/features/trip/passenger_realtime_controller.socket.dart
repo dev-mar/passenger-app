@@ -219,6 +219,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           );
         }
         final chatOk = passengerTripChatPhaseActive(newStatus);
+        final waitSpec = TripPickupWaitSpec.tryParse(data);
         state = state.copyWith(
           activeTripId: tripIdData,
           status: newStatus,
@@ -229,6 +230,9 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           driverRating: driverRating ?? state.driverRating,
           driverRatingsCount: driverRatingsCount ?? state.driverRatingsCount,
           currencyCode: currencyCode ?? state.currencyCode,
+          arrivedAt: waitSpec?.arrivedAt ?? state.arrivedAt,
+          waitSec: waitSpec?.waitSec ?? state.waitSec,
+          waitGraceSec: waitSpec?.waitGraceSec ?? state.waitGraceSec,
           chatMessages: chatOk ? state.chatMessages : const [],
           tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
         );
@@ -253,6 +257,43 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     socket.on('trip:arrival_reminder', (data) {
       if (data is! Map) return;
       _rt._handleTripArrivalReminder(Map<String, dynamic>.from(data), tripId);
+    });
+
+    socket.on('trip:passenger_en_route:ack', (data) {
+      if (data is! Map) return;
+      try {
+        final cooldownSec = data['cooldownSec'] is num
+            ? (data['cooldownSec'] as num).toInt()
+            : int.tryParse('${data['cooldownSec']}') ?? 45;
+        final until = DateTime.now()
+            .add(Duration(seconds: cooldownSec.clamp(15, 300)))
+            .millisecondsSinceEpoch;
+        state = state.copyWith(
+          enRouteCooldownUntilMs: until,
+          enRouteErrorCode: null,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] Error ack passenger_en_route: $e');
+        }
+      }
+    });
+
+    socket.on('trip:passenger_en_route:error', (data) {
+      if (data is! Map) return;
+      final code = data['code']?.toString() ?? 'INTERNAL_ERROR';
+      final retry = data['retryAfterSec'];
+      final retrySec = retry is num
+          ? retry.toInt()
+          : int.tryParse('$retry');
+      state = state.copyWith(
+        enRouteErrorCode: code,
+        enRouteCooldownUntilMs: retrySec != null && retrySec > 0
+            ? DateTime.now()
+                .add(Duration(seconds: retrySec))
+                .millisecondsSinceEpoch
+            : state.enRouteCooldownUntilMs,
+      );
     });
 
     socket.on('trip:chat:new', (data) {

@@ -1718,6 +1718,54 @@ abstract class AppLocalizations {
   /// **'Already at the pickup point'**
   String get tripLiveEtaAtPickup;
 
+  /// No description provided for @tripPickupWaitWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting at the pickup point · {time}'**
+  String tripPickupWaitWaiting(String time);
+
+  /// No description provided for @tripPickupWaitGrace.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait time is up. Extra time · {time}'**
+  String tripPickupWaitGrace(String time);
+
+  /// No description provided for @tripPickupWaitEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'The wait time has ended.'**
+  String get tripPickupWaitEnded;
+
+  /// No description provided for @tripPassengerEnRouteCta.
+  ///
+  /// In en, this message translates to:
+  /// **'On my way'**
+  String get tripPassengerEnRouteCta;
+
+  /// No description provided for @tripPassengerEnRouteSent.
+  ///
+  /// In en, this message translates to:
+  /// **'We let the driver know.'**
+  String get tripPassengerEnRouteSent;
+
+  /// No description provided for @tripPassengerEnRouteCooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'You can send this again in {seconds} s'**
+  String tripPassengerEnRouteCooldown(int seconds);
+
+  /// No description provided for @tripPassengerEnRouteNeedConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline, so we can\'t send this. Try again when you\'re back online.'**
+  String get tripPassengerEnRouteNeedConnection;
+
+  /// No description provided for @tripPassengerEnRouteError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t reach the driver. Try again.'**
+  String get tripPassengerEnRouteError;
+
   /// No description provided for @tripStatusKm.
   ///
   /// In en, this message translates to:

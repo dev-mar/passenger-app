@@ -661,6 +661,9 @@ class TripStatusResponse {
     this.paymentMethod,
     this.tripExtras = const [],
     this.tripSpecials = const [],
+    this.arrivedAt,
+    this.waitSec,
+    this.waitGraceSec,
   });
 
   final String tripId;
@@ -685,6 +688,9 @@ class TripStatusResponse {
   final String? paymentMethod;
   final List<String> tripExtras;
   final List<String> tripSpecials;
+  final DateTime? arrivedAt;
+  final int? waitSec;
+  final int? waitGraceSec;
 
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
@@ -780,8 +786,21 @@ class TripStatusResponse {
       tripSpecials: _stringListFromJson(
         json['tripSpecials'] ?? json['passenger_specials'],
       ),
+      arrivedAt: DateTime.tryParse(
+        '${json['arrivedAt'] ?? json['arrived_at'] ?? ''}',
+      ),
+      waitSec: _optionalInt(json['waitSec'] ?? json['wait_sec']),
+      waitGraceSec: _optionalInt(
+        json['waitGraceSec'] ?? json['wait_grace_sec'],
+      ),
     );
   }
+}
+
+int? _optionalInt(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is num) return raw.toInt();
+  return int.tryParse('$raw');
 }
 
 List<String> _stringListFromJson(dynamic raw) {

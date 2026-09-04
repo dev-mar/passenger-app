@@ -17,6 +17,7 @@ import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
 import 'passenger_trip_chat_l10n.dart';
 import 'passenger_trip_vehicle_info.dart';
+import 'passenger_pickup_wait.dart';
 import 'passenger_realtime_state.dart';
 import 'trip_request_trip_phase_helpers.dart';
 

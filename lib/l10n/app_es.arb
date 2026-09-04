@@ -370,6 +370,29 @@
     }
   },
   "tripLiveEtaAtPickup": "Ya está en el punto de recojo",
+  "tripPickupWaitWaiting": "Esperando en el punto de recojo · {time}",
+  "@tripPickupWaitWaiting": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tripPickupWaitGrace": "Espera cumplida. Tiempo extra · {time}",
+  "@tripPickupWaitGrace": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tripPickupWaitEnded": "El tiempo de espera se cumplió.",
+  "tripPassengerEnRouteCta": "Ya salgo",
+  "tripPassengerEnRouteSent": "Le avisamos al conductor.",
+  "tripPassengerEnRouteCooldown": "Puedes avisar de nuevo en {seconds} s",
+  "@tripPassengerEnRouteCooldown": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "tripPassengerEnRouteNeedConnection": "Sin conexión no podemos avisar. Inténtalo cuando vuelva la señal.",
+  "tripPassengerEnRouteError": "No pudimos avisar al conductor. Inténtalo de nuevo.",
   "tripStatusKm": "{value} km",
   "@tripStatusKm": {
     "placeholders": {
