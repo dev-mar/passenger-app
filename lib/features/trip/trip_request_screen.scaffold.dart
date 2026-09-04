@@ -40,13 +40,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    _d._originError!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.error,
-                      fontSize: 13,
-                    ),
+                  child: PassengerAnimatedInlineNotice(
+                    message: _d._originError!,
+                    compact: true,
+                    icon: Icons.location_off_rounded,
                   ),
                 ),
               ],
@@ -884,6 +881,16 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           tripSpecials: tripState.specials.isNotEmpty
                               ? tripState.specials.toCodes()
                               : rtState.tripSpecials,
+                          driverLat: rtState.driverLat,
+                          driverLng: rtState.driverLng,
+                          pickupLat:
+                              _d._origin?.latitude ?? tripState.origin?.lat,
+                          pickupLng:
+                              _d._origin?.longitude ?? tripState.origin?.lng,
+                          destLat: _d._destination?.latitude ??
+                              tripState.destination?.lat,
+                          destLng: _d._destination?.longitude ??
+                              tripState.destination?.lng,
                         ),
                       ],
                     ),

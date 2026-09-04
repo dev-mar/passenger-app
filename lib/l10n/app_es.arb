@@ -351,6 +351,25 @@
       "count": {"type": "int"}
     }
   },
+  "tripLiveEtaPickup": "Llega en {count} min",
+  "@tripLiveEtaPickup": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripLiveEtaDestination": "{count} min al destino",
+  "@tripLiveEtaDestination": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "tripLiveEtaClockHint": "aprox. {time}",
+  "@tripLiveEtaClockHint": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "tripLiveEtaAtPickup": "Ya está en el punto de recojo",
   "tripStatusKm": "{value} km",
   "@tripStatusKm": {
     "placeholders": {

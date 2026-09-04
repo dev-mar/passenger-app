@@ -41,6 +41,7 @@ import '../../core/storage/trip_session_storage.dart';
 import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/ui/app_safe_scrolling.dart';
+import '../../core/ui/passenger_inline_notice.dart';
 import 'trip_request_state.dart';
 import '../../core/notifications/passenger_trip_chat_visibility.dart';
 import 'passenger_realtime_controller.dart'

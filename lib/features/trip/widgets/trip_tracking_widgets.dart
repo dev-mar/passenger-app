@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/ui/texi_motion.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../driver_avatar_premium.dart';
+import '../passenger_trip_live_eta.dart';
 import 'passenger_trip_active_addons.dart';
 
 export 'passenger_trip_searching_overlay.dart' show TripSearchingDriverOverlay;
@@ -129,6 +131,12 @@ class TripStatusCard extends StatelessWidget {
     this.paymentMethod,
     this.tripExtras = const [],
     this.tripSpecials = const [],
+    this.driverLat,
+    this.driverLng,
+    this.pickupLat,
+    this.pickupLng,
+    this.destLat,
+    this.destLng,
   });
 
   final String status;
@@ -163,6 +171,12 @@ class TripStatusCard extends StatelessWidget {
   final String? paymentMethod;
   final List<String> tripExtras;
   final List<String> tripSpecials;
+  final double? driverLat;
+  final double? driverLng;
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? destLat;
+  final double? destLng;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -369,6 +383,20 @@ class TripStatusCard extends StatelessWidget {
                   ),
                 );
               }),
+            ),
+            _TripLiveEtaStrip(
+              eta: resolvePassengerTripLiveEta(
+                status: status,
+                driverLat: driverLat,
+                driverLng: driverLng,
+                pickupLat: pickupLat,
+                pickupLng: pickupLng,
+                destLat: destLat,
+                destLng: destLng,
+                quoteDurationMinutes: durationMinutes,
+              ),
+              accent: accent,
+              l10n: l10n,
             ),
             const SizedBox(height: AppSpacing.xxx),
             Container(
@@ -723,6 +751,95 @@ class _ChatUnreadBell extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TripLiveEtaStrip extends StatelessWidget {
+  const _TripLiveEtaStrip({
+    required this.eta,
+    required this.accent,
+    required this.l10n,
+  });
+
+  final PassengerTripLiveEta? eta;
+  final Color accent;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = eta;
+    if (resolved == null) return const SizedBox(height: AppSpacing.xxx);
+
+    final minutes = resolved.minutes;
+    final title = switch (resolved.kind) {
+      PassengerTripLiveEtaKind.pickup => l10n.tripLiveEtaPickup(minutes ?? 1),
+      PassengerTripLiveEtaKind.destination =>
+        l10n.tripLiveEtaDestination(minutes ?? 1),
+      PassengerTripLiveEtaKind.atPickup => l10n.tripLiveEtaAtPickup,
+    };
+
+    String? clock;
+    if (minutes != null && resolved.kind != PassengerTripLiveEtaKind.atPickup) {
+      final when = DateTime.now().add(Duration(minutes: minutes));
+      clock = l10n.tripLiveEtaClockHint(
+        TimeOfDay.fromDateTime(when).format(context),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xl),
+      child: AnimatedContainer(
+        duration: TexiMotion.medium,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
+          border: Border.all(color: accent.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              resolved.kind == PassengerTripLiveEtaKind.atPickup
+                  ? Icons.location_on_rounded
+                  : Icons.schedule_rounded,
+              size: AppIconSizes.lg,
+              color: accent,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (clock != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      clock,
+                      style: TextStyle(
+                        fontSize: AppTypography.captionAlt,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

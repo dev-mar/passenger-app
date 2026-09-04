@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/ui/passenger_inline_notice.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
@@ -113,41 +114,9 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (errorMessage != null && errorMessage!.isNotEmpty) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      color: AppColors.error,
-                      size: 22,
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        errorMessage!,
-                        style: const TextStyle(
-                          color: AppColors.error,
-                          fontSize: AppTypography.body,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              PassengerAnimatedInlineNotice(
+                message: errorMessage!,
+                icon: Icons.info_outline_rounded,
               ),
               const SizedBox(height: AppSpacing.md),
             ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
+import '../../../core/ui/passenger_inline_notice.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../core/utils/service_type_display.dart';
 
@@ -145,16 +146,10 @@ class TripQuoteErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sheetH, vertical: AppSpacing.md),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(AppRadii.sm),
-        ),
-        child: Text(
-          message,
-          style: const TextStyle(color: AppColors.error, fontSize: AppTypography.bodySmall),
-        ),
+      child: PassengerAnimatedInlineNotice(
+        message: message,
+        compact: true,
+        icon: Icons.info_outline_rounded,
       ),
     );
   }

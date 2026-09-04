@@ -916,6 +916,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String tripLiveEtaPickup(int count) {
+    return 'Arrives in $count min';
+  }
+
+  @override
+  String tripLiveEtaDestination(int count) {
+    return '$count min to destination';
+  }
+
+  @override
+  String tripLiveEtaClockHint(String time) {
+    return 'around $time';
+  }
+
+  @override
+  String get tripLiveEtaAtPickup => 'Already at the pickup point';
+
+  @override
   String tripStatusKm(String value) {
     return '$value km';
   }

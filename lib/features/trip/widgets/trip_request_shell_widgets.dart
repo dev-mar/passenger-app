@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
+import '../../../core/ui/passenger_inline_notice.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'trip_location_panel_widgets.dart';
@@ -370,19 +371,10 @@ class TripBottomRequestCardContent extends StatelessWidget {
             ],
             if (error != null) ...[
               const SizedBox(height: AppSpacing.lg),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadii.sm),
-                ),
-                child: Text(
-                  error!,
-                  style: const TextStyle(
-                    color: AppColors.error,
-                    fontSize: AppTypography.bodySmall,
-                  ),
-                ),
+              PassengerAnimatedInlineNotice(
+                message: error!,
+                compact: true,
+                icon: Icons.info_outline_rounded,
               ),
             ],
             if (showSeePricesButton && !isPickingOrigin && !isPickingDestination) ...[

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/service_type_display.dart';
 import '../../core/utils/money_formatter.dart';
+import '../../core/ui/passenger_inline_notice.dart';
 import '../../core/ui/texi_scale_press.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/trip_session_storage.dart';
@@ -261,7 +262,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(_error!, style: const TextStyle(color: AppColors.error)),
+              child: PassengerAnimatedInlineNotice(message: _error!),
             ),
           ],
           const Spacer(),

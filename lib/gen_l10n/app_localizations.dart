@@ -1694,6 +1694,30 @@ abstract class AppLocalizations {
   /// **'{count} min'**
   String tripStatusMinutes(int count);
 
+  /// No description provided for @tripLiveEtaPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrives in {count} min'**
+  String tripLiveEtaPickup(int count);
+
+  /// No description provided for @tripLiveEtaDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min to destination'**
+  String tripLiveEtaDestination(int count);
+
+  /// No description provided for @tripLiveEtaClockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'around {time}'**
+  String tripLiveEtaClockHint(String time);
+
+  /// No description provided for @tripLiveEtaAtPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Already at the pickup point'**
+  String get tripLiveEtaAtPickup;
+
   /// No description provided for @tripStatusKm.
   ///
   /// In en, this message translates to:
