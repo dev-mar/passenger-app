@@ -16,7 +16,8 @@ void applyPassengerForegroundPushToRealtime(RemoteMessage message) {
   if (tripId == null || tripId.isEmpty) return;
   if (event != 'trip_status' &&
       event != 'driver_arrived' &&
-      event != 'trip_chat') {
+      event != 'trip_chat' &&
+      event != 'pickup_grace') {
     return;
   }
 
@@ -38,6 +39,12 @@ void applyPassengerForegroundPushToRealtime(RemoteMessage message) {
 
   if (container.read(tripRequestProvider).tripId == null) {
     container.read(tripRequestProvider.notifier).setTripId(tripId);
+  }
+
+  if (event == 'pickup_grace') {
+    unawaited(rt.syncTripStatusFromApi(tripId: tripId, force: true));
+    unawaited(rt.ensureSocketConnected(tripId: tripId));
+    return;
   }
 
   if (event == 'trip_status' || event == 'driver_arrived') {

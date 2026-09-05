@@ -2324,6 +2324,186 @@ abstract class AppLocalizations {
   /// **'Your trip is already in progress. It can\'t be cancelled from here.'**
   String get tripCancelBlockedActiveBody;
 
+  /// Button on the active-trip panel (accepted/arrived)
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel trip'**
+  String get tripCancelCta;
+
+  /// No description provided for @tripCancelChooseReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are you cancelling?'**
+  String get tripCancelChooseReason;
+
+  /// No description provided for @tripCancelNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write the reason'**
+  String get tripCancelNoteHint;
+
+  /// No description provided for @tripCancelContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get tripCancelContinue;
+
+  /// No description provided for @tripCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm cancellation'**
+  String get tripCancelConfirmTitle;
+
+  /// No description provided for @tripCancelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get tripCancelConfirm;
+
+  /// No description provided for @tripCancelBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get tripCancelBack;
+
+  /// No description provided for @tripCancelNeedConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t cancel without a connection. Try again when you\'re back online.'**
+  String get tripCancelNeedConnection;
+
+  /// No description provided for @tripCancelReasonsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load the reasons. Check your connection and try again.'**
+  String get tripCancelReasonsLoadError;
+
+  /// No description provided for @tripCancelReasonsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no cancel reasons available right now.'**
+  String get tripCancelReasonsEmpty;
+
+  /// No description provided for @tripCancelConfirmFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'If you confirm, the trip is cancelled. Our team may review the reason.'**
+  String get tripCancelConfirmFallback;
+
+  /// No description provided for @tripCancelError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t cancel the trip. Check your connection and try again.'**
+  String get tripCancelError;
+
+  /// No description provided for @tripCancelCapExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait a moment before requesting another trip.'**
+  String get tripCancelCapExceeded;
+
+  /// No description provided for @tripClaimAsk.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to send a claim to our team?'**
+  String get tripClaimAsk;
+
+  /// No description provided for @tripClaimHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what happened. Our team can review the trip.'**
+  String get tripClaimHint;
+
+  /// No description provided for @tripClaimSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send claim'**
+  String get tripClaimSend;
+
+  /// No description provided for @tripClaimSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get tripClaimSkip;
+
+  /// No description provided for @tripClaimSent.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent your claim to our team.'**
+  String get tripClaimSent;
+
+  /// No description provided for @tripClaimError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t send the claim. Try again later.'**
+  String get tripClaimError;
+
+  /// No description provided for @tripClaimAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You already sent a claim for this trip.'**
+  String get tripClaimAlreadySent;
+
+  /// No description provided for @tripCancelledByDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'The driver canceled the trip.'**
+  String get tripCancelledByDriver;
+
+  /// No description provided for @tripNeedHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'I need help'**
+  String get tripNeedHelp;
+
+  /// No description provided for @tripAlreadyFinalized.
+  ///
+  /// In en, this message translates to:
+  /// **'This trip already ended. Refresh to continue.'**
+  String get tripAlreadyFinalized;
+
+  /// No description provided for @tripCannotCancelRace.
+  ///
+  /// In en, this message translates to:
+  /// **'The trip changed stage. Refresh and try again.'**
+  String get tripCannotCancelRace;
+
+  /// No description provided for @tripCancelEnRouteTooSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'The driver is still within the on-the-way time.'**
+  String get tripCancelEnRouteTooSoon;
+
+  /// No description provided for @tripCancelWaitStillWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still in the waiting time.'**
+  String get tripCancelWaitStillWaiting;
+
+  /// No description provided for @tripCancelWaitStillGrace.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still in the grace period.'**
+  String get tripCancelWaitStillGrace;
+
+  /// No description provided for @tripCancelWaitNotAtPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'It looks like you\'re not at the pickup point.'**
+  String get tripCancelWaitNotAtPickup;
+
+  /// No description provided for @tripCancelWaitNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t confirm you\'re at the pickup point.'**
+  String get tripCancelWaitNoLocation;
+
+  /// No description provided for @tripCancelWaitNotEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'The wait-time reason doesn\'t apply at this stage.'**
+  String get tripCancelWaitNotEligible;
+
   /// No description provided for @verifyCodeTitle.
   ///
   /// In en, this message translates to:
@@ -3703,6 +3883,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} is waiting at the pickup point.'**
   String passengerNotifyDriverArrivedBodyNamed(String name);
+
+  /// No description provided for @passengerNotifyPickupGraceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait time is over'**
+  String get passengerNotifyPickupGraceTitle;
+
+  /// No description provided for @passengerNotifyPickupGraceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {minutes} min of grace at the pickup point.'**
+  String passengerNotifyPickupGraceBody(int minutes);
 
   /// No description provided for @passengerNotifyChatNewTitle.
   ///

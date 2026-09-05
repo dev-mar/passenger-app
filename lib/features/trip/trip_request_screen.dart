@@ -44,6 +44,8 @@ import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/passenger_inline_notice.dart';
 import 'trip_request_state.dart';
 import 'passenger_pickup_wait.dart';
+import 'trip_cancel_reason.dart';
+import 'widgets/trip_cancel_reason_sheet.dart';
 import '../../core/notifications/passenger_trip_chat_visibility.dart';
 import 'passenger_realtime_controller.dart'
     show
@@ -190,6 +192,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   String? _ratingSheetShownForTripId;
   String? _ratingDoneTripId;
   bool _ratingDone = false;
+  String? _cancelHelpShownForTripId;
 
   /// Evita encolar varios auto-resets cuando el viaje ya estÃ¡ completado y el rating constaba hecho.
   String? _completedStaleAutoResetTripId;

@@ -672,6 +672,87 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
   }
 
+  /// Cancelar viaje ya asignado (`accepted`/`arrived`). No usa overlay ni `cancelScope=matching`.
+  Future<void> _cancelAssignedTrip() async {
+    final tripId = ref.read(tripRequestProvider).tripId ??
+        ref.read(passengerRealtimeProvider).activeTripId;
+    final rt = ref.read(passengerRealtimeProvider);
+    if (tripId == null || tripId.isEmpty) return;
+    if (!passengerTripCanCancelAssigned(rt.status)) return;
+    if (!mounted) return;
+    final loc = AppLocalizations.of(context);
+    if (loc == null) return;
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final choice = await showTripCancelReasonSheet(
+      context: context,
+      connected: rt.connected,
+      loadReasons: () async {
+        final token = await AuthService.getValidToken();
+        if (token == null || token.isEmpty) {
+          throw StateError('NO_TOKEN');
+        }
+        return TripsApi(token: token).getPassengerTripCancelReasons(
+          tripId: tripId,
+          locale: localeCode,
+        );
+      },
+    );
+    if (choice == null || !mounted) return;
+    final token = await AuthService.getValidToken();
+    if (!mounted) return;
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(loc.tripCancelNeedConnection)),
+      );
+      return;
+    }
+    try {
+      await TripsApi(token: token).cancelPassengerTrip(
+        tripId: tripId,
+        reasonCode: choice.code,
+        reasonNote: choice.note,
+      );
+    } catch (e, st) {
+      debugPrint('[CancelAssignedTrip] $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(_passengerCancelErrorText(loc, e))),
+      );
+      return;
+    }
+    if (!mounted) return;
+    PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
+    await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
+  }
+
+  String _passengerCancelErrorText(AppLocalizations loc, Object e) {
+    final code = TexiBackendError.codeFromDio(e);
+    if (code == 'TRIP_CANCEL_WAIT_NOT_ELIGIBLE') {
+      switch (TexiBackendError.waitBlockReasonFromDio(e)) {
+        case 'waiting':
+          return loc.tripCancelWaitStillWaiting;
+        case 'grace':
+          return loc.tripCancelWaitStillGrace;
+        case 'geofence':
+          return loc.tripCancelWaitNotAtPickup;
+        case 'no_location':
+          return loc.tripCancelWaitNoLocation;
+        default:
+          return loc.tripCancelWaitNotEligible;
+      }
+    }
+    if (code == 'TRIP_CANCEL_EN_ROUTE_NOT_ELIGIBLE') {
+      return loc.tripCancelEnRouteTooSoon;
+    }
+    if (code == 'TRIP_ALREADY_FINALIZED') {
+      return loc.tripAlreadyFinalized;
+    }
+    if (code == 'TRIP_CANNOT_CANCEL') {
+      return loc.tripCannotCancelRace;
+    }
+    return loc.tripCancelError;
+  }
+
   Future<void> _ensureTripNotificationDisclosure() async {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);

@@ -524,6 +524,39 @@
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar si se intenta cancelar con viaje ya aceptado"
   },
+  "tripCancelCta": "Cancelar viaje",
+  "@tripCancelCta": {
+    "description": "Botón en el panel de viaje activo (accepted/arrived)"
+  },
+  "tripCancelChooseReason": "¿Por qué cancelas?",
+  "tripCancelNoteHint": "Escribe el motivo",
+  "tripCancelContinue": "Continuar",
+  "tripCancelConfirmTitle": "Confirma la cancelación",
+  "tripCancelConfirm": "Confirmar",
+  "tripCancelBack": "Volver",
+  "tripCancelNeedConnection": "Sin conexión no podemos cancelar. Inténtalo cuando vuelva la señal.",
+  "tripCancelReasonsLoadError": "No pudimos cargar los motivos. Revisa tu conexión e intenta de nuevo.",
+  "tripCancelReasonsEmpty": "Ahora no hay motivos disponibles para cancelar.",
+  "tripCancelConfirmFallback": "Si confirmas, el viaje se cancela. Nuestro equipo puede revisar el motivo.",
+  "tripCancelError": "No pudimos cancelar el viaje. Revisa tu conexión e intenta de nuevo.",
+  "tripCancelCapExceeded": "Espera un momento antes de pedir otro viaje.",
+  "tripClaimAsk": "¿Quieres enviarle un reclamo a nuestro equipo?",
+  "tripClaimHint": "Cuéntanos qué pasó. Nuestro equipo puede revisar el viaje.",
+  "tripClaimSend": "Enviar reclamo",
+  "tripClaimSkip": "Ahora no",
+  "tripClaimSent": "Enviamos tu reclamo a nuestro equipo.",
+  "tripClaimError": "No pudimos enviar el reclamo. Inténtalo más tarde.",
+  "tripClaimAlreadySent": "Ya enviaste un reclamo de este viaje.",
+  "tripCancelledByDriver": "El conductor canceló el viaje.",
+  "tripNeedHelp": "Necesito ayuda",
+  "tripAlreadyFinalized": "Este viaje ya se cerró. Actualiza el estado para continuar.",
+  "tripCannotCancelRace": "El viaje cambió de etapa. Actualiza e inténtalo de nuevo.",
+  "tripCancelEnRouteTooSoon": "El conductor aún está dentro del tiempo de camino.",
+  "tripCancelWaitStillWaiting": "Aún estás en el tiempo de espera.",
+  "tripCancelWaitStillGrace": "Aún estás en el tiempo de gracia.",
+  "tripCancelWaitNotAtPickup": "Parece que no estás en el punto de recojo.",
+  "tripCancelWaitNoLocation": "No pudimos confirmar que estás en el punto de recojo.",
+  "tripCancelWaitNotEligible": "El motivo de tiempo de espera no aplica en esta etapa.",
   "verifyCodeTitle": "Verifica tu número",
   "verifyCodeSubtitle": "Te enviamos un código de 6 dígitos a {phone}. Ingresa el código para continuar.",
   "@verifyCodeSubtitle": {
@@ -804,6 +837,11 @@
   "passengerNotifyDriverArrivedBodyNamed": "{name} te espera en el punto de recojo.",
   "@passengerNotifyDriverArrivedBodyNamed": {
     "placeholders": {"name": {"type": "String"}}
+  },
+  "passengerNotifyPickupGraceTitle": "Tiempo de espera cumplido",
+  "passengerNotifyPickupGraceBody": "Tienes {minutes} min de gracia en el punto de recojo.",
+  "@passengerNotifyPickupGraceBody": {
+    "placeholders": {"minutes": {"type": "int"}}
   },
   "passengerNotifyChatNewTitle": "Mensaje del viaje",
   "passengerNotifyChatSenderDriver": "Conductor",

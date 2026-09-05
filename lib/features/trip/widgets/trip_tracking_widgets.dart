@@ -143,6 +143,8 @@ class TripStatusCard extends StatelessWidget {
     this.passengerEnRouteConnected = false,
     this.enRouteCooldownUntilMs,
     this.enRouteErrorCode,
+    this.onCancelTrip,
+    this.cancelTripLabel,
   });
 
   final String status;
@@ -188,6 +190,8 @@ class TripStatusCard extends StatelessWidget {
   final bool passengerEnRouteConnected;
   final int? enRouteCooldownUntilMs;
   final String? enRouteErrorCode;
+  final VoidCallback? onCancelTrip;
+  final String? cancelTripLabel;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -671,6 +675,22 @@ class TripStatusCard extends StatelessWidget {
                       ? _ChatUnreadBell(count: unreadChatCount)
                       : const Icon(Icons.chat_bubble_outline_rounded),
                   label: Text(chatLabel ?? l10n.tripSecureChat),
+                ),
+              ),
+            ],
+            if (onCancelTrip != null &&
+                (status == 'accepted' || status == 'arrived')) ...[
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onCancelTrip,
+                  icon: const Icon(Icons.close_rounded),
+                  label: Text(cancelTripLabel ?? l10n.tripCancelCta),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(color: AppColors.error.withValues(alpha: 0.55)),
+                  ),
                 ),
               ),
             ],

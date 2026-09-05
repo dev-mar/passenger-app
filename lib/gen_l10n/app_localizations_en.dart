@@ -1264,6 +1264,109 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your trip is already in progress. It can\'t be cancelled from here.';
 
   @override
+  String get tripCancelCta => 'Cancel trip';
+
+  @override
+  String get tripCancelChooseReason => 'Why are you cancelling?';
+
+  @override
+  String get tripCancelNoteHint => 'Write the reason';
+
+  @override
+  String get tripCancelContinue => 'Continue';
+
+  @override
+  String get tripCancelConfirmTitle => 'Confirm cancellation';
+
+  @override
+  String get tripCancelConfirm => 'Confirm';
+
+  @override
+  String get tripCancelBack => 'Back';
+
+  @override
+  String get tripCancelNeedConnection =>
+      'We can\'t cancel without a connection. Try again when you\'re back online.';
+
+  @override
+  String get tripCancelReasonsLoadError =>
+      'We couldn\'t load the reasons. Check your connection and try again.';
+
+  @override
+  String get tripCancelReasonsEmpty =>
+      'There are no cancel reasons available right now.';
+
+  @override
+  String get tripCancelConfirmFallback =>
+      'If you confirm, the trip is cancelled. Our team may review the reason.';
+
+  @override
+  String get tripCancelError =>
+      'We couldn\'t cancel the trip. Check your connection and try again.';
+
+  @override
+  String get tripCancelCapExceeded =>
+      'Wait a moment before requesting another trip.';
+
+  @override
+  String get tripClaimAsk => 'Do you want to send a claim to our team?';
+
+  @override
+  String get tripClaimHint =>
+      'Tell us what happened. Our team can review the trip.';
+
+  @override
+  String get tripClaimSend => 'Send claim';
+
+  @override
+  String get tripClaimSkip => 'Not now';
+
+  @override
+  String get tripClaimSent => 'We sent your claim to our team.';
+
+  @override
+  String get tripClaimError => 'We couldn\'t send the claim. Try again later.';
+
+  @override
+  String get tripClaimAlreadySent => 'You already sent a claim for this trip.';
+
+  @override
+  String get tripCancelledByDriver => 'The driver canceled the trip.';
+
+  @override
+  String get tripNeedHelp => 'I need help';
+
+  @override
+  String get tripAlreadyFinalized =>
+      'This trip already ended. Refresh to continue.';
+
+  @override
+  String get tripCannotCancelRace =>
+      'The trip changed stage. Refresh and try again.';
+
+  @override
+  String get tripCancelEnRouteTooSoon =>
+      'The driver is still within the on-the-way time.';
+
+  @override
+  String get tripCancelWaitStillWaiting => 'You\'re still in the waiting time.';
+
+  @override
+  String get tripCancelWaitStillGrace => 'You\'re still in the grace period.';
+
+  @override
+  String get tripCancelWaitNotAtPickup =>
+      'It looks like you\'re not at the pickup point.';
+
+  @override
+  String get tripCancelWaitNoLocation =>
+      'We couldn\'t confirm you\'re at the pickup point.';
+
+  @override
+  String get tripCancelWaitNotEligible =>
+      'The wait-time reason doesn\'t apply at this stage.';
+
+  @override
   String get verifyCodeTitle => 'Verify your number';
 
   @override
@@ -2026,6 +2129,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String passengerNotifyDriverArrivedBodyNamed(String name) {
     return '$name is waiting at the pickup point.';
+  }
+
+  @override
+  String get passengerNotifyPickupGraceTitle => 'Wait time is over';
+
+  @override
+  String passengerNotifyPickupGraceBody(int minutes) {
+    return 'You have $minutes min of grace at the pickup point.';
   }
 
   @override

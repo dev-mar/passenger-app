@@ -36,6 +36,9 @@ class PassengerRealtimeState {
   final int? waitGraceSec;
   final int? enRouteCooldownUntilMs;
   final String? enRouteErrorCode;
+  final String? cancelledBy;
+  final String? reasonLabel;
+  final bool helpAvailable;
 
   const PassengerRealtimeState({
     required this.connecting,
@@ -67,6 +70,9 @@ class PassengerRealtimeState {
     this.waitGraceSec,
     this.enRouteCooldownUntilMs,
     this.enRouteErrorCode,
+    this.cancelledBy,
+    this.reasonLabel,
+    this.helpAvailable = false,
   });
 
   static const initial = PassengerRealtimeState(
@@ -99,6 +105,9 @@ class PassengerRealtimeState {
     waitGraceSec: null,
     enRouteCooldownUntilMs: null,
     enRouteErrorCode: null,
+    cancelledBy: null,
+    reasonLabel: null,
+    helpAvailable: false,
   );
 
   PassengerRealtimeState copyWith({
@@ -131,6 +140,9 @@ class PassengerRealtimeState {
     int? waitGraceSec,
     int? enRouteCooldownUntilMs,
     String? enRouteErrorCode,
+    String? cancelledBy,
+    String? reasonLabel,
+    bool? helpAvailable,
   }) {
     return PassengerRealtimeState(
       connecting: connecting ?? this.connecting,
@@ -162,6 +174,9 @@ class PassengerRealtimeState {
       waitGraceSec: waitGraceSec ?? this.waitGraceSec,
       enRouteCooldownUntilMs: enRouteCooldownUntilMs ?? this.enRouteCooldownUntilMs,
       enRouteErrorCode: enRouteErrorCode,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      reasonLabel: reasonLabel ?? this.reasonLabel,
+      helpAvailable: helpAvailable ?? this.helpAvailable,
     );
   }
 }

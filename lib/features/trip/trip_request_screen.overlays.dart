@@ -25,15 +25,21 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
         sendLabel: l10n.tripSendRating,
         skipLabel: l10n.tripSkipRating,
         onSubmitted: (stars, feedbackCodes) {
-          unawaited(
-            _submitPassengerRating(
+          Navigator.of(ctx).pop();
+          unawaited(() async {
+            final claim = await _submitPassengerRating(
               tripId: tripId,
               stars: stars,
               feedbackCodes: feedbackCodes,
-            ),
-          );
-          Navigator.of(ctx).pop();
-          unawaited(() async {
+            );
+            if (claim && context.mounted) {
+              await _offerPassengerTripClaim(
+                context,
+                tripId: tripId,
+                stars: stars,
+                feedbackCodes: feedbackCodes,
+              );
+            }
             await _o._resetHomeAfterTripEnded(tripId);
           }());
         },
@@ -55,20 +61,113 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
     }
   }
 
-  Future<void> _submitPassengerRating({
+  Future<bool> _submitPassengerRating({
     required String tripId,
     required int stars,
     List<String> feedbackCodes = const [],
   }) async {
     try {
       final token = await AuthService.getValidToken();
-      if (token == null || token.isEmpty) return;
-      await TripsApi(token: token).submitPassengerTripRating(
+      if (token == null || token.isEmpty) return false;
+      final result = await TripsApi(token: token).submitPassengerTripRating(
         tripId: tripId,
         stars: stars,
         feedbackCodes: feedbackCodes,
       );
-    } catch (_) {}
+      return result.claimEligible;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _offerPassengerCancelHelp(
+    BuildContext context, {
+    required String tripId,
+    String? reasonLabel,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final help = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.tripCancelledByDriver),
+        content: Text(
+          (reasonLabel != null && reasonLabel.trim().isNotEmpty)
+              ? reasonLabel
+              : l10n.tripClaimHint,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.tripClaimSkip),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.tripNeedHelp),
+          ),
+        ],
+      ),
+    );
+    if (help == true && context.mounted) {
+      await _offerPassengerTripClaim(context, tripId: tripId, stars: 0);
+    }
+  }
+
+  Future<void> _offerPassengerTripClaim(
+    BuildContext context, {
+    required String tripId,
+    required int stars,
+    List<String> feedbackCodes = const [],
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    final controller = TextEditingController();
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.tripClaimAsk),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 6,
+          decoration: InputDecoration(hintText: l10n.tripClaimHint),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.tripClaimSkip),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.tripClaimSend),
+          ),
+        ],
+      ),
+    );
+    final text = controller.text.trim();
+    controller.dispose();
+    if (send != true || text.length < 10 || !context.mounted) return;
+    try {
+      final token = await AuthService.getValidToken();
+      if (token == null || token.isEmpty) return;
+      await TripsApi(token: token).submitPassengerTripClaim(
+        tripId: tripId,
+        message: text,
+        stars: stars,
+        feedbackCodes: feedbackCodes,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(l10n.tripClaimSent)),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(l10n.tripClaimError)),
+        );
+      }
+    }
   }
 
   Future<void> _openTripChatSheet({required String tripId}) async {
@@ -591,7 +690,19 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
 
     if (tripId != null &&
         (rtState.status == 'cancelled' || rtState.status == 'expired')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        if (rtState.status == 'cancelled' &&
+            rtState.helpAvailable &&
+            rtState.cancelledBy == 'driver' &&
+            _o._cancelHelpShownForTripId != tripId) {
+          _o._cancelHelpShownForTripId = tripId;
+          await _offerPassengerCancelHelp(
+            context,
+            tripId: tripId,
+            reasonLabel: rtState.reasonLabel,
+          );
+        }
         if (!mounted) return;
         unawaited(_o._resetTripSessionToDraftHome(tripIdForGuard: tripId));
       });

@@ -904,6 +904,19 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
                     ),
                   const SizedBox(height: 6),
                   Text(l10n.tripHistoryTripId(trip.id)),
+                  if (trip.claimEligible) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => _sendHistoryClaim(trip.id),
+                        child: Text(l10n.tripClaimSend),
+                      ),
+                    ),
+                  ] else if (trip.claimSubmitted) ...[
+                    const SizedBox(height: 8),
+                    Text(l10n.tripClaimAlreadySent),
+                  ],
                 ],
               ),
             ),
@@ -911,6 +924,54 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
         ],
       ),
     );
+  }
+
+  Future<void> _sendHistoryClaim(String tripId) async {
+    final l10n = widget.l10n;
+    final controller = TextEditingController();
+    final send = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.tripClaimAsk),
+        content: TextField(
+          controller: controller,
+          minLines: 3,
+          maxLines: 6,
+          decoration: InputDecoration(hintText: l10n.tripClaimHint),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.tripClaimSkip),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.tripClaimSend),
+          ),
+        ],
+      ),
+    );
+    final text = controller.text.trim();
+    controller.dispose();
+    if (send != true || text.length < 10 || !mounted) return;
+    try {
+      final token = await AuthService.getValidToken();
+      if (token == null || token.isEmpty) return;
+      await TripsApi(token: token).submitPassengerTripClaim(
+        tripId: tripId,
+        message: text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(l10n.tripClaimSent)),
+      );
+      setState(() {});
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text(l10n.tripClaimError)),
+      );
+    }
   }
 
   String _statusText(AppLocalizations l10n, String status) {

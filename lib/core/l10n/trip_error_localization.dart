@@ -38,6 +38,8 @@ String localizedTripApiError (
       return l10n.tripRequestInvalid;
     case 'TRIP_CREATE_RATE_LIMITED':
       return l10n.tripCreateRateLimited;
+    case 'TRIP_CANCEL_CAP_EXCEEDED':
+      return l10n.tripCancelCapExceeded;
     case 'NO_DRIVERS_AVAILABLE':
       return l10n.tripNoDriversAvailable;
     case 'SESSION_SUPERSEDED':

@@ -235,6 +235,9 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           waitGraceSec: waitSpec?.waitGraceSec ?? state.waitGraceSec,
           chatMessages: chatOk ? state.chatMessages : const [],
           tripChatErrorCode: chatOk ? state.tripChatErrorCode : null,
+          cancelledBy: data['cancelledBy']?.toString() ?? state.cancelledBy,
+          reasonLabel: data['reasonLabel']?.toString() ?? state.reasonLabel,
+          helpAvailable: data['helpAvailable'] == true,
         );
         unawaited(
           TripSessionStorage.saveLastKnownStatus(
@@ -257,6 +260,29 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     socket.on('trip:arrival_reminder', (data) {
       if (data is! Map) return;
       _rt._handleTripArrivalReminder(Map<String, dynamic>.from(data), tripId);
+    });
+
+    socket.on('trip:pickup_grace', (data) {
+      try {
+        if (data is! Map) return;
+        final tripIdData = data['tripId']?.toString();
+        if (tripIdData == null || tripIdData != tripId) return;
+        if (state.status != 'arrived') return;
+        final raw = data['remainingSec'] ?? data['remaining_sec'];
+        final remaining = raw is num ? raw.toInt() : int.tryParse('$raw') ?? 0;
+        unawaited(
+          PassengerNotificationService.instance.showPickupGraceIfBackground(
+            isAppInForeground: PassengerAppVisibility.isInForeground.value,
+            tripId: tripIdData,
+            remainingSec: remaining,
+          ),
+        );
+        unawaited(_rt.syncTripStatusFromApi(tripId: tripIdData, force: true));
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[PASSENGER_RT] Error manejando trip:pickup_grace: $e');
+        }
+      }
     });
 
     socket.on('trip:passenger_en_route:ack', (data) {

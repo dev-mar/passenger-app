@@ -7,6 +7,7 @@ import '../../data/models/nearby_driver.dart';
 import '../../data/models/quote_response.dart';
 import '../../data/models/passenger_trip_sync_response.dart';
 import '../../features/trip/passenger_trip_vehicle_info.dart';
+import '../../features/trip/trip_cancel_reason.dart';
 
 /// Cliente para el backend de viajes (quote, trips, nearby-drivers) en `app_texi_WebSocket`.
 /// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired] vía interceptor compartido.
@@ -217,14 +218,44 @@ class TripsApi {
   Future<void> cancelPassengerTrip({
     required String tripId,
     String? cancelScope,
+    String? reasonCode,
+    String? reasonNote,
   }) async {
     final scope = cancelScope?.trim();
+    final code = reasonCode?.trim();
+    final note = reasonNote?.trim();
+    final data = <String, dynamic>{
+      if (scope != null && scope.isNotEmpty) 'cancelScope': scope,
+      if (code != null && code.isNotEmpty) 'reasonCode': code,
+      if (note != null && note.isNotEmpty) 'reasonNote': note,
+    };
     await _dio.post(
       '/passengers/trips/$tripId/cancel',
-      data: (scope != null && scope.isNotEmpty)
-          ? <String, dynamic>{'cancelScope': scope}
-          : <String, dynamic>{},
+      data: data,
     );
+  }
+
+  /// GET /passengers/trips/:tripId/cancel-reasons — labels del servidor (fase 2).
+  Future<List<TripCancelReasonItem>> getPassengerTripCancelReasons({
+    required String tripId,
+    String? locale,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/passengers/trips/$tripId/cancel-reasons',
+      queryParameters: <String, dynamic>{
+        if (locale != null && locale.trim().isNotEmpty) 'locale': locale.trim(),
+      },
+    );
+    final body = response.data ?? const <String, dynamic>{};
+    final data = body['data'];
+    if (data is! Map) return const [];
+    final items = data['items'];
+    if (items is! List) return const [];
+    return items
+        .whereType<Map>()
+        .map((m) => TripCancelReasonItem.fromJson(Map<String, dynamic>.from(m)))
+        .where((e) => e.code.isNotEmpty)
+        .toList(growable: false);
   }
 
   /// POST /passengers/trips/:tripId/share-link — reutiliza token activo.
@@ -263,19 +294,43 @@ class TripsApi {
     }
   }
 
-  Future<void> submitPassengerTripRating({
+  Future<PassengerTripRatingResult> submitPassengerTripRating({
     required String tripId,
     required int stars,
     String? commentText,
     List<String>? feedbackCodes,
   }) async {
-    await _dio.post(
+    final response = await _dio.post<Map<String, dynamic>>(
       '/passengers/trips/$tripId/rating',
       data: {
         'stars': stars,
         if (commentText != null && commentText.trim().isNotEmpty)
           'commentText': commentText.trim(),
         'feedbackCodes': ?feedbackCodes,
+      },
+    );
+    final data = response.data?['data'];
+    final map = data is Map ? Map<String, dynamic>.from(data) : const <String, dynamic>{};
+    return PassengerTripRatingResult(
+      claimEligible: map['claimEligible'] == true || map['claim_eligible'] == true,
+      claimMaxStars: map['claimMaxStars'] is num
+          ? (map['claimMaxStars'] as num).toInt()
+          : (map['claim_max_stars'] is num ? (map['claim_max_stars'] as num).toInt() : 2),
+    );
+  }
+
+  Future<void> submitPassengerTripClaim({
+    required String tripId,
+    required String message,
+    int? stars,
+    List<String>? feedbackCodes,
+  }) async {
+    await _dio.post(
+      '/passengers/trips/$tripId/claim',
+      data: {
+        'message': message,
+        if (stars != null) 'stars': stars,
+        if (feedbackCodes?.isNotEmpty ?? false) 'feedbackCodes': feedbackCodes,
       },
     );
   }
@@ -546,6 +601,8 @@ class PassengerTripHistoryItem {
     this.createdAt,
     this.updatedAt,
     this.currencyCode,
+    this.claimEligible = false,
+    this.claimSubmitted = false,
   });
 
   final String id;
@@ -562,6 +619,8 @@ class PassengerTripHistoryItem {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? currencyCode;
+  final bool claimEligible;
+  final bool claimSubmitted;
 
   factory PassengerTripHistoryItem.fromJson(Map<String, dynamic> json) {
     double? parseNum(dynamic v) {
@@ -589,6 +648,8 @@ class PassengerTripHistoryItem {
           ? DateTime.tryParse('${json['updatedAt']}')
           : null,
       currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
+      claimEligible: json['claimEligible'] == true || json['claim_eligible'] == true,
+      claimSubmitted: json['claimSubmitted'] == true || json['claim_submitted'] == true,
     );
   }
 }
@@ -883,4 +944,14 @@ class TripRatingFeedbackItem {
       maxStars: maxRaw is num ? maxRaw.toInt() : int.tryParse('$maxRaw') ?? 5,
     );
   }
+}
+
+class PassengerTripRatingResult {
+  const PassengerTripRatingResult({
+    required this.claimEligible,
+    this.claimMaxStars = 2,
+  });
+
+  final bool claimEligible;
+  final int claimMaxStars;
 }

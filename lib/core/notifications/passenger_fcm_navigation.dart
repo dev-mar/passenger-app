@@ -108,7 +108,11 @@ void _markPendingPassengerChatOpen(String tripId) {
 /// FCM con `event: driver_arrived` y `tripId` (contrato backend).
 Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
   final event = message.data['event']?.toString();
-  if (event != 'driver_arrived' && event != 'trip_chat') return;
+  if (event != 'driver_arrived' &&
+      event != 'trip_chat' &&
+      event != 'pickup_grace') {
+    return;
+  }
 
   final tripId = message.data['tripId']?.toString().trim();
   if (tripId == null || tripId.isEmpty) return;

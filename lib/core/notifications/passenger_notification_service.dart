@@ -28,6 +28,7 @@ class PassengerNotificationService {
   static const int _quietHoursEnd = 7; // 07:00
   static const String _chatVibrationLevel = 'medium'; // low | medium | high
   static final Set<String> _arrivedNotifiedTripIds = <String>{};
+  static final Set<String> _graceNotifiedTripIds = <String>{};
 
   AppLocalizations _l10nForCurrentLocale() => PassengerLocaleHolder.l10n();
 
@@ -104,8 +105,13 @@ class PassengerNotificationService {
     final inst = PassengerNotificationService.instance;
     await inst.initialize();
     final arrived = inst._copyForDriverArrivedFcm(message);
-    final title = arrived?.title ?? message.data['title']?.toString().trim();
-    final body = arrived?.body ?? message.data['body']?.toString().trim();
+    final grace = inst._copyForPickupGraceFcm(message);
+    final title = arrived?.title ??
+        grace?.title ??
+        message.data['title']?.toString().trim();
+    final body = arrived?.body ??
+        grace?.body ??
+        message.data['body']?.toString().trim();
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
       return;
     }
@@ -122,6 +128,7 @@ class PassengerNotificationService {
   /// En primer plano Android no muestra banner FCM: duplicamos con notificación local.
   Future<void> showFcmForegroundMessage(RemoteMessage message) async {
     if (!_initialized) await initialize();
+    if (message.data['event']?.toString() == 'pickup_grace') return;
     final arrived = _copyForDriverArrivedFcm(message);
     final n = message.notification;
     final title = arrived?.title ??
@@ -138,6 +145,21 @@ class PassengerNotificationService {
         message.data['tripId']?.toString() ??
         message.data['trip_id']?.toString();
     await _showRaw(title: title, body: body, payload: tripId);
+  }
+
+  ({String title, String body})? _copyForPickupGraceFcm(
+    RemoteMessage message,
+  ) {
+    final event = message.data['event']?.toString();
+    if (event != 'pickup_grace') return null;
+    final raw = message.data['remainingSec'] ?? message.data['remaining_sec'];
+    final remaining = raw is num ? raw.toInt() : int.tryParse('$raw') ?? 0;
+    final minutes = remaining <= 0 ? 1 : ((remaining + 59) ~/ 60);
+    final l10n = _l10nForCurrentLocale();
+    return (
+      title: l10n.passengerNotifyPickupGraceTitle,
+      body: l10n.passengerNotifyPickupGraceBody(minutes),
+    );
   }
 
   ({String title, String body})? _copyForDriverArrivedFcm(
@@ -286,9 +308,28 @@ class PassengerNotificationService {
     );
   }
 
+  Future<void> showPickupGraceIfBackground({
+    required bool isAppInForeground,
+    required String tripId,
+    int remainingSec = 0,
+  }) async {
+    if (isAppInForeground) return;
+    await initialize();
+    if (_graceNotifiedTripIds.contains(tripId)) return;
+    _graceNotifiedTripIds.add(tripId);
+    final minutes = remainingSec <= 0 ? 1 : ((remainingSec + 59) ~/ 60);
+    final l10n = _l10nForCurrentLocale();
+    await _showRaw(
+      title: l10n.passengerNotifyPickupGraceTitle,
+      body: l10n.passengerNotifyPickupGraceBody(minutes),
+      payload: tripId,
+    );
+  }
+
   /// Llamar al cerrar viaje (completed/cancelled) para no arrastrar dedupe.
   static void clearArrivedNotificationDedupe(String tripId) {
     _arrivedNotifiedTripIds.remove(tripId);
+    _graceNotifiedTripIds.remove(tripId);
   }
 
   Future<void> showTripChatMessageIfBackground({

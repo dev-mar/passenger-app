@@ -20,6 +20,24 @@ class TexiBackendError {
     return null;
   }
 
+  static String? waitBlockReasonFromDio (Object? e) {
+    if (e is! DioException) return null;
+    return waitBlockReasonFromResponse(e.response?.data);
+  }
+
+  static String? waitBlockReasonFromResponse (dynamic data) {
+    if (data is Map) {
+      final direct = data['waitBlockReason']?.toString().trim();
+      if (direct != null && direct.isNotEmpty) return direct;
+      final err = data['error'];
+      if (err is Map) {
+        final w = err['waitBlockReason']?.toString().trim();
+        if (w != null && w.isNotEmpty) return w;
+      }
+    }
+    return null;
+  }
+
   static String? messageFromResponse (dynamic data) {
     if (data is Map) {
       final m = data['message']?.toString().trim();

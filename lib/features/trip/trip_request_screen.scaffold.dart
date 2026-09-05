@@ -911,6 +911,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           passengerEnRouteConnected: rtState.connected,
                           enRouteCooldownUntilMs: rtState.enRouteCooldownUntilMs,
                           enRouteErrorCode: rtState.enRouteErrorCode,
+                          onCancelTrip: passengerTripCanCancelAssigned(rtState.status)
+                              ? () => unawaited(_cancelAssignedTrip())
+                              : null,
+                          cancelTripLabel: l10n.tripCancelCta,
                         ),
                       ],
                     ),

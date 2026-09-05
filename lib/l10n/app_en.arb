@@ -521,6 +521,39 @@
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar if cancel is attempted on an accepted trip"
   },
+  "tripCancelCta": "Cancel trip",
+  "@tripCancelCta": {
+    "description": "Button on the active-trip panel (accepted/arrived)"
+  },
+  "tripCancelChooseReason": "Why are you cancelling?",
+  "tripCancelNoteHint": "Write the reason",
+  "tripCancelContinue": "Continue",
+  "tripCancelConfirmTitle": "Confirm cancellation",
+  "tripCancelConfirm": "Confirm",
+  "tripCancelBack": "Back",
+  "tripCancelNeedConnection": "We can't cancel without a connection. Try again when you're back online.",
+  "tripCancelReasonsLoadError": "We couldn't load the reasons. Check your connection and try again.",
+  "tripCancelReasonsEmpty": "There are no cancel reasons available right now.",
+  "tripCancelConfirmFallback": "If you confirm, the trip is cancelled. Our team may review the reason.",
+  "tripCancelError": "We couldn't cancel the trip. Check your connection and try again.",
+  "tripCancelCapExceeded": "Wait a moment before requesting another trip.",
+  "tripClaimAsk": "Do you want to send a claim to our team?",
+  "tripClaimHint": "Tell us what happened. Our team can review the trip.",
+  "tripClaimSend": "Send claim",
+  "tripClaimSkip": "Not now",
+  "tripClaimSent": "We sent your claim to our team.",
+  "tripClaimError": "We couldn't send the claim. Try again later.",
+  "tripClaimAlreadySent": "You already sent a claim for this trip.",
+  "tripCancelledByDriver": "The driver canceled the trip.",
+  "tripNeedHelp": "I need help",
+  "tripAlreadyFinalized": "This trip already ended. Refresh to continue.",
+  "tripCannotCancelRace": "The trip changed stage. Refresh and try again.",
+  "tripCancelEnRouteTooSoon": "The driver is still within the on-the-way time.",
+  "tripCancelWaitStillWaiting": "You're still in the waiting time.",
+  "tripCancelWaitStillGrace": "You're still in the grace period.",
+  "tripCancelWaitNotAtPickup": "It looks like you're not at the pickup point.",
+  "tripCancelWaitNoLocation": "We couldn't confirm you're at the pickup point.",
+  "tripCancelWaitNotEligible": "The wait-time reason doesn't apply at this stage.",
   "verifyCodeTitle": "Verify your number",
   "verifyCodeSubtitle": "We sent a 6-digit code to {phone}. Enter it to continue.",
   "@verifyCodeSubtitle": {
@@ -795,6 +828,11 @@
   "passengerNotifyDriverArrivedBodyNamed": "{name} is waiting at the pickup point.",
   "@passengerNotifyDriverArrivedBodyNamed": {
     "placeholders": {"name": {"type": "String"}}
+  },
+  "passengerNotifyPickupGraceTitle": "Wait time is over",
+  "passengerNotifyPickupGraceBody": "You have {minutes} min of grace at the pickup point.",
+  "@passengerNotifyPickupGraceBody": {
+    "placeholders": {"minutes": {"type": "int"}}
   },
   "passengerNotifyChatNewTitle": "Trip message",
   "passengerNotifyChatSenderDriver": "Driver",
