@@ -231,6 +231,7 @@ class _PassengerProfilePreviewScreenState
             onEditInfo: () => _openEditProfile(snap.data!),
             onSupport: _openSupportCenter,
             onLanguage: _openSettingsSheet,
+            onBenefits: () => context.pushNamed(AppRouter.benefits),
           );
         },
       ),

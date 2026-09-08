@@ -5,6 +5,7 @@ import 'passenger_app_environment.dart';
 /// Entorno dev/prod: `--dart-define=TEXI_APP_ENV=dev|prod`
 /// Override URL: `--dart-define=TEXI_BACKEND_BASE_URL=...`
 /// Humo WA en dev: `--dart-define=TEXI_PASSENGER_MULTICHANNEL_AUTH=true`
+/// Sin ese define, flavor/dev usa login clásico (teléfono + OTP `code`), no WA/Google.
 class AppConfig {
   AppConfig._();
 

@@ -78,6 +78,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _step == LoginScreenStep.phoneUnified ||
       _step == LoginScreenStep.googleUnified;
 
+  /// Flavor/dev (`TEXI_APP_ENV=dev`), incluido APK release. Prod no entra aquí.
+  bool get _usesClassicPhoneOtp => PassengerAppEnvironment.usesClassicPhoneOtp;
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +97,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _step = LoginScreenStep.phoneUnified;
     }
     _phoneController.addListener(_onPhoneChanged);
+    if (_usesClassicPhoneOtp && _step == LoginScreenStep.methodChoice) {
+      _step = LoginScreenStep.phoneUnified;
+    }
     if (widget.stepUpCompleted) {
       _step = LoginScreenStep.phoneUnified;
       if (!_captchaGateRequired) _captchaReady = true;
@@ -142,6 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _onMethodSelected(LoginEntryMethod method) {
     final l10n = AppLocalizations.of(context)!;
     if (method == LoginEntryMethod.google) {
+      if (_usesClassicPhoneOtp) return;
       if (!AppConfig.googleAuthEnabled) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -213,7 +220,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     final LoginNextStep nextStep;
-    if (method == PhoneVerificationMethod.verificationCode) {
+    if (_usesClassicPhoneOtp) {
+      nextStep = await ref.read(loginControllerProvider.notifier).login(
+            countryCode: countryCode,
+            phoneNumber: phone,
+            fullPhone: _fullPhone,
+            otpChannel: 'code',
+            entryCaptchaToken: _entryCaptchaToken,
+          );
+    } else if (method == PhoneVerificationMethod.verificationCode) {
       nextStep = await ref
           .read(loginControllerProvider.notifier)
           .requestWhatsAppOutbound(
@@ -238,6 +253,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
+    if (_usesClassicPhoneOtp) return;
     if (_isLoading) return;
     if (_captchaGateRequired && !_captchaReady) return;
     setState(() {
@@ -253,6 +269,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _continueWithManualEmail() async {
+    if (_usesClassicPhoneOtp) return;
     if (_isLoading) return;
     if (_captchaGateRequired && !_captchaReady) return;
     final email = _emailController.text.trim();
@@ -421,7 +438,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _resetToMethodChoice() {
     _resetCaptchaGate();
     _errorMessage = null;
-    _step = LoginScreenStep.methodChoice;
+    _step = _usesClassicPhoneOtp
+        ? LoginScreenStep.phoneUnified
+        : LoginScreenStep.methodChoice;
     _phoneController.clear();
     _emailController.clear();
   }
@@ -513,6 +532,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleBack() {
     if (_isLoading) return;
+    if (_usesClassicPhoneOtp) return;
     setState(() {
       _errorMessage = null;
       _resetCaptchaGate();
@@ -597,6 +617,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   String? _loadingMessage(AppLocalizations l10n) {
     if (!_isLoading) return null;
+    if (_usesClassicPhoneOtp) return l10n.commonLoading;
     return _step == LoginScreenStep.phoneUnified
         ? l10n.loginVerifyMethodLoadingWa
         : l10n.commonLoading;
@@ -609,7 +630,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final googleEnabled = PassengerAppEnvironment.multichannelAuthEnabled &&
         AppConfig.googleAuthEnabled;
     final authChannelsEnabled = PassengerAppEnvironment.multichannelAuthEnabled;
-    final showBack = _step != LoginScreenStep.methodChoice;
+    final showBack =
+        _step != LoginScreenStep.methodChoice && !_usesClassicPhoneOtp;
 
     return PassengerAuthShell(
       loading: _isLoading,
@@ -690,6 +712,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           key: const ValueKey('method_choice'),
           onMethodSelected: _onMethodSelected,
           googleAuthEnabled: googleEnabled,
+          showGoogleMethod: !_usesClassicPhoneOtp,
         );
       case LoginScreenStep.phoneUnified:
         return LoginPhoneUnifiedPanel(
@@ -704,6 +727,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onMethodSelected: _onVerificationMethodSelected,
           isLoading: _isLoading,
           outboundEnabled: outboundEnabled,
+          classicPhoneOtp: _usesClassicPhoneOtp,
           linkedGoogleEmail: loginState.googleEmail,
         );
       case LoginScreenStep.googleUnified:

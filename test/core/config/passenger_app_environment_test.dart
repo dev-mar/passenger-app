@@ -20,4 +20,9 @@ void main() {
       'com.taxitexi.texi_passenger_app.dev',
     );
   });
+
+  test('flavor/dev usa OTP clásico (alta de pasajero nuevo incluida)', () {
+    expect(PassengerAppEnvironment.isDev, isTrue);
+    expect(PassengerAppEnvironment.usesClassicPhoneOtp, isTrue);
+  });
 }

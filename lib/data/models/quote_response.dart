@@ -83,18 +83,133 @@ class QuoteCity {
       };
 }
 
+class PromoPreview {
+  const PromoPreview({
+    required this.campaignId,
+    required this.cashDuePassenger,
+    required this.companyGuaranteeToDriver,
+    required this.discountAmount,
+    this.displayCopyEs,
+    this.displayCopyEn,
+  });
+
+  final String campaignId;
+  final double cashDuePassenger;
+  final double companyGuaranteeToDriver;
+  final double discountAmount;
+  final String? displayCopyEs;
+  final String? displayCopyEn;
+
+  factory PromoPreview.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      throw const FormatException('promoPreview vacío');
+    }
+    double parseNum(dynamic v) {
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    final copy = json['displayCopy'];
+    return PromoPreview(
+      campaignId: json['campaignId']?.toString() ?? '',
+      cashDuePassenger: parseNum(json['cashDuePassenger']),
+      companyGuaranteeToDriver: parseNum(json['companyGuaranteeToDriver']),
+      discountAmount: parseNum(json['discountAmount']),
+      displayCopyEs: copy is Map ? copy['es']?.toString() : null,
+      displayCopyEn: copy is Map ? copy['en']?.toString() : null,
+    );
+  }
+
+  String rulesForLocale(String languageCode) {
+    if (languageCode == 'en') {
+      final en = displayCopyEn?.trim();
+      if (en != null && en.isNotEmpty) return en;
+    }
+    final es = displayCopyEs?.trim();
+    if (es != null && es.isNotEmpty) return es;
+    return displayCopyEn?.trim() ?? '';
+  }
+}
+
+class TripSupportPreview {
+  const TripSupportPreview({
+    required this.source,
+    required this.supportAmount,
+    required this.cashDuePassenger,
+    required this.companyGuaranteeToDriver,
+    this.maxPerTrip,
+    this.expiresAt,
+    this.currencyCode,
+  });
+
+  final String source;
+  final double supportAmount;
+  final double cashDuePassenger;
+  final double companyGuaranteeToDriver;
+  final double? maxPerTrip;
+  final DateTime? expiresAt;
+  final String? currencyCode;
+
+  factory TripSupportPreview.fromJson(Map<String, dynamic> json) {
+    double parseNum(dynamic v) {
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    DateTime? exp;
+    final rawExp = json['expiresAt'] ?? json['expires_at'];
+    if (rawExp is String && rawExp.trim().isNotEmpty) {
+      exp = DateTime.tryParse(rawExp);
+    }
+    double? maxPer;
+    final rawMax = json['maxPerTrip'] ?? json['max_per_trip'];
+    if (rawMax is num) maxPer = rawMax.toDouble();
+    if (rawMax is String) maxPer = double.tryParse(rawMax);
+
+    return TripSupportPreview(
+      source: json['source']?.toString() ?? 'passenger_referral',
+      supportAmount: parseNum(json['supportAmount'] ?? json['support_amount']),
+      cashDuePassenger: parseNum(json['cashDuePassenger'] ?? json['cash_due_passenger']),
+      companyGuaranteeToDriver: parseNum(
+        json['companyGuaranteeToDriver'] ?? json['company_guarantee_to_driver'],
+      ),
+      maxPerTrip: maxPer,
+      expiresAt: exp,
+      currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
+    );
+  }
+}
+
 class QuoteOption {
   const QuoteOption({
     required this.serviceTypeId,
     required this.serviceTypeName,
     required this.estimatedPrice,
     required this.currencyCode,
+    this.promoPreview,
+    this.tripSupport,
   });
 
   final int serviceTypeId;
   final String serviceTypeName;
   final double estimatedPrice;
   final String currencyCode;
+  final PromoPreview? promoPreview;
+  final TripSupportPreview? tripSupport;
+
+  bool get hasCampaignPreview =>
+      promoPreview != null && promoPreview!.campaignId.isNotEmpty;
+
+  bool get hasTripSupport =>
+      tripSupport != null && tripSupport!.supportAmount > 0;
+
+  double? get youPayCashDue {
+    if (hasCampaignPreview) return promoPreview!.cashDuePassenger;
+    if (hasTripSupport) return tripSupport!.cashDuePassenger;
+    return null;
+  }
 
   factory QuoteOption.fromJson(Map<String, dynamic> json) {
     final rawId = json['serviceTypeId'];
@@ -115,11 +230,37 @@ class QuoteOption {
       estimatedPrice = double.tryParse(rawPrice) ?? 0;
     }
 
+    PromoPreview? promoPreview;
+    final rawPromo = json['promoPreview'] ?? json['promo_preview'];
+    if (rawPromo is Map) {
+      try {
+        promoPreview = PromoPreview.fromJson(Map<String, dynamic>.from(rawPromo));
+        if (promoPreview.campaignId.isEmpty) promoPreview = null;
+      } catch (_) {
+        promoPreview = null;
+      }
+    }
+
+    TripSupportPreview? tripSupport;
+    final rawSupport = json['tripSupport'] ?? json['trip_support'];
+    if (rawSupport is Map) {
+      try {
+        tripSupport = TripSupportPreview.fromJson(
+          Map<String, dynamic>.from(rawSupport),
+        );
+        if (tripSupport.supportAmount <= 0) tripSupport = null;
+      } catch (_) {
+        tripSupport = null;
+      }
+    }
+
     return QuoteOption(
       serviceTypeId: serviceTypeId,
       serviceTypeName: json['serviceTypeName'] as String? ?? '',
       estimatedPrice: estimatedPrice,
       currencyCode: (json['currencyCode'] ?? json['currency'])?.toString() ?? 'BOB',
+      promoPreview: promoPreview,
+      tripSupport: tripSupport,
     );
   }
 
@@ -128,5 +269,29 @@ class QuoteOption {
         'serviceTypeName': serviceTypeName,
         'estimatedPrice': estimatedPrice,
         'currencyCode': currencyCode,
+        if (promoPreview != null)
+          'promoPreview': {
+            'campaignId': promoPreview!.campaignId,
+            'cashDuePassenger': promoPreview!.cashDuePassenger,
+            'companyGuaranteeToDriver': promoPreview!.companyGuaranteeToDriver,
+            'discountAmount': promoPreview!.discountAmount,
+            'displayCopy': {
+              'es': promoPreview!.displayCopyEs,
+              'en': promoPreview!.displayCopyEn,
+            },
+          },
+        if (tripSupport != null)
+          'tripSupport': {
+            'source': tripSupport!.source,
+            'supportAmount': tripSupport!.supportAmount,
+            'cashDuePassenger': tripSupport!.cashDuePassenger,
+            'companyGuaranteeToDriver': tripSupport!.companyGuaranteeToDriver,
+            if (tripSupport!.maxPerTrip != null)
+              'maxPerTrip': tripSupport!.maxPerTrip,
+            if (tripSupport!.expiresAt != null)
+              'expiresAt': tripSupport!.expiresAt!.toIso8601String(),
+            if (tripSupport!.currencyCode != null)
+              'currencyCode': tripSupport!.currencyCode,
+          },
       };
 }

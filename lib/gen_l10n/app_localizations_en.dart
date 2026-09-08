@@ -1214,6 +1214,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSetupContinue => 'Continue';
 
   @override
+  String get profileSetupReferralLabel => 'Referral code (optional)';
+
+  @override
+  String get profileSetupReferralHint => 'Code from who referred you';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -1248,7 +1254,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripRecoveringStuckBody =>
-      'Your trip is still active. Check your connection and try again. Don\'t tap Cancel — that only applies while matching a driver.';
+      'Your trip is still active. Check your connection and try again. If you\'re still matching a driver, you can cancel the search.';
 
   @override
   String get tripRecoveringCheckNetwork => 'Internet connection';
@@ -1258,6 +1264,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripRecoveringRetryCta => 'Try again';
+
+  @override
+  String get tripRecoveringCancelMatchingCta => 'Cancel search';
 
   @override
   String get tripCancelBlockedActiveBody =>
@@ -2547,4 +2556,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appUpdateLater => 'Later';
+
+  @override
+  String get promoBenefitsTitle => 'Your benefits';
+
+  @override
+  String get promoBenefitsEmpty =>
+      'When you have an active TEXIAPP benefit, it will show up here.';
+
+  @override
+  String promoChipYouPay(String amount) {
+    return 'You pay $amount';
+  }
+
+  @override
+  String get promoConfirmHint =>
+      'The trip fare stays the same. You pay less in cash and TEXIAPP covers the difference with the driver.';
+
+  @override
+  String get promoCodeLabel => 'Benefit code';
+
+  @override
+  String get promoCodeHint => 'Example: TEXI5';
+
+  @override
+  String get promoCodeApply => 'Apply code';
+
+  @override
+  String get promoCodeApplied => 'Code ready for your next trip.';
+
+  @override
+  String get promoCodeUnavailable => 'That code is not available.';
+
+  @override
+  String get promoReferralTitle => 'Invite and get trip support';
+
+  @override
+  String get promoReferralMine => 'Your code to share';
+
+  @override
+  String get promoReferralClaimLabel => 'Code from who referred you';
+
+  @override
+  String get promoReferralClaim => 'Save code';
+
+  @override
+  String get promoReferralClaimed => 'Code saved.';
+
+  @override
+  String get promoReferralUnavailable => 'We could not use that code.';
+
+  @override
+  String get promoReferralShare => 'Share';
+
+  @override
+  String promoReferralShareMessage(String code) {
+    return 'Use my code $code in TEXIAPP. Our team covers part of the inviter\'s trips.';
+  }
+
+  @override
+  String promoReferralWallet(String amount) {
+    return 'Available support: $amount';
+  }
+
+  @override
+  String promoReferralWalletExpires(String date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String promoReferralMaxPerTrip(String amount) {
+    return 'Up to $amount per trip';
+  }
+
+  @override
+  String get promoReferralInviteesTitle => 'People who used your code';
+
+  @override
+  String get promoReferralInviteePending => 'Waiting for first trip';
+
+  @override
+  String get promoReferralInviteeGranted => 'Support credited';
+
+  @override
+  String get promoReferralInviteeRejected => 'Not valid';
+
+  @override
+  String get promoReferralGraceClosed => 'The window to add a code has closed.';
+
+  @override
+  String get tripSupportConfirmHint =>
+      'The trip fare stays the same. Our team covers part with TEXIAPP support.';
+
+  @override
+  String get promoBenefitsEntry => 'TEXIAPP benefits';
 }

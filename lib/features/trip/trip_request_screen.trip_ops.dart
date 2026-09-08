@@ -672,6 +672,65 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
   }
 
+  /// Escape de recuperación: cancela solo matching. Si el viaje ya está
+  /// asignado, rehidrata. Si no existe, limpia el estado local.
+  Future<void> _cancelMatchingFromRecovery(String tripId) async {
+    final rtStatus = ref.read(passengerRealtimeProvider).status;
+    if (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed') {
+      if (mounted) {
+        final loc = AppLocalizations.of(context);
+        if (loc != null) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(content: Text(loc.tripCancelBlockedActiveBody)),
+          );
+        }
+      }
+      return;
+    }
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await TripsApi(token: token).cancelPassengerTrip(
+        tripId: tripId,
+        cancelScope: 'matching',
+      );
+    } on DioException catch (e) {
+      final code = TexiBackendError.codeFromResponse(e.response?.data);
+      if (code == 'TRIP_MATCHING_ALREADY_ASSIGNED') {
+        await ref
+            .read(passengerRealtimeProvider.notifier)
+            .syncTripStatusFromApi(tripId: tripId, force: true);
+        return;
+      }
+      if (code == 'TRIP_NOT_FOUND' || e.response?.statusCode == 404) {
+        await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
+        return;
+      }
+      if (mounted) {
+        final loc = AppLocalizations.of(context);
+        if (loc != null) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(content: Text(loc.commonError)),
+          );
+        }
+      }
+      return;
+    } catch (_) {
+      if (mounted) {
+        final loc = AppLocalizations.of(context);
+        if (loc != null) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+            SnackBar(content: Text(loc.commonError)),
+          );
+        }
+      }
+      return;
+    }
+    if (!mounted) return;
+    PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
+    await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
+  }
+
   /// Cancelar viaje ya asignado (`accepted`/`arrived`). No usa overlay ni `cancelScope=matching`.
   Future<void> _cancelAssignedTrip() async {
     final tripId = ref.read(tripRequestProvider).tripId ??

@@ -1333,11 +1333,14 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
           .read(tripRequestProvider.notifier)
           .setDestination(_d._destination!.latitude, _d._destination!.longitude);
       final api = TripsApi(token: token);
+      final promo = await passengerPromoRequestFields(ref);
       final quote = await api.quoteTrip(
         originLat: _d._origin!.latitude,
         originLng: _d._origin!.longitude,
         destinationLat: _d._destination!.latitude,
         destinationLng: _d._destination!.longitude,
+        deviceId: promo.deviceId,
+        promoCode: promo.promoCode,
       );
       ref.read(tripRequestProvider.notifier).setQuote(quote);
       if (!mounted) return;

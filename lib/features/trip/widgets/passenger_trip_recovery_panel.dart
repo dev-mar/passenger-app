@@ -15,10 +15,12 @@ class PassengerTripRecoveryPanel extends StatefulWidget {
   const PassengerTripRecoveryPanel({
     super.key,
     required this.onRetry,
+    this.onCancelMatching,
     this.diagnosticAfter = const Duration(seconds: 8),
   });
 
   final VoidCallback onRetry;
+  final VoidCallback? onCancelMatching;
   final Duration diagnosticAfter;
 
   @override
@@ -141,6 +143,13 @@ class _PassengerTripRecoveryPanelState extends State<PassengerTripRecoveryPanel>
                         child: Text(l10n.tripRecoveringRetryCta),
                       ),
                     ),
+                    if (widget.onCancelMatching != null) ...[
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: _checking ? null : widget.onCancelMatching,
+                        child: Text(l10n.tripRecoveringCancelMatchingCta),
+                      ),
+                    ],
                   ],
                 )
               : Row(

@@ -80,8 +80,19 @@ class PassengerAppEnvironment {
       internalToolsDartDefine || isDev;
 
   /// Auth multicanal (WA / email / Google): **solo prod** o `--dart-define=TEXI_PASSENGER_MULTICHANNEL_AUTH=true` (humo QA).
+  /// No gobierna el login de flavor/dev: ahí manda [usesClassicPhoneOtp].
   static bool get multichannelAuthEnabled =>
       isProd || multichannelAuthDartDefine;
+
+  /// Login clásico: teléfono + `otp_channel=code` (OTP de `PASSENGER_DEV_OTP_CODE`).
+  ///
+  /// **Todo** build `TEXI_APP_ENV=dev` (debug o `app-dev-release.apk`) usa este camino,
+  /// incluido el alta de un pasajero **nuevo**. No depende del dart-define de humo:
+  /// si `.env.local` trae `TEXI_PASSENGER_MULTICHANNEL_AUTH=true`, el APK de desarrollo
+  /// igual no llama WhatsApp/Google.
+  ///
+  /// `TEXI_APP_ENV=prod` → false. El login de producción no entra aquí.
+  static bool get usesClassicPhoneOtp => isDev;
 
   static String get firebaseAndroidApplicationId => isDev
       ? 'com.taxitexi.texi_passenger_app.dev'

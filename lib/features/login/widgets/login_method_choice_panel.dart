@@ -18,10 +18,13 @@ class LoginMethodChoicePanel extends StatelessWidget {
     super.key,
     required this.onMethodSelected,
     this.googleAuthEnabled = false,
+    this.showGoogleMethod = true,
   });
 
   final LoginMethodSelected onMethodSelected;
   final bool googleAuthEnabled;
+  /// False en login clásico (dev). Default true: no oculta Google en prod.
+  final bool showGoogleMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -58,28 +61,30 @@ class LoginMethodChoicePanel extends StatelessWidget {
           subtitle: l10n.loginMethodPhoneSubtitle,
           infoMessage: l10n.loginMethodPhoneInfo,
         ),
-        const SizedBox(height: 10),
-        _LoginMethodCard(
-          highlighted: false,
-          badge: googleAuthEnabled ? null : l10n.loginMethodGoogleBadge,
-          onTap: () {
-            TexiUiFeedback.softImpact();
-            onMethodSelected(LoginEntryMethod.google);
-          },
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: PassengerAuthLook.hairline),
+        if (showGoogleMethod) ...[
+          const SizedBox(height: 10),
+          _LoginMethodCard(
+            highlighted: false,
+            badge: googleAuthEnabled ? null : l10n.loginMethodGoogleBadge,
+            onTap: () {
+              TexiUiFeedback.softImpact();
+              onMethodSelected(LoginEntryMethod.google);
+            },
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: PassengerAuthLook.hairline),
+              ),
+              child: const Center(child: LoginGoogleBrandIcon(size: 22)),
             ),
-            child: const Center(child: LoginGoogleBrandIcon(size: 22)),
+            title: l10n.loginMethodGoogleTitle,
+            subtitle: l10n.loginMethodGoogleSubtitle,
+            infoMessage: l10n.loginMethodGoogleInfo,
           ),
-          title: l10n.loginMethodGoogleTitle,
-          subtitle: l10n.loginMethodGoogleSubtitle,
-          infoMessage: l10n.loginMethodGoogleInfo,
-        ),
+        ],
       ],
     );
   }

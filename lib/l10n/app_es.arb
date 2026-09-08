@@ -493,6 +493,8 @@
   "profileSetupNameRequired": "Ingresa tu nombre.",
   "profileSetupNameTooShort": "El nombre es muy corto.",
   "profileSetupContinue": "Continuar",
+  "profileSetupReferralLabel": "Código de quien te refirió (opcional)",
+  "profileSetupReferralHint": "Código de quien te refirió",
   "commonCancel": "Cancelar",
   "commonLoading": "Cargando...",
   "commonError": "Algo salió mal",
@@ -516,10 +518,11 @@
   "@tripRecoveringStuckTitle": {
     "description": "Título cuando la rehidratación tarda demasiado"
   },
-  "tripRecoveringStuckBody": "Tu viaje sigue activo. Revisa tu conexión e intenta de nuevo. No uses Cancelar: eso solo aplica mientras se busca conductor.",
+  "tripRecoveringStuckBody": "Tu viaje sigue activo. Revisa tu conexión e intenta de nuevo. Si aún estás buscando conductor, puedes cancelar la búsqueda.",
   "tripRecoveringCheckNetwork": "Conexión a internet",
   "tripRecoveringCheckLocation": "Permiso y GPS de ubicación",
   "tripRecoveringRetryCta": "Intentar de nuevo",
+  "tripRecoveringCancelMatchingCta": "Cancelar búsqueda",
   "tripCancelBlockedActiveBody": "Tu viaje ya está en curso. No se puede cancelar desde aquí.",
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar si se intenta cancelar con viaje ya aceptado"
@@ -998,5 +1001,57 @@
   "appUpdateOptionalTitle": "Nueva versión disponible",
   "appUpdateOptionalMessage": "Hay una actualización en Play Store. Instálala para tener la última versión.",
   "appUpdateOpenStore": "Ir a Play Store",
-  "appUpdateLater": "Más tarde"
+  "appUpdateLater": "Más tarde",
+  "promoBenefitsTitle": "Tus beneficios",
+  "promoBenefitsEmpty": "Cuando tengas un beneficio activo de TEXIAPP, lo verás aquí.",
+  "promoChipYouPay": "Tú pagas {amount}",
+  "@promoChipYouPay": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoConfirmHint": "El precio del viaje no cambia. Tú pagas menos en efectivo y TEXIAPP cubre la diferencia con el conductor.",
+  "promoCodeLabel": "Código de beneficio",
+  "promoCodeHint": "Ejemplo: TEXI5",
+  "promoCodeApply": "Usar código",
+  "promoCodeApplied": "Código listo para tu próximo viaje.",
+  "promoCodeUnavailable": "Ese código no está disponible.",
+  "promoReferralTitle": "Invita y recibe apoyo de viaje",
+  "promoReferralMine": "Tu código para compartir",
+  "promoReferralClaimLabel": "Código de quien te refirió",
+  "promoReferralClaim": "Registrar código",
+  "promoReferralClaimed": "Código registrado.",
+  "promoReferralUnavailable": "No pudimos usar ese código.",
+  "promoReferralShare": "Compartir",
+  "promoReferralShareMessage": "Usa mi código {code} en TEXIAPP. Nuestro equipo cubre parte de los viajes de quien invita.",
+  "@promoReferralShareMessage": {
+    "placeholders": {
+      "code": { "type": "String" }
+    }
+  },
+  "promoReferralWallet": "Apoyo disponible: {amount}",
+  "@promoReferralWallet": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoReferralWalletExpires": "Vigente hasta {date}",
+  "@promoReferralWalletExpires": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "promoReferralMaxPerTrip": "Hasta {amount} por viaje",
+  "@promoReferralMaxPerTrip": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoReferralInviteesTitle": "Quienes usaron tu código",
+  "promoReferralInviteePending": "Pendiente del primer viaje",
+  "promoReferralInviteeGranted": "Apoyo acreditado",
+  "promoReferralInviteeRejected": "No válido",
+  "promoReferralGraceClosed": "La ventana para agregar un código ya pasó.",
+  "tripSupportConfirmHint": "El precio del viaje no cambia. Nuestro equipo cubre parte con apoyo TEXIAPP.",
+  "promoBenefitsEntry": "Beneficios TEXIAPP"
 }

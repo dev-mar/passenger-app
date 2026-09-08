@@ -146,9 +146,13 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
           _resolveOrigin();
         }
 
-        await ref
+        final storedSyncCode = await ref
             .read(passengerRealtimeProvider.notifier)
             .syncTripStatusFromApi(tripId: storedTripId, force: true);
+        if (storedSyncCode == 'TRIP_NOT_FOUND') {
+          await _d._resetTripSessionToDraftHome(tripIdForGuard: storedTripId);
+          return;
+        }
 
         if (mounted &&
             _d._destination != null &&

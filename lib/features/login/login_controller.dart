@@ -184,10 +184,11 @@ class LoginController extends StateNotifier<LoginState> {
         }
       } catch (_) {}
 
-      final resolvedChannel = otpChannel ??
-          (PassengerAppEnvironment.multichannelAuthEnabled
-              ? 'whatsapp_inbound'
-              : (pushToken != null ? 'push' : 'code'));
+      // Flavor/dev: siempre `code` (alta de pasajero nuevo incluida).
+      // Prod (`TEXI_APP_ENV=prod`): canal pedido o WA inbound — sin cambios.
+      final resolvedChannel = PassengerAppEnvironment.usesClassicPhoneOtp
+          ? 'code'
+          : (otpChannel ?? 'whatsapp_inbound');
 
       final response = await _api.postPublic<Map<String, dynamic>>(
         path: AppConfig.loginPath,
@@ -511,6 +512,15 @@ class LoginController extends StateNotifier<LoginState> {
     required String fullPhone,
     String? entryCaptchaToken,
   }) async {
+    if (PassengerAppEnvironment.usesClassicPhoneOtp) {
+      return login(
+        countryCode: countryCode,
+        phoneNumber: phoneNumber,
+        fullPhone: fullPhone,
+        otpChannel: 'code',
+        entryCaptchaToken: entryCaptchaToken,
+      );
+    }
     state = LoginState(entryCaptchaToken: entryCaptchaToken);
     try {
       final clientMeta = await passengerAuthClientMeta();

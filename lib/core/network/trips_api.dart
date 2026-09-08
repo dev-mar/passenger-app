@@ -148,11 +148,17 @@ class TripsApi {
     required double originLng,
     required double destinationLat,
     required double destinationLng,
+    String? deviceId,
+    String? promoCode,
   }) async {
     final response = await _postQuoteWithRetry(
       payload: {
         'origin': {'lat': originLat, 'lng': originLng},
         'destination': {'lat': destinationLat, 'lng': destinationLng},
+        if (deviceId != null && deviceId.trim().isNotEmpty)
+          'deviceId': deviceId.trim(),
+        if (promoCode != null && promoCode.trim().isNotEmpty)
+          'promoCode': promoCode.trim(),
       },
     );
     final body = response.data ?? const <String, dynamic>{};
@@ -175,6 +181,8 @@ class TripsApi {
     String paymentMethod = 'cash',
     List<String> tripExtras = const [],
     List<String> tripSpecials = const [],
+    String? deviceId,
+    String? promoCode,
   }) async {
     final payload = {
       'origin': {'lat': originLat, 'lng': originLng},
@@ -192,6 +200,10 @@ class TripsApi {
       'paymentMethod': paymentMethod.trim().isEmpty ? 'cash' : paymentMethod.trim(),
       'tripExtras': tripExtras,
       'tripSpecials': tripSpecials,
+      if (deviceId != null && deviceId.trim().isNotEmpty)
+        'deviceId': deviceId.trim(),
+      if (promoCode != null && promoCode.trim().isNotEmpty)
+        'promoCode': promoCode.trim(),
     };
     final response = await _dio.post('/passengers/trips', data: payload);
     final body = response.data ?? const <String, dynamic>{};

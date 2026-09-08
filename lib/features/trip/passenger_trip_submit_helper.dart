@@ -15,6 +15,7 @@ import 'passenger_active_trip_guard.dart';
 import 'passenger_realtime_controller.dart';
 import 'trip_recovery_feedback.dart';
 import 'trip_request_state.dart';
+import '../promotions/passenger_promo_request.dart';
 
 /// Resultado de intentar crear el viaje desde cotización (sheet o barra superior).
 enum PassengerTripSubmitResultKind {
@@ -114,6 +115,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
     while (true) {
       createAttempt += 1;
       try {
+        final promo = await passengerPromoRequestFields(ref);
         result = await api.createTrip(
           originLat: originLat,
           originLng: originLng,
@@ -132,6 +134,8 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
           paymentMethod: ref.read(tripRequestProvider).paymentMethod,
           tripExtras: ref.read(tripRequestProvider).extras.toCodes(),
           tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
+          deviceId: promo.deviceId,
+          promoCode: promo.promoCode,
         );
         break;
       } on DioException catch (e) {

@@ -25,6 +25,8 @@ import 'passenger_realtime_controller.dart';
 import 'passenger_trip_submit_helper.dart';
 import '../login/passenger_phone_link_navigation.dart';
 import 'trip_recovery_feedback.dart';
+import '../promotions/passenger_promo_request.dart';
+import '../promotions/passenger_promo_you_pay_chip.dart';
 
 /// Pantalla Confirmar viaje: resumen y botón Solicitar.
 class TripConfirmScreen extends ConsumerStatefulWidget {
@@ -121,6 +123,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
       while (true) {
         createAttempt += 1;
         try {
+          final promo = await passengerPromoRequestFields(ref);
           result = await api.createTrip(
             originLat: origin.lat,
             originLng: origin.lng,
@@ -138,6 +141,8 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             paymentMethod: ref.read(tripRequestProvider).paymentMethod,
             tripExtras: ref.read(tripRequestProvider).extras.toCodes(),
             tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
+            deviceId: promo.deviceId,
+            promoCode: promo.promoCode,
           );
           break;
         } on DioException catch (e) {
@@ -258,6 +263,31 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             l10n.quoteTitle,
             '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)}',
           ),
+          if (option.youPayCashDue != null) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PassengerPromoYouPayChip(
+                    cashDuePassenger: option.youPayCashDue!,
+                    currencyCode: option.currencyCode,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    option.hasTripSupport
+                        ? l10n.tripSupportConfirmHint
+                        : l10n.promoConfirmHint,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.35,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 16),
             Padding(

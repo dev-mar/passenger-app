@@ -75,7 +75,8 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     );
   }
 
-  Future<void> syncTripStatusFromApi({
+  /// Sincroniza estado REST. `null` = OK o throttle; código si falló (`TRIP_NOT_FOUND`, etc.).
+  Future<String?> syncTripStatusFromApi({
     required String tripId,
     bool force = false,
   }) async {
@@ -83,11 +84,11 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     if (!force &&
         _rt._lastTripSyncApiAt != null &&
         now.difference(_rt._lastTripSyncApiAt!) < PassengerRealtimeController._tripSyncMinGap) {
-      return;
+      return null;
     }
     try {
       final token = await AuthService.getValidToken();
-      if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) return 'NO_TOKEN';
       final previousStatus = state.status;
       final api = TripsApi(token: token);
       // Timeout: el GET puede tardar por firma de foto; no bloquear el flujo.
@@ -154,10 +155,22 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
         );
       }
       _rt._lastTripSyncApiAt = DateTime.now();
+      return null;
+    } on DioException catch (e) {
+      final code = TexiBackendError.codeFromResponse(e.response?.data);
+      final status = e.response?.statusCode ?? 0;
+      if (kDebugMode) {
+        debugPrint('[PASSENGER_RT] syncTripStatusFromApi error: $e');
+      }
+      if (status == 404 || code == 'TRIP_NOT_FOUND') {
+        return 'TRIP_NOT_FOUND';
+      }
+      return code ?? 'TRIP_SYNC_FAILED';
     } catch (e) {
       if (kDebugMode) {
         debugPrint('[PASSENGER_RT] syncTripStatusFromApi error: $e');
       }
+      return 'TRIP_SYNC_FAILED';
     }
   }
 

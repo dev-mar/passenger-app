@@ -672,6 +672,38 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     return true;
   }
 
+  /// Si verify-code ya emitió tokens (cuenta con perfil), entrar al mapa.
+  Future<bool> _enterHomeIfSessionIssued(
+    Map<String, dynamic> data, {
+    required String fullPhone,
+  }) async {
+    final token = data['token']?.toString();
+    if (token == null || token.isEmpty) return false;
+
+    final refreshToken = data['refresh_token']?.toString();
+    final expiresIn = data['expires_in'];
+    int? expiresInSec;
+    if (expiresIn is int) {
+      expiresInSec = expiresIn;
+    } else if (expiresIn is num) {
+      expiresInSec = expiresIn.toInt();
+    }
+
+    await AuthService.saveSession(
+      token: token,
+      refreshToken: refreshToken,
+      expiresInSeconds: expiresInSec,
+    );
+    await AuthService.persistLoginPhoneE164(fullPhone);
+    final display = data['display_name']?.toString().trim();
+    if (display != null && display.isNotEmpty) {
+      await AuthService.savePassengerDisplayName(display);
+    }
+    if (!mounted) return true;
+    context.goNamed('trip_request');
+    return true;
+  }
+
   /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
   Future<void> _completePassengerFromDriver() async {
     final l10n = AppLocalizations.of(context)!;
@@ -926,10 +958,19 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       final ccNav = widget.countryCode.startsWith('+')
           ? widget.countryCode
           : '+${widget.countryCode}';
-      await AuthService.persistLoginPhoneE164('$ccNav$phoneDigitsNav');
+      final fullPhoneNav = '$ccNav$phoneDigitsNav';
+      await AuthService.persistLoginPhoneE164(fullPhoneNav);
+
+      if (rawData is Map) {
+        final entered = await _enterHomeIfSessionIssued(
+          Map<String, dynamic>.from(rawData),
+          fullPhone: fullPhoneNav,
+        );
+        if (entered) return;
+      }
 
       if (!mounted) return;
-      // Código válido: continuar con UX de perfil (nombre obligatorio + foto opcional).
+      // Código válido en cuenta nueva: completar nombre + foto opcional.
       context.goNamed(
         'profile_setup',
         queryParameters: {

@@ -345,6 +345,12 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
       }
       setState(() => _isLoading = false);
       await AuthService.persistLoginPhoneE164(_fullPhoneE164);
+      if (rawData is Map) {
+        final entered = await _enterHomeIfSessionIssued(
+          Map<String, dynamic>.from(rawData),
+        );
+        if (entered) return;
+      }
       if (!mounted) return;
       context.goNamed(
         'profile_setup',
@@ -372,6 +378,34 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
         _errorMessage = l10n.verifyCodeErrorUnexpected;
       });
     }
+  }
+
+  Future<bool> _enterHomeIfSessionIssued(Map<String, dynamic> data) async {
+    final token = data['token']?.toString();
+    if (token == null || token.isEmpty) return false;
+
+    final refreshToken = data['refresh_token']?.toString();
+    final expiresIn = data['expires_in'];
+    int? expiresInSec;
+    if (expiresIn is int) {
+      expiresInSec = expiresIn;
+    } else if (expiresIn is num) {
+      expiresInSec = expiresIn.toInt();
+    }
+
+    await AuthService.saveSession(
+      token: token,
+      refreshToken: refreshToken,
+      expiresInSeconds: expiresInSec,
+    );
+    await AuthService.persistLoginPhoneE164(_fullPhoneE164);
+    final display = data['display_name']?.toString().trim();
+    if (display != null && display.isNotEmpty) {
+      await AuthService.savePassengerDisplayName(display);
+    }
+    if (!mounted) return true;
+    context.goNamed('trip_request');
+    return true;
   }
 
   Future<void> _completePassengerFromDriver() async {

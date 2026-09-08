@@ -25,6 +25,7 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
     required this.onMethodSelected,
     required this.isLoading,
     this.outboundEnabled = true,
+    this.classicPhoneOtp = false,
     this.linkedGoogleEmail,
   });
 
@@ -38,6 +39,8 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
   final PhoneVerificationMethodSelected onMethodSelected;
   final bool isLoading;
   final bool outboundEnabled;
+  /// Flavor/dev: un CTA a OTP `code`. Default false = UI prod (WA inbound/outbound).
+  final bool classicPhoneOtp;
   final String? linkedGoogleEmail;
 
   bool get _captchaConfigured =>
@@ -124,38 +127,49 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
               : const SizedBox.shrink(),
         ),
         const SizedBox(height: 20),
-        Text(
-          l10n.loginVerifySectionLabel,
-          style: PassengerAuthLook.sectionLabelStyle,
-        ),
-        const SizedBox(height: 10),
-        LoginAuthActionRow(
-          enabled: !isLoading && (!phoneValid || captchaReady),
-          highlighted: true,
-          accent: LoginWhatsAppBrandIcon.brandGreen,
-          icon: const LoginWhatsAppBrandIcon(size: 26),
-          label: l10n.loginVerifyMethodWaInboundShort,
-          infoMessage: l10n.loginVerifyMethodWaInboundInfo,
-          onTap: () => onMethodSelected(
-            PhoneVerificationMethod.whatsAppInbound,
+        if (classicPhoneOtp)
+          PassengerAuthPrimaryButton(
+            label: l10n.loginContinue,
+            onPressed: (!isLoading && (!phoneValid || captchaReady))
+                ? () => onMethodSelected(
+                      PhoneVerificationMethod.verificationCode,
+                    )
+                : null,
+          )
+        else ...[
+          Text(
+            l10n.loginVerifySectionLabel,
+            style: PassengerAuthLook.sectionLabelStyle,
           ),
-        ),
-        if (outboundEnabled) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           LoginAuthActionRow(
             enabled: !isLoading && (!phoneValid || captchaReady),
-            highlighted: false,
-            icon: Icon(
-              Icons.pin_outlined,
-              color: AppColors.textPrimary.withValues(alpha: 0.88),
-              size: 22,
-            ),
-            label: l10n.loginVerifyMethodCodeShort,
-            infoMessage: l10n.loginVerifyMethodCodeInfo,
+            highlighted: true,
+            accent: LoginWhatsAppBrandIcon.brandGreen,
+            icon: const LoginWhatsAppBrandIcon(size: 26),
+            label: l10n.loginVerifyMethodWaInboundShort,
+            infoMessage: l10n.loginVerifyMethodWaInboundInfo,
             onTap: () => onMethodSelected(
-              PhoneVerificationMethod.verificationCode,
+              PhoneVerificationMethod.whatsAppInbound,
             ),
           ),
+          if (outboundEnabled) ...[
+            const SizedBox(height: 8),
+            LoginAuthActionRow(
+              enabled: !isLoading && (!phoneValid || captchaReady),
+              highlighted: false,
+              icon: Icon(
+                Icons.pin_outlined,
+                color: AppColors.textPrimary.withValues(alpha: 0.88),
+                size: 22,
+              ),
+              label: l10n.loginVerifyMethodCodeShort,
+              infoMessage: l10n.loginVerifyMethodCodeInfo,
+              onTap: () => onMethodSelected(
+                PhoneVerificationMethod.verificationCode,
+              ),
+            ),
+          ],
         ],
       ],
     );

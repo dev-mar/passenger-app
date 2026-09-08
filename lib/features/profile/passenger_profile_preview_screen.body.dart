@@ -126,6 +126,7 @@ class _ProfileBody extends StatelessWidget {
     required this.onEditInfo,
     required this.onSupport,
     required this.onLanguage,
+    required this.onBenefits,
   });
 
   final PassengerProfileVm profile;
@@ -134,6 +135,7 @@ class _ProfileBody extends StatelessWidget {
   final VoidCallback onEditInfo;
   final VoidCallback onSupport;
   final VoidCallback onLanguage;
+  final VoidCallback onBenefits;
 
   @override
   Widget build(BuildContext context) {
@@ -481,6 +483,49 @@ class _ProfileBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Material(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    child: InkWell(
+                      onTap: () {
+                        TexiUiFeedback.lightTap();
+                        onBenefits();
+                      },
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxx,
+                          vertical: AppSpacing.sheetH,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.loyalty_rounded,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: AppSpacing.xl),
+                            Expanded(
+                              child: Text(
+                                l10n.promoBenefitsEntry,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.section),
                   _ModernSectionTitle(label: l10n.passengerLegalSectionTitle),
                   const SizedBox(height: AppSpacing.xl),
                   const PassengerProfileLegalSection(showTitle: false),

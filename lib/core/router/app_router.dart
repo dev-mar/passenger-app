@@ -14,6 +14,7 @@ import '../../features/login/profile_setup_screen.dart';
 import '../../features/login/passenger_phone_link_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/passenger_profile_preview_screen.dart';
+import '../../features/promotions/passenger_benefits_screen.dart';
 import '../../features/support/passenger_support_help_screen.dart';
 import '../../features/support/passenger_operator_texi_screen.dart';
 import '../../features/support/passenger_safety_hub_screen.dart';
@@ -39,6 +40,7 @@ class AppRouter {
   static const String phoneLink = 'phone_link';
   static const String home = 'home';
   static const String passengerProfile = 'passenger_profile';
+  static const String benefits = 'passenger_benefits';
   static const String supportHelp = 'support_help';
   static const String operatorTexi = 'operator_texi';
   static const String safetyHub = 'safety_hub';
@@ -68,6 +70,7 @@ class AppRouter {
     if (_publicPaths.contains(location)) return false;
     if (location == '/home' ||
         location == '/profile' ||
+        location == '/benefits' ||
         location == '/support' ||
         location == '/safety' ||
         location == '/operator' ||
@@ -238,6 +241,11 @@ class AppRouter {
         path: '/profile',
         name: passengerProfile,
         builder: (context, state) => const PassengerProfilePreviewScreen(),
+      ),
+      GoRoute(
+        path: '/benefits',
+        name: benefits,
+        builder: (context, state) => const PassengerBenefitsScreen(),
       ),
       GoRoute(
         path: '/support',

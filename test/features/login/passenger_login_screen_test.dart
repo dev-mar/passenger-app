@@ -19,23 +19,24 @@ void main() {
       await tester.pump();
     }
 
-    testWidgets('renderiza campos principales vía l10n (es)', (tester) async {
+    testWidgets('en debug (OTP clásico) muestra teléfono y continuar, sin Google/WhatsApp', (tester) async {
       await pumpLogin(tester);
       final l10n = l10nFromTester(tester, LoginScreen);
 
-      expect(find.text(l10n.loginWelcome), findsOneWidget);
-      expect(find.text(l10n.loginSubtitle), findsOneWidget);
+      expect(find.text(l10n.loginPhoneUnifiedTitle), findsOneWidget);
       expect(find.text(l10n.loginContinue), findsOneWidget);
-      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(find.byType(TextFormField), findsOneWidget);
+      expect(find.text(l10n.loginMethodGoogleTitle), findsNothing);
+      expect(find.text(l10n.loginVerifyMethodWaInboundShort), findsNothing);
     });
 
-    testWidgets('renderiza campos principales vía l10n (en)', (tester) async {
+    testWidgets('en debug (OTP clásico) muestra teléfono y continuar (en)', (tester) async {
       await pumpLogin(tester, locale: const Locale('en'));
       final l10n = l10nFromTester(tester, LoginScreen);
 
-      expect(find.text(l10n.loginWelcome), findsOneWidget);
-      expect(find.text(l10n.loginSubtitle), findsOneWidget);
+      expect(find.text(l10n.loginPhoneUnifiedTitle), findsOneWidget);
       expect(find.text(l10n.loginContinue), findsOneWidget);
+      expect(find.text(l10n.loginVerifyMethodWaInboundShort), findsNothing);
     });
   });
 }

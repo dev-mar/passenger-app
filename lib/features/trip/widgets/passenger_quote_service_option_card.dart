@@ -6,6 +6,7 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
+import '../../promotions/passenger_promo_you_pay_chip.dart';
 import 'service_type_vehicle_image.dart';
 
 /// Tarjeta de oferta: imagen izq. + textos der. (guía trip-typeofert + PNGs).
@@ -48,6 +49,8 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
       serviceTypeId: option.serviceTypeId,
     );
     final etaLabel = etaMinutes > 0 ? '$etaMinutes min' : '—';
+    final youPay = option.youPayCashDue;
+    final hasYouPay = youPay != null;
 
     return TexiScalePress(
       child: Material(
@@ -59,7 +62,7 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
             width: 210,
-            height: 78,
+            height: hasYouPay ? 94 : 78,
             padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
@@ -179,6 +182,14 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
                           height: 1.05,
                         ),
                       ),
+                      if (hasYouPay) ...[
+                        const SizedBox(height: 2),
+                        PassengerPromoYouPayChip(
+                          cashDuePassenger: youPay,
+                          currencyCode: option.currencyCode,
+                          compact: true,
+                        ),
+                      ],
                     ],
                   ),
                 ),

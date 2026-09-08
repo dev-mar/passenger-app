@@ -748,16 +748,24 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
               ),
             if (isRecoveringActiveTrip && !isSearchingDriver)
               PassengerTripRecoveryPanel(
+                onCancelMatching: () =>
+                    unawaited(_cancelMatchingFromRecovery(effectiveTripId)),
                 onRetry: () {
                   final quote = tripState.quote;
                   unawaited(() async {
-                    await ref
+                    final syncCode = await ref
                         .read(passengerRealtimeProvider.notifier)
                         .syncTripStatusFromApi(
                           tripId: effectiveTripId,
                           force: true,
                         );
                     if (!mounted) return;
+                    if (syncCode == 'TRIP_NOT_FOUND') {
+                      await _resetTripSessionToDraftHome(
+                        tripIdForGuard: effectiveTripId,
+                      );
+                      return;
+                    }
                     final rt = ref.read(passengerRealtimeProvider);
                     if (!rt.connected && !rt.connecting) {
                       ref.read(passengerRealtimeProvider.notifier).connect(

@@ -20,6 +20,7 @@ import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/constants/app_assets.dart';
 import '../../core/network/trips_api.dart';
+import '../promotions/passenger_promo_request.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';

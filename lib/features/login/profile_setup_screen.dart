@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/auth/auth_service.dart';
+import '../../core/device/passenger_device_identity.dart';
+import '../promotions/passenger_promotions_repository.dart';
 import 'passenger_profile_photo_helper.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/passenger_api_client.dart';
@@ -29,6 +31,7 @@ import 'widgets/passenger_auth_shell.dart';
 /// Tercera pantalla del onboarding:
 /// - Nombre obligatorio
 /// - Foto opcional (se envía en Base64 al endpoint del backend)
+/// - Código de quien te invitó (opcional; no bloquea Continuar)
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({
     super.key,
@@ -48,7 +51,9 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _referralController = TextEditingController();
   final _nameFocusNode = FocusNode();
+  final _referralFocusNode = FocusNode();
   bool _saving = false;
   Uint8List? _profileImageBytes;
   String? _profileImageBase64;
@@ -81,7 +86,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _referralController.dispose();
     _nameFocusNode.dispose();
+    _referralFocusNode.dispose();
     super.dispose();
   }
 
@@ -201,6 +208,20 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         await AuthService.persistLoginPhoneE164(fullPhone);
       }
       await AuthService.savePassengerDisplayName(name);
+
+      final referralCode = _referralController.text.trim();
+      if (referralCode.isNotEmpty) {
+        try {
+          String? deviceId;
+          try {
+            deviceId = await PassengerDeviceIdentity.stableDeviceId();
+          } catch (_) {}
+          await ref.read(passengerPromotionsRepositoryProvider).claimReferral(
+                referralCode,
+                deviceId: deviceId,
+              );
+        } catch (_) {}
+      }
 
       if (!mounted) return;
       setState(() => _saving = false);
@@ -367,7 +388,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       controller: _nameController,
                       focusNode: _nameFocusNode,
                       textCapitalization: TextCapitalization.words,
-                      textInputAction: TextInputAction.done,
+                      textInputAction: TextInputAction.next,
                       maxLength: kPassengerDisplayNameMaxLength,
                       inputFormatters: passengerDisplayNameInputFormatters(),
                       decoration: passengerAuthFieldDecoration(
@@ -382,6 +403,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         }
                         return null;
                       },
+                      onFieldSubmitted: (_) => _referralFocusNode.requestFocus(),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    TextFormField(
+                      controller: _referralController,
+                      focusNode: _referralFocusNode,
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.done,
+                      maxLength: 16,
+                      decoration: passengerAuthFieldDecoration(
+                        label: l10n.profileSetupReferralLabel,
+                        hint: l10n.profileSetupReferralHint,
+                      ),
                       onFieldSubmitted: (_) => _save(),
                     ),
                     const SizedBox(height: 22),

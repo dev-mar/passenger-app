@@ -173,6 +173,13 @@ function Resolve-MultichannelAuth {
     [string]$AppEnvironment
   )
 
+  # Flavor/dev: OTP clásico (registro de pasajero nuevo). No leer .env.local ni
+  # la variable de sesión: eso encendía WhatsApp en app-dev-release.apk.
+  # Humo WA contra api.dev: -MultichannelAuth (la app de dev igual usa OTP clásico).
+  if ($AppEnvironment -eq "dev") {
+    return [bool]$FromSwitch
+  }
+
   if ($FromSwitch) {
     return $true
   }

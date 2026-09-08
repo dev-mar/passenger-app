@@ -2228,6 +2228,18 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get profileSetupContinue;
 
+  /// No description provided for @profileSetupReferralLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral code (optional)'**
+  String get profileSetupReferralLabel;
+
+  /// No description provided for @profileSetupReferralHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Code from who referred you'**
+  String get profileSetupReferralHint;
+
   /// No description provided for @commonCancel.
   ///
   /// In en, this message translates to:
@@ -2297,7 +2309,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripRecoveringStuckBody.
   ///
   /// In en, this message translates to:
-  /// **'Your trip is still active. Check your connection and try again. Don\'t tap Cancel — that only applies while matching a driver.'**
+  /// **'Your trip is still active. Check your connection and try again. If you\'re still matching a driver, you can cancel the search.'**
   String get tripRecoveringStuckBody;
 
   /// No description provided for @tripRecoveringCheckNetwork.
@@ -2317,6 +2329,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get tripRecoveringRetryCta;
+
+  /// No description provided for @tripRecoveringCancelMatchingCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel search'**
+  String get tripRecoveringCancelMatchingCta;
 
   /// SnackBar if cancel is attempted on an accepted trip
   ///
@@ -4600,6 +4618,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Later'**
   String get appUpdateLater;
+
+  /// No description provided for @promoBenefitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your benefits'**
+  String get promoBenefitsTitle;
+
+  /// No description provided for @promoBenefitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'When you have an active TEXIAPP benefit, it will show up here.'**
+  String get promoBenefitsEmpty;
+
+  /// No description provided for @promoChipYouPay.
+  ///
+  /// In en, this message translates to:
+  /// **'You pay {amount}'**
+  String promoChipYouPay(String amount);
+
+  /// No description provided for @promoConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The trip fare stays the same. You pay less in cash and TEXIAPP covers the difference with the driver.'**
+  String get promoConfirmHint;
+
+  /// No description provided for @promoCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefit code'**
+  String get promoCodeLabel;
+
+  /// No description provided for @promoCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Example: TEXI5'**
+  String get promoCodeHint;
+
+  /// No description provided for @promoCodeApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply code'**
+  String get promoCodeApply;
+
+  /// No description provided for @promoCodeApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code ready for your next trip.'**
+  String get promoCodeApplied;
+
+  /// No description provided for @promoCodeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is not available.'**
+  String get promoCodeUnavailable;
+
+  /// No description provided for @promoReferralTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite and get trip support'**
+  String get promoReferralTitle;
+
+  /// No description provided for @promoReferralMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Your code to share'**
+  String get promoReferralMine;
+
+  /// No description provided for @promoReferralClaimLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code from who referred you'**
+  String get promoReferralClaimLabel;
+
+  /// No description provided for @promoReferralClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Save code'**
+  String get promoReferralClaim;
+
+  /// No description provided for @promoReferralClaimed.
+  ///
+  /// In en, this message translates to:
+  /// **'Code saved.'**
+  String get promoReferralClaimed;
+
+  /// No description provided for @promoReferralUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not use that code.'**
+  String get promoReferralUnavailable;
+
+  /// No description provided for @promoReferralShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get promoReferralShare;
+
+  /// No description provided for @promoReferralShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my code {code} in TEXIAPP. Our team covers part of the inviter\'s trips.'**
+  String promoReferralShareMessage(String code);
+
+  /// No description provided for @promoReferralWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Available support: {amount}'**
+  String promoReferralWallet(String amount);
+
+  /// No description provided for @promoReferralWalletExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid until {date}'**
+  String promoReferralWalletExpires(String date);
+
+  /// No description provided for @promoReferralMaxPerTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {amount} per trip'**
+  String promoReferralMaxPerTrip(String amount);
+
+  /// No description provided for @promoReferralInviteesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'People who used your code'**
+  String get promoReferralInviteesTitle;
+
+  /// No description provided for @promoReferralInviteePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for first trip'**
+  String get promoReferralInviteePending;
+
+  /// No description provided for @promoReferralInviteeGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Support credited'**
+  String get promoReferralInviteeGranted;
+
+  /// No description provided for @promoReferralInviteeRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not valid'**
+  String get promoReferralInviteeRejected;
+
+  /// No description provided for @promoReferralGraceClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'The window to add a code has closed.'**
+  String get promoReferralGraceClosed;
+
+  /// No description provided for @tripSupportConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The trip fare stays the same. Our team covers part with TEXIAPP support.'**
+  String get tripSupportConfirmHint;
+
+  /// No description provided for @promoBenefitsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP benefits'**
+  String get promoBenefitsEntry;
 }
 
 class _AppLocalizationsDelegate

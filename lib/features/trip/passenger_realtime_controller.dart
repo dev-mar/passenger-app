@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +13,7 @@ import '../../core/config/app_config.dart';
 import '../../core/l10n/passenger_locale_holder.dart';
 import '../../core/notifications/passenger_notification_service.dart';
 import '../../core/notifications/passenger_trip_chat_visibility.dart';
+import '../../core/network/texi_backend_error.dart';
 import '../../core/network/trips_api.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
