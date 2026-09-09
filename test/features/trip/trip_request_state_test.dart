@@ -95,6 +95,29 @@ void main() {
       expect(notifier.state.selectedOption, isNull);
     });
 
+    test('clearTripIdKeepingRoute conserva origen destino y quote', () {
+      notifier.setOrigin(1, 2);
+      notifier.setDestination(3, 4);
+      notifier.setQuote(
+        QuoteResponse.fromJson({
+          'city': {'id': 'x'},
+          'options': [
+            {'serviceTypeId': 1, 'serviceTypeName': 'Moto', 'estimatedPrice': 21.1},
+          ],
+        }),
+      );
+      notifier.selectOption(notifier.state.quote!.options.first);
+      notifier.setTripId('trip-old');
+
+      notifier.clearTripIdKeepingRoute();
+
+      expect(notifier.state.tripId, isNull);
+      expect(notifier.state.origin?.lat, 1);
+      expect(notifier.state.destination?.lng, 4);
+      expect(notifier.state.quote, isNotNull);
+      expect(notifier.state.selectedOption?.serviceTypeId, 1);
+    });
+
     test('reset vuelve al estado inicial', () {
       notifier.setOrigin(1, 2);
       notifier.setDestination(3, 4);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/ui/texi_motion.dart';
@@ -145,6 +147,7 @@ class TripStatusCard extends StatelessWidget {
     this.enRouteErrorCode,
     this.onCancelTrip,
     this.cancelTripLabel,
+    this.showCancelAction = false,
   });
 
   final String status;
@@ -192,6 +195,8 @@ class TripStatusCard extends StatelessWidget {
   final String? enRouteErrorCode;
   final VoidCallback? onCancelTrip;
   final String? cancelTripLabel;
+  /// Visible solo con el sheet del viaje a tope (gesto de arrastre).
+  final bool showCancelAction;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -512,6 +517,16 @@ class TripStatusCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
+                                if (onOpenChat != null) ...[
+                                  const SizedBox(width: AppSpacing.sm),
+                                  _TripCircleAction(
+                                    icon: Icons.forum_rounded,
+                                    tooltip: chatLabel ?? l10n.tripSecureChat,
+                                    badgeCount: unreadChatCount,
+                                    onPressed: onOpenChat!,
+                                    filled: true,
+                                  ),
+                                ],
                               ],
                             ),
                             const SizedBox(height: AppSpacing.lg),
@@ -546,11 +561,21 @@ class TripStatusCard extends StatelessWidget {
                           color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: AppSpacing.lg),
-                        Text(
-                          driverAssignedLabel,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.textSecondary),
+                        Expanded(
+                          child: Text(
+                            driverAssignedLabel,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.textSecondary),
+                          ),
                         ),
+                        if (onOpenChat != null)
+                          _TripCircleAction(
+                            icon: Icons.forum_rounded,
+                            tooltip: chatLabel ?? l10n.tripSecureChat,
+                            badgeCount: unreadChatCount,
+                            onPressed: onOpenChat!,
+                            filled: true,
+                          ),
                       ],
                     ),
             ),
@@ -567,6 +592,17 @@ class TripStatusCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (onShareTrip != null) ...[
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _TripShareRouteChip(
+                        label: shareTripLabel ?? l10n.tripShareRide,
+                        onPressed: onShareTrip!,
+                        accent: accent,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                   _TripDetailRow(
                     icon: Icons.trip_origin_rounded,
                     label: statusFromLabel,
@@ -650,50 +686,34 @@ class TripStatusCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (onShareTrip != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: onShareTrip,
-                  icon: const Icon(Icons.ios_share_rounded),
-                  label: Text(shareTripLabel ?? l10n.tripShareRide),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
-                  ),
-                ),
-              ),
-            ],
-            if (onOpenChat != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onOpenChat,
-                  icon: unreadChatCount > 0
-                      ? _ChatUnreadBell(count: unreadChatCount)
-                      : const Icon(Icons.chat_bubble_outline_rounded),
-                  label: Text(chatLabel ?? l10n.tripSecureChat),
-                ),
-              ),
-            ],
-            if (onCancelTrip != null &&
-                (status == 'accepted' || status == 'arrived')) ...[
-              const SizedBox(height: AppSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onCancelTrip,
-                  icon: const Icon(Icons.close_rounded),
-                  label: Text(cancelTripLabel ?? l10n.tripCancelCta),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: BorderSide(color: AppColors.error.withValues(alpha: 0.55)),
-                  ),
-                ),
-              ),
-            ],
+            AnimatedSize(
+              duration: AppMotion.draftSearchChromeReveal,
+              curve: AppMotion.standard,
+              alignment: Alignment.topCenter,
+              child: onCancelTrip != null && showCancelAction
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onCancelTrip,
+                          icon: const Icon(Icons.close_rounded),
+                          label: Text(cancelTripLabel ?? l10n.tripCancelCta),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            minimumSize: const Size(
+                              double.infinity,
+                              AppSizes.buttonHeight,
+                            ),
+                            side: BorderSide(
+                              color: AppColors.error.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
             if (status == 'completed' &&
                 onFinishedClose != null &&
                 (finishedCloseLabel != null &&
@@ -710,6 +730,153 @@ class TripStatusCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TripCircleAction extends StatelessWidget {
+  const _TripCircleAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.badgeCount = 0,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final int badgeCount;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = filled
+        ? AppColors.primary.withValues(alpha: 0.18)
+        : AppColors.surface;
+    final fg = filled ? AppColors.textPrimary : AppColors.textPrimary;
+    return Tooltip(
+      message: tooltip,
+      child: TexiScalePress(
+        child: Material(
+          color: bg,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onPressed();
+            },
+            child: Ink(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: filled
+                      ? AppColors.primary.withValues(alpha: 0.45)
+                      : AppColors.border.withValues(alpha: 0.85),
+                ),
+              ),
+              child: SizedBox(
+                width: AppSizes.circleButton,
+                height: AppSizes.circleButton,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, color: fg, size: AppIconSizes.xl),
+                    if (badgeCount > 0)
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            badgeCount > 99 ? '99+' : '$badgeCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TripShareRouteChip extends StatelessWidget {
+  const _TripShareRouteChip({
+    required this.label,
+    required this.onPressed,
+    required this.accent,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: TexiScalePress(
+        child: Material(
+          color: accent.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              onPressed();
+            },
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AppSizes.buttonHeight,
+                minWidth: AppSizes.circleButton,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xl,
+                  vertical: AppSpacing.md,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.share_location_rounded,
+                      size: AppIconSizes.lg,
+                      color: accent,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -758,42 +925,6 @@ class _VehiclePill extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ChatUnreadBell extends StatelessWidget {
-  const _ChatUnreadBell({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = count > 99 ? '99+' : '$count';
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        const Icon(Icons.mark_chat_unread_rounded, size: AppIconSizes.lg),
-        Positioned(
-          right: -6,
-          top: -6,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

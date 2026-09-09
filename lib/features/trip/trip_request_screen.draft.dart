@@ -648,7 +648,11 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       return;
     }
 
-    setState(() => _d._submittingTrip = true);
+    setState(() {
+      _d._submittingTrip = true;
+      _d._matchingSubmitUi = true;
+    });
+    final submitGeneration = _d._tripSubmitGeneration;
     final l10n = AppLocalizations.of(context)!;
     final originAddress =
         (_d._originDisplayLabel != null && _d._originDisplayLabel!.trim().isNotEmpty)
@@ -675,7 +679,17 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
     );
     if (!mounted) return;
-    setState(() => _d._submittingTrip = false);
+    if (await _discardSubmitIfGenerationChanged(
+      generation: submitGeneration,
+      result: result,
+    )) {
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _d._submittingTrip = false;
+      _d._matchingSubmitUi = false;
+    });
     if (result.kind == PassengerTripSubmitResultKind.success ||
         result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
       return;

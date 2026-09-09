@@ -68,7 +68,8 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
     if (passengerTripIsFinalStatus(s)) {
       await TripSessionStorage.clearActiveTripId();
       clearTripRecoverySnackTracking(ref);
-      ref.read(tripRequestProvider.notifier).reset();
+      // No reset() de origen/destino/quote: Continuar tras timeout reusa la ruta.
+      ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
       ref.read(passengerRealtimeProvider.notifier).disconnect();
       return ActiveTripGuardResult.allowCreateNew;
     }
@@ -84,7 +85,7 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
       await TripSessionStorage.clearActiveTripId();
       clearTripRecoverySnackTracking(ref);
       ref.read(passengerRealtimeProvider.notifier).disconnect();
-      ref.read(tripRequestProvider.notifier).reset();
+      ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
       return ActiveTripGuardResult.allowCreateNew;
     }
 

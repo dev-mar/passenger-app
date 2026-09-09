@@ -524,9 +524,9 @@
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar if cancel is attempted on an accepted trip"
   },
-  "tripCancelCta": "Cancel trip",
+  "tripCancelCta": "Don't continue",
   "@tripCancelCta": {
-    "description": "Button on the active-trip panel (accepted/arrived)"
+    "description": "Button on the active-trip panel; keep error color; softer than Cancel trip"
   },
   "tripCancelChooseReason": "Why are you cancelling?",
   "tripCancelNoteHint": "Write the reason",

@@ -176,6 +176,11 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._pickingOrigin = false;
         _d._pickingDestination = false;
         _d._error = null;
+        _d._searchingHoldUi = false;
+        _d._matchingSubmitUi = false;
+        _d._keepDraftAfterMatchingCancel = false;
+        _d._searchingStage3CancelInFlight = false;
+        _d._submittingTrip = false;
         _d._draftEditTarget = PassengerDraftEditTarget.none;
         if (_d._origin != null) {
           // Para el siguiente viaje, empezamos forzando confirmaci├│n del origen.
@@ -225,8 +230,12 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._pickingDestination = false;
         _d._error = null;
         _d._searchingHoldUi = false;
+        _d._matchingSubmitUi = false;
+        _d._keepDraftAfterMatchingCancel = false;
         _d._searchingStage3CancelInFlight = false;
         _d._searchingOriginCameraDone = false;
+        _d._submittingTrip = false;
+        _d._tripSubmitGeneration++;
         _d._draftEditTarget = PassengerDraftEditTarget.none;
         if (_d._origin != null) {
           _d._pickingOrigin = true;
@@ -261,6 +270,12 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       _d._pickingDestination = false;
       _d._error = null;
       _d._loading = false;
+      _d._searchingHoldUi = false;
+      _d._matchingSubmitUi = false;
+      _d._keepDraftAfterMatchingCancel = false;
+      _d._searchingStage3CancelInFlight = false;
+      _d._submittingTrip = false;
+      _d._tripSubmitGeneration++;
       _d._activeStop = ActiveStop.none;
       _d._draftEditTarget = PassengerDraftEditTarget.none;
       if (_d._origin != null) {
@@ -397,6 +412,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     // Hold UI ANTES de limpiar tripId: evita un frame sin overlay (remount → reinicio visual).
     setState(() {
       _d._searchingHoldUi = true;
+      _d._keepDraftAfterMatchingCancel = true;
       _d._searchingStage3CancelInFlight = true;
     });
     final tripId = ref.read(tripRequestProvider).tripId;
@@ -405,6 +421,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       if (mounted) {
         setState(() {
           _d._searchingHoldUi = false;
+          _d._keepDraftAfterMatchingCancel = false;
           _d._searchingStage3CancelInFlight = false;
         });
       }
@@ -459,6 +476,8 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     if (mounted) {
       setState(() {
         _d._searchingHoldUi = false;
+        _d._keepDraftAfterMatchingCancel = false;
+        _d._matchingSubmitUi = false;
         _d._searchingStage3CancelInFlight = false;
       });
     }
@@ -478,6 +497,17 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         opt == null ||
         _d._origin == null ||
         _d._destination == null) {
+      if (mounted) {
+        final loc = AppLocalizations.of(context);
+        if (loc != null) {
+          PassengerTripToast.show(
+            context,
+            message: loc.tripRequestUnavailable,
+            icon: Icons.error_outline_rounded,
+            accent: AppColors.error,
+          );
+        }
+      }
       return;
     }
 
@@ -499,7 +529,15 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     }
 
     if (!mounted) return;
-    setState(() => _d._submittingTrip = true);
+    final submitGeneration = _d._tripSubmitGeneration;
+    setState(() {
+      _d._submittingTrip = true;
+      _d._matchingSubmitUi = true;
+      _d._searchingHoldUi = false;
+      _d._keepDraftAfterMatchingCancel = true;
+      _d._searchingOriginCameraDone = false;
+      _d._searchingOverlayGeneration += 1;
+    });
     final l10n = AppLocalizations.of(context)!;
     final originAddress =
         (_d._originDisplayLabel != null &&
@@ -527,13 +565,24 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
     );
     if (!mounted) return;
+    if (await _discardSubmitIfGenerationChanged(
+      generation: submitGeneration,
+      result: result,
+    )) {
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _d._submittingTrip = false;
+      _d._matchingSubmitUi = false;
       if (result.kind == PassengerTripSubmitResultKind.success ||
           result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
         _d._searchingHoldUi = false;
+        _d._keepDraftAfterMatchingCancel = false;
         _d._searchingOriginCameraDone = false;
-        _d._searchingOverlayGeneration += 1;
+      } else {
+        _d._searchingHoldUi = true;
+        _d._keepDraftAfterMatchingCancel = true;
       }
     });
     if (result.kind == PassengerTripSubmitResultKind.phoneRequired) {
@@ -562,6 +611,40 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         accent: AppColors.error,
       );
     }
+  }
+
+  Future<bool> _discardSubmitIfGenerationChanged({
+    required int generation,
+    required PassengerTripSubmitResult result,
+  }) async {
+    if (generation == _d._tripSubmitGeneration) return false;
+    final tid = result.tripId ?? ref.read(tripRequestProvider).tripId;
+    if (tid != null &&
+        tid.isNotEmpty &&
+        (result.kind == PassengerTripSubmitResultKind.success ||
+            result.kind == PassengerTripSubmitResultKind.recoveredExisting)) {
+      try {
+        final token = await AuthService.getValidToken();
+        if (token != null && token.isNotEmpty) {
+          await TripsApi(token: token).cancelPassengerTrip(
+            tripId: tid,
+            cancelScope: 'matching',
+          );
+        }
+      } catch (_) {}
+      if (mounted) {
+        ref.read(passengerRealtimeProvider.notifier).disconnect();
+        ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
+        await TripSessionStorage.clearActiveTripId();
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _d._submittingTrip = false;
+        _d._matchingSubmitUi = false;
+      });
+    }
+    return true;
   }
 
   void _syncSearchingNearbyPolling(bool isSearching) {
@@ -593,7 +676,12 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
   /// Nunca cancela un viaje ya aceptado/en curso (protección ante overlay erróneo).
   Future<void> _cancelSearchingTrip() async {
     final tripId = ref.read(tripRequestProvider).tripId;
-    final holdOnly = _d._searchingHoldUi && (tripId == null || tripId.isEmpty);
+    final holdOnly =
+        (_d._searchingHoldUi || _d._matchingSubmitUi) &&
+        (tripId == null || tripId.isEmpty);
+    if (_d._matchingSubmitUi) {
+      _d._tripSubmitGeneration++;
+    }
     final rtStatus = ref.read(passengerRealtimeProvider).status;
     if (!holdOnly &&
         (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed')) {

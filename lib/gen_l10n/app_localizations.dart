@@ -2342,10 +2342,10 @@ abstract class AppLocalizations {
   /// **'Your trip is already in progress. It can\'t be cancelled from here.'**
   String get tripCancelBlockedActiveBody;
 
-  /// Button on the active-trip panel (accepted/arrived)
+  /// Button on the active-trip panel; keep error color; softer than Cancel trip
   ///
   /// In en, this message translates to:
-  /// **'Cancel trip'**
+  /// **'Don\'t continue'**
   String get tripCancelCta;
 
   /// No description provided for @tripCancelChooseReason.

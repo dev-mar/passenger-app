@@ -5,8 +5,18 @@ import 'package:texi_passenger_app/features/trip/trip_request_trip_phase_helpers
 bool passengerOverlayIsSearchingDriver({
   required String? tripId,
   required String? status,
+  bool searchingHoldUi = false,
+  bool matchingSubmitUi = false,
 }) {
-  return tripId != null && passengerTripIsAwaitingDriverMatch(status);
+  final tripAssigned =
+      passengerTripIsTrackingDriver(status) || status == 'completed';
+  return passengerMatchingOverlayVisible(
+    tripAssigned: tripAssigned,
+    searchingHoldUi: searchingHoldUi,
+    matchingSubmitUi: matchingSubmitUi,
+    tripId: tripId,
+    status: status,
+  );
 }
 
 bool passengerOverlayIsRecovering({
@@ -97,6 +107,45 @@ void main() {
       expect(passengerOverlayIsSearchingDriver(tripId: null, status: null), isFalse);
       expect(passengerOverlayIsRecovering(tripId: null, status: null), isFalse);
       expect(passengerOverlayIsTripActive(tripId: null, status: 'accepted'), isFalse);
+    });
+
+    test('submit o hold sin tripId → overlay matching (no cotización)', () {
+      expect(
+        passengerOverlayIsSearchingDriver(
+          tripId: null,
+          status: null,
+          matchingSubmitUi: true,
+        ),
+        isTrue,
+      );
+      expect(
+        passengerOverlayIsSearchingDriver(
+          tripId: null,
+          status: null,
+          searchingHoldUi: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('viaje ya asignado gana a submit/hold', () {
+      expect(
+        passengerOverlayIsSearchingDriver(
+          tripId: tripId,
+          status: 'accepted',
+          matchingSubmitUi: true,
+          searchingHoldUi: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('compartir solo con viaje iniciado', () {
+      expect(passengerTripCanShareLive('accepted'), isFalse);
+      expect(passengerTripCanShareLive('arrived'), isFalse);
+      expect(passengerTripCanShareLive('started'), isTrue);
+      expect(passengerTripCanShareLive('in_trip'), isTrue);
+      expect(passengerTripCanShareLive('completed'), isFalse);
     });
   });
 }

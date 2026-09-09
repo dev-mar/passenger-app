@@ -28,10 +28,30 @@ bool passengerTripIsAwaitingDriverMatch(String? status) {
   return s == 'requested' || s == 'searching' || s == 'offered';
 }
 
+/// Overlay de matching: hold (timeout), submit en vuelo, o viaje en requested/searching/offered.
+bool passengerMatchingOverlayVisible({
+  required bool tripAssigned,
+  required bool searchingHoldUi,
+  required bool matchingSubmitUi,
+  required String? tripId,
+  required String? status,
+}) {
+  if (tripAssigned) return false;
+  if (searchingHoldUi || matchingSubmitUi) return true;
+  return tripId != null &&
+      tripId.isNotEmpty &&
+      passengerTripIsAwaitingDriverMatch(status);
+}
+
 /// Pasajero a bordo hacia el destino.
 bool passengerTripIsEnRouteToDestination(String? status) {
   final s = status?.toLowerCase();
   return s == 'started' || s == 'in_trip';
+}
+
+/// Compartir seguimiento: solo con el viaje ya iniciado (no en accepted/arrived).
+bool passengerTripCanShareLive(String? status) {
+  return passengerTripIsEnRouteToDestination(status);
 }
 
 /// Color de polyline activa según fase del viaje.

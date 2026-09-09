@@ -218,7 +218,7 @@ class _PassengerEnRouteCtaState extends State<PassengerEnRouteCta> {
 
   int _cooldownLeftSec() {
     final until = widget.cooldownUntilMs;
-    if (until == null) return 0;
+    if (until == null || until <= 0) return 0;
     final left = ((until - DateTime.now().millisecondsSinceEpoch) / 1000)
         .ceil();
     return left > 0 ? left : 0;
@@ -239,8 +239,7 @@ class _PassengerEnRouteCtaState extends State<PassengerEnRouteCta> {
     } else if (widget.errorCode != null && widget.errorCode!.isNotEmpty) {
       helper = l10n.tripPassengerEnRouteError;
     } else if (coolingDown) {
-      helper =
-          '${l10n.tripPassengerEnRouteSent} ${l10n.tripPassengerEnRouteCooldown(cooldownLeft)}';
+      helper = l10n.tripPassengerEnRouteCooldown(cooldownLeft);
     }
 
     return Padding(
@@ -248,17 +247,27 @@ class _PassengerEnRouteCtaState extends State<PassengerEnRouteCta> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: 48,
-            child: FilledButton.icon(
-              onPressed: canSend
-                  ? () {
-                      HapticFeedback.lightImpact();
-                      widget.onPressed();
-                    }
-                  : null,
-              icon: const Icon(Icons.directions_walk_rounded, size: 20),
-              label: Text(l10n.tripPassengerEnRouteCta),
+          Tooltip(
+            message: canSend
+                ? l10n.tripPassengerEnRouteCta
+                : l10n.tripPassengerEnRouteCooldown(cooldownLeft),
+            child: SizedBox(
+              height: AppSizes.buttonHeight,
+              child: FilledButton.icon(
+                onPressed: canSend
+                    ? () {
+                        HapticFeedback.lightImpact();
+                        widget.onPressed();
+                      }
+                    : null,
+                icon: Icon(
+                  canSend
+                      ? Icons.directions_walk_rounded
+                      : Icons.timer_outlined,
+                  size: AppIconSizes.lg,
+                ),
+                label: Text(l10n.tripPassengerEnRouteCta),
+              ),
             ),
           ),
           if (helper != null) ...[

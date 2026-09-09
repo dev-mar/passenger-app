@@ -46,57 +46,72 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
   }
 
   Future<bool> sendPassengerEnRoute({required String tripId}) async {
+    if (_rt._enRouteInFlight) return false;
     if (state.status != 'arrived') {
       state = state.copyWith(enRouteErrorCode: 'INVALID_STATUS_TRANSITION');
       return false;
     }
     final until = state.enRouteCooldownUntilMs;
-    if (until != null && until > DateTime.now().millisecondsSinceEpoch) {
+    if (until != null &&
+        until > 0 &&
+        until > DateTime.now().millisecondsSinceEpoch) {
       return false;
     }
+    _rt._enRouteInFlight = true;
+    const defaultCooldown = Duration(seconds: 45);
     state = state.copyWith(
       enRouteErrorCode: null,
       enRouteCooldownUntilMs: DateTime.now()
-          .add(const Duration(seconds: 2))
+          .add(defaultCooldown)
           .millisecondsSinceEpoch,
     );
 
     var sent = false;
     try {
-      final live = await _rt
-          .ensureSocketConnected(tripId: tripId)
-          .timeout(const Duration(seconds: 3), onTimeout: () => false);
-      if (live && _rt._socket != null) {
-        _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
-        sent = true;
-      }
-    } catch (_) {
-      sent = false;
-    }
-
-    if (!sent) {
       try {
-        final token = await AuthService.getValidToken();
-        if (token == null || token.isEmpty) {
-          state = state.copyWith(enRouteErrorCode: 'NO_TOKEN');
+        final live = await _rt
+            .ensureSocketConnected(tripId: tripId)
+            .timeout(const Duration(seconds: 3), onTimeout: () => false);
+        if (live && _rt._socket != null) {
+          _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
+          sent = true;
+        }
+      } catch (_) {
+        sent = false;
+      }
+
+      if (!sent) {
+        try {
+          final token = await AuthService.getValidToken();
+          if (token == null || token.isEmpty) {
+            state = state.copyWith(
+              enRouteErrorCode: 'NO_TOKEN',
+              enRouteCooldownUntilMs: 0,
+            );
+            return false;
+          }
+          final res = await TripsApi(token: token)
+              .postPassengerEnRoute(tripId: tripId)
+              .timeout(const Duration(seconds: 6));
+          state = state.copyWith(
+            enRouteErrorCode: null,
+            enRouteCooldownUntilMs: DateTime.now()
+                .add(Duration(seconds: res.cooldownSec))
+                .millisecondsSinceEpoch,
+          );
+          sent = true;
+        } catch (_) {
+          state = state.copyWith(
+            enRouteErrorCode: 'SOCKET',
+            enRouteCooldownUntilMs: 0,
+          );
           return false;
         }
-        final res = await TripsApi(token: token)
-            .postPassengerEnRoute(tripId: tripId)
-            .timeout(const Duration(seconds: 6));
-        state = state.copyWith(
-          enRouteErrorCode: null,
-          enRouteCooldownUntilMs: DateTime.now()
-              .add(Duration(seconds: res.cooldownSec))
-              .millisecondsSinceEpoch,
-        );
-        sent = true;
-      } catch (_) {
-        state = state.copyWith(enRouteErrorCode: 'SOCKET');
-        return false;
       }
+      return sent;
+    } finally {
+      _rt._enRouteInFlight = false;
     }
-    return sent;
   }
 
   /// Hidrata chat desde FCM solo si el WS no puede entregar `trip:chat:new`.

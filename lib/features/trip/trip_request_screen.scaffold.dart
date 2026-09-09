@@ -94,6 +94,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
         _d._searchingHoldUi = false;
         _d._searchingStage3CancelInFlight = false;
       }
+      if (!nowTracking && next.status != 'completed') {
+        _d._tripSheetFullyExpanded = false;
+      }
     });
 
     // Sincroniza flags de calificaci├│n cuando cambia el trip (p. ej. creado en esta sesi├│n sin pasar por splash).
@@ -143,11 +146,13 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     final tripAssigned =
         passengerTripIsTrackingDriver(rtState.status) ||
         rtState.status == 'completed';
-    final isSearchingDriver =
-        !tripAssigned &&
-        (_d._searchingHoldUi ||
-            (effectiveTripId != null &&
-                passengerTripIsAwaitingDriverMatch(rtState.status)));
+    final isSearchingDriver = passengerMatchingOverlayVisible(
+      tripAssigned: tripAssigned,
+      searchingHoldUi: _d._searchingHoldUi,
+      matchingSubmitUi: _d._matchingSubmitUi,
+      tripId: effectiveTripId,
+      status: rtState.status,
+    );
     if (_d._nearbyPollingWanted != isSearchingDriver) {
       _d._nearbyPollingWanted = isSearchingDriver;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -771,7 +776,15 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 right: 0,
                 bottom: 0,
                 top: 0,
-                child: DraggableScrollableSheet(
+                child: NotificationListener<DraggableScrollableNotification>(
+                  onNotification: (n) {
+                    final expanded = n.extent >= (n.maxExtent - 0.04);
+                    if (expanded != _d._tripSheetFullyExpanded && mounted) {
+                      setState(() => _d._tripSheetFullyExpanded = expanded);
+                    }
+                    return false;
+                  },
+                  child: DraggableScrollableSheet(
                   initialChildSize: 0.34,
                   minChildSize: 0.14,
                   maxChildSize: 0.72,
@@ -859,8 +872,16 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           finishedCloseLabel: rtState.status == 'completed'
                               ? l10n.tripFinishedBackToHome
                               : null,
-                          onShareTrip: null,
-                          shareTripLabel: null,
+                          onShareTrip: passengerTripCanShareLive(rtState.status)
+                              ? () => unawaited(
+                                    _shareActiveTrip(
+                                      tripId: effectiveTripId,
+                                      driverName: rtState.driverName,
+                                      plate: rtState.carPlate,
+                                    ),
+                                  )
+                              : null,
+                          shareTripLabel: l10n.tripShareRide,
                           onOpenChat:
                               passengerTripChatPhaseActive(rtState.status)
                               ? () => unawaited(
@@ -919,10 +940,12 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                               ? () => unawaited(_cancelAssignedTrip())
                               : null,
                           cancelTripLabel: l10n.tripCancelCta,
+                          showCancelAction: _d._tripSheetFullyExpanded,
                         ),
                       ],
                     ),
                   ),
+                ),
                 ),
               ),
             // Error de conexi├│n Socket: tripId existe pero fall├│ connect (NO_TOKEN, SOCKET, etc.)

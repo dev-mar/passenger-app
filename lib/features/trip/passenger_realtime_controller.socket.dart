@@ -324,13 +324,16 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
       final retrySec = retry is num
           ? retry.toInt()
           : int.tryParse('$retry');
+      final isCooldown = code == 'TRIP_PASSENGER_EN_ROUTE_COOLDOWN';
       state = state.copyWith(
         enRouteErrorCode: code,
-        enRouteCooldownUntilMs: retrySec != null && retrySec > 0
+        enRouteCooldownUntilMs: isCooldown && retrySec != null && retrySec > 0
             ? DateTime.now()
                 .add(Duration(seconds: retrySec))
                 .millisecondsSinceEpoch
-            : state.enRouteCooldownUntilMs,
+            : isCooldown
+            ? state.enRouteCooldownUntilMs
+            : 0,
       );
     });
 

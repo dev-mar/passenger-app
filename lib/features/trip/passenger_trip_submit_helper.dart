@@ -1,9 +1,10 @@
+import 'dart:async' show unawaited;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/auth/auth_service.dart';
-import '../../core/compliance/passenger_play_permission_disclosures.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/network/trips_api.dart';
@@ -26,10 +27,11 @@ enum PassengerTripSubmitResultKind {
 }
 
 class PassengerTripSubmitResult {
-  const PassengerTripSubmitResult(this.kind, {this.message});
+  const PassengerTripSubmitResult(this.kind, {this.message, this.tripId});
 
   final PassengerTripSubmitResultKind kind;
   final String? message;
+  final String? tripId;
 }
 
 /// Lógica compartida entre el bottom sheet de cotización y el flujo inline.
@@ -63,12 +65,6 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   if (!context.mounted) {
     return const PassengerTripSubmitResult(PassengerTripSubmitResultKind.error);
   }
-  if (!await passengerEnsureNotificationDisclosureForTripUpdates(context, l10n)) {
-    return PassengerTripSubmitResult(
-      PassengerTripSubmitResultKind.error,
-      message: l10n.passengerPlayNotificationDisclosureRequired,
-    );
-  }
 
   final token = await AuthService.getValidToken();
   if (token == null || token.isEmpty) {
@@ -81,7 +77,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   try {
     final meData = await ref
         .read(passengerMeProfileServiceProvider)
-        .fetchData(forceRefresh: true);
+        .fetchData();
     if (meData['phone_verified'] != true) {
       return PassengerTripSubmitResult(
         PassengerTripSubmitResultKind.phoneRequired,
@@ -105,8 +101,9 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
       if (tid != null && tid.isNotEmpty && context.mounted) {
         showTripRecoveredSnackBarOncePerTrip(ref, context, tid);
       }
-      return const PassengerTripSubmitResult(
+      return PassengerTripSubmitResult(
         PassengerTripSubmitResultKind.recoveredExisting,
+        tripId: tid,
       );
     }
 
@@ -159,28 +156,34 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
 
     ref.read(tripRequestProvider.notifier).selectOption(option);
     ref.read(tripRequestProvider.notifier).setTripId(result.tripId);
-    await TripSessionStorage.saveActiveTripId(result.tripId);
-    await TripSessionStorage.saveActiveTripUiSnapshot(
-      tripId: result.tripId,
-      originLat: originLat,
-      originLng: originLng,
-      destLat: destinationLat,
-      destLng: destinationLng,
-      originLabel: originAddress,
-      destLabel: destinationAddress,
-      quote: quote,
-      selectedOption: option,
+    unawaited(TripSessionStorage.saveActiveTripId(result.tripId));
+    unawaited(
+      TripSessionStorage.saveActiveTripUiSnapshot(
+        tripId: result.tripId,
+        originLat: originLat,
+        originLng: originLng,
+        destLat: destinationLat,
+        destLng: destinationLng,
+        originLabel: originAddress,
+        destLabel: destinationAddress,
+        quote: quote,
+        selectedOption: option,
+      ),
     );
-    ref.read(passengerRealtimeProvider.notifier).disconnect();
-    ref
-        .read(passengerRealtimeProvider.notifier)
-        .connect(
-          tripId: result.tripId,
-          quote: quote,
-          assumeAwaitingDriver: true,
-        );
+    // No disconnect() previo: resetea status y deja la cotización con spinner
+    // mientras el conductor ya recibió la oferta.
+    unawaited(
+      ref.read(passengerRealtimeProvider.notifier).connect(
+            tripId: result.tripId,
+            quote: quote,
+            assumeAwaitingDriver: true,
+          ),
+    );
 
-    return const PassengerTripSubmitResult(PassengerTripSubmitResultKind.success);
+    return PassengerTripSubmitResult(
+      PassengerTripSubmitResultKind.success,
+      tripId: result.tripId,
+    );
   } catch (e) {
     if (e is DioException) {
       final data = e.response?.data;
@@ -204,8 +207,9 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
             if (context.mounted) {
               showTripRecoveredSnackBarOncePerTrip(ref, context, activeTripId);
             }
-            return const PassengerTripSubmitResult(
+            return PassengerTripSubmitResult(
               PassengerTripSubmitResultKind.recoveredExisting,
+              tripId: activeTripId,
             );
           }
         }

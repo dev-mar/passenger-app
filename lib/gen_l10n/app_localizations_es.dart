@@ -1276,7 +1276,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu viaje ya está en curso. No se puede cancelar desde aquí.';
 
   @override
-  String get tripCancelCta => 'Cancelar viaje';
+  String get tripCancelCta => 'No continuar';
 
   @override
   String get tripCancelChooseReason => '¿Por qué cancelas?';

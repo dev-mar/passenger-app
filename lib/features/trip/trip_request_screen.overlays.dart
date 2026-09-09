@@ -704,6 +704,11 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
           );
         }
         if (!mounted) return;
+        final keepDraft = (_o._searchingHoldUi ||
+                _o._keepDraftAfterMatchingCancel ||
+                _o._matchingSubmitUi) &&
+            rtState.cancelledBy != 'driver';
+        if (keepDraft) return;
         unawaited(_o._resetTripSessionToDraftHome(tripIdForGuard: tripId));
       });
     }

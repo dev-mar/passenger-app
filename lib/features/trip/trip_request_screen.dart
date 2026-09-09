@@ -232,6 +232,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   List<NearbyDriver> _searchingNearbyDrivers = const [];
   /// Overlay de matching visible tras cancelar por stage-3 / antes de Continuar.
   bool _searchingHoldUi = false;
+  /// Overlay de matching desde el tap de Solicitar / Continuar (antes de tripId).
+  bool _matchingSubmitUi = false;
+  /// El timeout de matching no debe borrar origen/destino/cotización.
+  bool _keepDraftAfterMatchingCancel = false;
+  /// Si el usuario cancela mientras createTrip sigue en vuelo.
+  int _tripSubmitGeneration = 0;
   /// Regenera el overlay (etapas 0) al reintentar búsqueda.
   int _searchingOverlayGeneration = 0;
   bool _searchingStage3CancelInFlight = false;
@@ -243,6 +249,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   );
   DateTime _lastRadarAnchorAt = DateTime.fromMillisecondsSinceEpoch(0);
   bool _radarAnchorInFlight = false;
+  bool _tripSheetFullyExpanded = false;
   LatLng? _animatedDriverLatLng;
   double? _lastDriverRawLat;
   double? _lastDriverRawLng;

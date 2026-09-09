@@ -45,7 +45,9 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
 
   void _onCameraIdleForMapConfirm() {
     final st = ref.read(passengerRealtimeProvider).status;
-    if (_m._searchingHoldUi || passengerTripIsAwaitingDriverMatch(st)) {
+    if (_m._searchingHoldUi ||
+        _m._matchingSubmitUi ||
+        passengerTripIsAwaitingDriverMatch(st)) {
       unawaited(_updateSearchingRadarAnchor());
     }
     if (!_computeIsDraftMapConfirmMode()) return;
@@ -635,6 +637,8 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   void _onMapCreated(GoogleMapController c) {
     _m._controller = c;
     if (_m._searchingNearbyTimer != null ||
+        _m._matchingSubmitUi ||
+        _m._searchingHoldUi ||
         passengerTripIsAwaitingDriverMatch(
           ref.read(passengerRealtimeProvider).status,
         )) {
@@ -695,7 +699,9 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   void _onCameraMove(CameraPosition position) {
     _m._mapCenter = position.target;
     final st = ref.read(passengerRealtimeProvider).status;
-    if (_m._searchingHoldUi || passengerTripIsAwaitingDriverMatch(st)) {
+    if (_m._searchingHoldUi ||
+        _m._matchingSubmitUi ||
+        passengerTripIsAwaitingDriverMatch(st)) {
       unawaited(_updateSearchingRadarAnchor());
     }
     if (_computeIsDraftMapConfirmMode()) {

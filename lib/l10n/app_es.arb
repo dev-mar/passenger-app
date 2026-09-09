@@ -527,9 +527,9 @@
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar si se intenta cancelar con viaje ya aceptado"
   },
-  "tripCancelCta": "Cancelar viaje",
+  "tripCancelCta": "No continuar",
   "@tripCancelCta": {
-    "description": "Botón en el panel de viaje activo (accepted/arrived)"
+    "description": "Botón en el panel de viaje activo; mismo color error; copy suave (no Cancelar)"
   },
   "tripCancelChooseReason": "¿Por qué cancelas?",
   "tripCancelNoteHint": "Escribe el motivo",

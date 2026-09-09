@@ -57,6 +57,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
   double? _pendingDriverLng;
   double? _pendingDriverBearing;
   bool _tearDown = false;
+  bool _enRouteInFlight = false;
   static const _connectStuckAfter = Duration(seconds: 12);
   static const _connectHardTimeout = Duration(seconds: 25);
   static const _minDriverDeltaDegrees = 0.00002;
@@ -73,6 +74,7 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
     _pendingDriverLng = null;
     _pendingDriverBearing = null;
     _lastTripSyncApiAt = null;
+    _enRouteInFlight = false;
     _reconnectSub?.cancel();
     _socket?.disconnect();
     _socket?.dispose();

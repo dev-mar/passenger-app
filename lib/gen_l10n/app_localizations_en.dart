@@ -1273,7 +1273,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your trip is already in progress. It can\'t be cancelled from here.';
 
   @override
-  String get tripCancelCta => 'Cancel trip';
+  String get tripCancelCta => 'Don\'t continue';
 
   @override
   String get tripCancelChooseReason => 'Why are you cancelling?';
