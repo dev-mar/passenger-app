@@ -49,9 +49,8 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
   io.Socket? _socket;
   StreamSubscription? _reconnectSub;
   DateTime? _lastTripSyncApiAt;
-  static const _tripSyncMinGap = Duration(seconds: 2);
+  static const _tripSyncMinGap = Duration(seconds: 8);
   Timer? _driverLocationDebounceTimer;
-  Timer? _driverMarkerLerpTimer;
   Timer? _connectTimeoutTimer;
   DateTime? _connectStartedAt;
   double? _pendingDriverLat;
@@ -62,8 +61,6 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
   static const _connectHardTimeout = Duration(seconds: 25);
   static const _minDriverDeltaDegrees = 0.00002;
   static const _minBearingDelta = 4.0;
-  static const _driverLerpTotalSteps = 6;
-  static const _driverLerpStepDuration = Duration(milliseconds: 55);
 
   void disconnect() {
     _tearDown = true;
@@ -72,8 +69,6 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
     _connectStartedAt = null;
     _driverLocationDebounceTimer?.cancel();
     _driverLocationDebounceTimer = null;
-    _driverMarkerLerpTimer?.cancel();
-    _driverMarkerLerpTimer = null;
     _pendingDriverLat = null;
     _pendingDriverLng = null;
     _pendingDriverBearing = null;
@@ -91,7 +86,6 @@ class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
     _tearDown = true;
     _connectTimeoutTimer?.cancel();
     _driverLocationDebounceTimer?.cancel();
-    _driverMarkerLerpTimer?.cancel();
     _reconnectSub?.cancel();
     _socket?.dispose();
     super.dispose();

@@ -9,56 +9,18 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     return raw > 180.0 ? 360.0 - raw : raw;
   }
 
-  double _normalizeBearing(double v) {
-    final n = v % 360.0;
-    return n < 0 ? n + 360.0 : n;
-  }
-
-  double _lerpBearing(double from, double to, double t) {
-    final a = _normalizeBearing(from);
-    final b = _normalizeBearing(to);
-    var delta = b - a;
-    if (delta > 180.0) delta -= 360.0;
-    if (delta < -180.0) delta += 360.0;
-    return _normalizeBearing(a + (delta * t));
-  }
-
-  void _animateDriverMarkerTo({
+  /// Un solo write de GPS: el mapa interpola el pin. Un lerp aquí
+  /// reconstruía todo el GoogleMap ~6 veces por tick y colgaba Android.
+  void _commitDriverMarkerTarget({
     required double targetLat,
     required double targetLng,
     required double? targetBearing,
   }) {
-    _rt._driverMarkerLerpTimer?.cancel();
-    final startLat = state.driverLat ?? targetLat;
-    final startLng = state.driverLng ?? targetLng;
-    final startBearing = state.driverBearing;
-    var step = 0;
-    _rt._driverMarkerLerpTimer = Timer.periodic(PassengerRealtimeController._driverLerpStepDuration, (timer) {
-      if (_rt._tearDown) {
-        timer.cancel();
-        _rt._driverMarkerLerpTimer = null;
-        return;
-      }
-      step++;
-      final t = (step / PassengerRealtimeController._driverLerpTotalSteps).clamp(0.0, 1.0);
-      final nextLat = startLat + ((targetLat - startLat) * t);
-      final nextLng = startLng + ((targetLng - startLng) * t);
-      double? nextBearing;
-      if (targetBearing != null && startBearing != null) {
-        nextBearing = _lerpBearing(startBearing, targetBearing, t);
-      } else {
-        nextBearing = targetBearing ?? startBearing;
-      }
-      state = state.copyWith(
-        driverLat: nextLat,
-        driverLng: nextLng,
-        driverBearing: nextBearing,
-      );
-      if (step >= PassengerRealtimeController._driverLerpTotalSteps) {
-        timer.cancel();
-        _rt._driverMarkerLerpTimer = null;
-      }
-    });
+    state = state.copyWith(
+      driverLat: targetLat,
+      driverLng: targetLng,
+      driverBearing: targetBearing ?? state.driverBearing,
+    );
   }
 
   /// Aplica status desde push FCM de inmediato (sin esperar REST lento).
@@ -280,7 +242,7 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
               lngDiff >= PassengerRealtimeController._minDriverDeltaDegrees ||
               bearingDiff >= PassengerRealtimeController._minBearingDelta;
           if (!hasMeaningfulMove) return;
-          _animateDriverMarkerTo(
+          _commitDriverMarkerTarget(
             targetLat: plat,
             targetLng: plng,
             targetBearing: _rt._pendingDriverBearing ?? state.driverBearing,

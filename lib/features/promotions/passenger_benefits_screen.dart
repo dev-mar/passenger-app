@@ -8,9 +8,12 @@ import '../../core/device/passenger_device_identity.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
+import '../../core/ui/app_safe_scrolling.dart';
+import '../../core/ui/texi_motion.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'passenger_promotions_repository.dart';
+import 'widgets/passenger_benefits_ui.dart';
 
 /// Beneficios TEXIAPP: listado, código y referido. Vacío si el motor está apagado.
 class PassengerBenefitsScreen extends ConsumerStatefulWidget {
@@ -22,17 +25,22 @@ class PassengerBenefitsScreen extends ConsumerStatefulWidget {
 }
 
 class _PassengerBenefitsScreenState
-    extends ConsumerState<PassengerBenefitsScreen> {
+    extends ConsumerState<PassengerBenefitsScreen>
+    with TickerProviderStateMixin {
   PassengerPromotionsSnapshot? _snap;
   bool _loading = true;
   bool _busyCode = false;
   bool _busyReferral = false;
   final _codeCtrl = TextEditingController();
   final _referralCtrl = TextEditingController();
+  late final AnimationController _enter;
+  late final AnimationController _pulse;
 
   @override
   void initState() {
     super.initState();
+    _enter = AnimationController(vsync: this, duration: TexiMotion.emphasized);
+    _pulse = AnimationController(vsync: this, duration: TexiMotion.pulseLoop);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _reload();
     });
@@ -42,6 +50,8 @@ class _PassengerBenefitsScreenState
   void dispose() {
     _codeCtrl.dispose();
     _referralCtrl.dispose();
+    _enter.dispose();
+    _pulse.dispose();
     super.dispose();
   }
 
@@ -55,6 +65,8 @@ class _PassengerBenefitsScreenState
       _snap = snap;
       _loading = false;
     });
+    _enter.forward(from: 0);
+    _pulse.repeat(reverse: true);
   }
 
   Future<void> _applyCode() async {
@@ -63,20 +75,21 @@ class _PassengerBenefitsScreenState
     final l10n = AppLocalizations.of(context)!;
     TexiUiFeedback.lightTap();
     setState(() => _busyCode = true);
-    final ok =
-        await ref.read(passengerPromotionsRepositoryProvider).applyCode(code);
+    final ok = await ref
+        .read(passengerPromotionsRepositoryProvider)
+        .applyCode(code);
     if (!mounted) return;
     setState(() => _busyCode = false);
     if (ok) {
       ref.read(passengerPromoCodeProvider.notifier).state = code;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.promoCodeApplied)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.promoCodeApplied)));
       await _reload();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.promoCodeUnavailable)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.promoCodeUnavailable)));
     }
   }
 
@@ -96,14 +109,14 @@ class _PassengerBenefitsScreenState
     if (!mounted) return;
     setState(() => _busyReferral = false);
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.promoReferralClaimed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.promoReferralClaimed)));
       await _reload();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.promoReferralUnavailable)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.promoReferralUnavailable)));
     }
   }
 
@@ -112,9 +125,9 @@ class _PassengerBenefitsScreenState
     await Clipboard.setData(ClipboardData(text: code));
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.promoReferralMine)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.promoReferralCopied)));
   }
 
   Future<void> _shareMine(String code) async {
@@ -143,6 +156,29 @@ class _PassengerBenefitsScreenState
     }
   }
 
+  InputDecoration _fieldDecoration({
+    required String hint,
+    required IconData icon,
+    Color accent = AppColors.primary,
+  }) {
+    final radius = BorderRadius.circular(AppRadii.md);
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: accent, size: 20),
+      filled: true,
+      fillColor: BenefitsVisual.cardHi,
+      counterText: '',
+      enabledBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(color: accent, width: AppBorders.strong),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -150,325 +186,301 @@ class _PassengerBenefitsScreenState
     final referralCode = _snap?.referralCode;
     final claimed = _snap?.claimedReferral ?? false;
     final graceEnds = _snap?.claimGraceEndsAt;
-    final graceClosed = !claimed &&
+    final graceClosed =
+        !claimed &&
         referralCode != null &&
         referralCode.trim().isNotEmpty &&
         graceEnds == null;
     final showClaim = !claimed && !graceClosed;
     final wallet = _snap?.wallet;
     final invitees = _snap?.invitees ?? const <PassengerReferralInvitee>[];
+    final hasWallet = wallet != null && wallet.balance > 0;
+    var stagger = 0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      TexiUiFeedback.lightTap();
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/profile');
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    color: AppColors.primary,
-                    tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  ),
-                  Expanded(
-                    child: Text(
-                      l10n.promoBenefitsTitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.primary,
+      backgroundColor: BenefitsVisual.canvas,
+      body: Stack(
+        children: [
+          const BenefitsGlowBackdrop(),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 12, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          TexiUiFeedback.lightTap();
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/profile');
+                          }
+                        },
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: AppColors.primary,
+                        tooltip: MaterialLocalizations.of(
+                          context,
+                        ).backButtonTooltip,
+                      ),
+                      Expanded(
+                        child: Text(
+                          l10n.promoBenefitsTitle,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.3,
+                              ),
                         ),
                       ),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.xxx,
-                        AppSpacing.xl,
-                        AppSpacing.xxx,
-                        AppSpacing.sheetBodyV,
-                      ),
-                      children: [
-                        if (items.isEmpty)
-                          Text(
-                            l10n.promoBenefitsEmpty,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.copyWith(color: AppColors.textSecondary),
-                          )
-                        else
-                          ...items.map(
-                            (item) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.xl,
-                              ),
-                              child: _BenefitCard(text: item.rulesText),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _loading
+                      ? const Center(
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.primary,
                             ),
                           ),
-                        const SizedBox(height: AppSpacing.section),
-                        Text(
-                          l10n.promoCodeLabel,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
+                        )
+                      : ListView(
+                          padding: AppSafeScrolling.pagePadding(
+                            context,
+                            horizontal: AppSpacing.xxx,
+                            top: AppSpacing.xl,
+                            bottomExtra: AppSpacing.sheetBodyV,
+                          ),
+                          children: [
+                            BenefitsStagger(
+                              animation: _enter,
+                              index: stagger++,
+                              child: BenefitsHeroCard(
+                                pulse: _pulse,
+                                lead: l10n.promoBenefitsHeroLead,
+                                walletTitle: hasWallet
+                                    ? l10n.promoReferralWalletLabel
+                                    : null,
+                                walletAmount: hasWallet
+                                    ? formatMoney(
+                                        wallet.balance,
+                                        currencyCode: 'BOB',
+                                        decimals: 1,
+                                      )
+                                    : null,
+                                walletMeta: [
+                                  if (hasWallet && wallet.expiresAt != null)
+                                    l10n.promoReferralWalletExpires(
+                                      _formatDate(wallet.expiresAt!),
+                                    ),
+                                  if (hasWallet &&
+                                      wallet.maxPerTrip != null &&
+                                      wallet.maxPerTrip! > 0)
+                                    l10n.promoReferralMaxPerTrip(
+                                      formatMoney(
+                                        wallet.maxPerTrip!,
+                                        currencyCode: 'BOB',
+                                        decimals: 1,
+                                      ),
+                                    ),
+                                ],
+                                emptyMessage: items.isEmpty
+                                    ? l10n.promoBenefitsEmpty
+                                    : null,
+                                activeTitle: items.isNotEmpty
+                                    ? l10n.promoBenefitsActiveTitle
+                                    : null,
+                                activeCount: items.isNotEmpty
+                                    ? items.length
+                                    : null,
+                              ),
+                            ),
+                            if (items.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xl),
+                              ...items.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.xl,
                                   ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        TextField(
-                          controller: _codeCtrl,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: InputDecoration(
-                            hintText: l10n.promoCodeHint,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        FilledButton(
-                          onPressed: _busyCode ? null : _applyCode,
-                          child: _busyCode
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.onPrimary,
-                                  ),
-                                )
-                              : Text(l10n.promoCodeApply),
-                        ),
-                        const SizedBox(height: AppSpacing.section),
-                        Text(
-                          l10n.promoReferralTitle,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                  ),
-                        ),
-                        if (wallet != null && wallet.balance > 0) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            l10n.promoReferralWallet(
-                              formatMoney(
-                                wallet.balance,
-                                currencyCode: 'BOB',
-                                decimals: 1,
-                              ),
-                            ),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
-                          ),
-                          if (wallet.expiresAt != null)
-                            Text(
-                              l10n.promoReferralWalletExpires(
-                                _formatDate(wallet.expiresAt!),
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                          if (wallet.maxPerTrip != null &&
-                              wallet.maxPerTrip! > 0)
-                            Text(
-                              l10n.promoReferralMaxPerTrip(
-                                formatMoney(
-                                  wallet.maxPerTrip!,
-                                  currencyCode: 'BOB',
-                                  decimals: 1,
-                                ),
-                              ),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                        ],
-                        if (referralCode != null &&
-                            referralCode.trim().isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            l10n.promoReferralMine,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          InkWell(
-                            onTap: () => _copyMine(referralCode),
-                            borderRadius: BorderRadius.circular(AppRadii.lg),
-                            child: Ink(
-                              padding: const EdgeInsets.all(AppSpacing.xl),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadii.lg),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      referralCode,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: 1.2,
-                                          ),
+                                  child: BenefitsStagger(
+                                    animation: _enter,
+                                    index: stagger++,
+                                    child: BenefitsRuleCard(
+                                      text: item.rulesText,
                                     ),
                                   ),
-                                  const Icon(
-                                    Icons.copy_rounded,
-                                    color: AppColors.primary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          OutlinedButton.icon(
-                            onPressed: () => _shareMine(referralCode),
-                            icon: const Icon(Icons.ios_share_rounded),
-                            label: Text(l10n.promoReferralShare),
-                          ),
-                        ],
-                        if (claimed) ...[
-                          const SizedBox(height: AppSpacing.xl),
-                          Text(
-                            l10n.promoReferralClaimed,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                        if (graceClosed) ...[
-                          const SizedBox(height: AppSpacing.xl),
-                          Text(
-                            l10n.promoReferralGraceClosed,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                        if (showClaim) ...[
-                          const SizedBox(height: AppSpacing.xl),
-                          Text(
-                            l10n.promoReferralClaimLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.textSecondary),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          TextField(
-                            controller: _referralCtrl,
-                            textCapitalization: TextCapitalization.characters,
-                            maxLength: 16,
-                            decoration: InputDecoration(
-                              hintText: l10n.promoReferralClaimLabel,
-                              counterText: '',
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          OutlinedButton(
-                            onPressed:
-                                _busyReferral ? null : _claimReferral,
-                            child: Text(l10n.promoReferralClaim),
-                          ),
-                        ],
-                        if (invitees.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.section),
-                          Text(
-                            l10n.promoReferralInviteesTitle,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
                                 ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          ...invitees.map(
-                            (row) => Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppSpacing.sm,
                               ),
-                              child: Text(
-                                _inviteeLabel(l10n, row.status),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: AppColors.textPrimary),
+                            ],
+                            const SizedBox(height: AppSpacing.section),
+                            BenefitsStagger(
+                              animation: _enter,
+                              index: stagger++,
+                              child: BenefitsPanel(
+                                icon: Icons.confirmation_number_outlined,
+                                accent: AppColors.primary,
+                                title: l10n.promoCodeLabel,
+                                subtitle: l10n.promoCodeCardLead,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    TextField(
+                                      controller: _codeCtrl,
+                                      textCapitalization:
+                                          TextCapitalization.characters,
+                                      decoration: _fieldDecoration(
+                                        hint: l10n.promoCodeHint,
+                                        icon: Icons.vpn_key_rounded,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.xl),
+                                    BenefitsPrimaryButton(
+                                      label: l10n.promoCodeApply,
+                                      busy: _busyCode,
+                                      onPressed: _applyCode,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                            const SizedBox(height: AppSpacing.section),
+                            BenefitsStagger(
+                              animation: _enter,
+                              index: stagger++,
+                              child: BenefitsPanel(
+                                icon: Icons.handshake_outlined,
+                                accent: BenefitsVisual.teal,
+                                title: l10n.promoReferralTitle,
+                                subtitle: l10n.promoReferralCardLead,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (referralCode != null &&
+                                        referralCode.trim().isNotEmpty) ...[
+                                      Text(
+                                        l10n.promoReferralMine,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      BenefitsTicketCode(
+                                        code: referralCode,
+                                        onCopy: () => _copyMine(referralCode),
+                                      ),
+                                      const SizedBox(height: AppSpacing.xl),
+                                      BenefitsGhostButton(
+                                        icon: Icons.ios_share_rounded,
+                                        label: l10n.promoReferralShare,
+                                        onPressed: () =>
+                                            _shareMine(referralCode),
+                                      ),
+                                    ],
+                                    if (claimed) ...[
+                                      const SizedBox(height: AppSpacing.xl),
+                                      BenefitsStatusNote(
+                                        icon: Icons.verified_rounded,
+                                        color: BenefitsVisual.teal,
+                                        text: l10n.promoReferralClaimed,
+                                      ),
+                                    ],
+                                    if (graceClosed) ...[
+                                      const SizedBox(height: AppSpacing.xl),
+                                      BenefitsStatusNote(
+                                        icon: Icons.schedule_rounded,
+                                        color: AppColors.textSecondary,
+                                        text: l10n.promoReferralGraceClosed,
+                                      ),
+                                    ],
+                                    if (showClaim) ...[
+                                      const SizedBox(height: AppSpacing.xl),
+                                      Text(
+                                        l10n.promoReferralClaimLabel,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      TextField(
+                                        controller: _referralCtrl,
+                                        textCapitalization:
+                                            TextCapitalization.characters,
+                                        maxLength: 16,
+                                        decoration: _fieldDecoration(
+                                          hint: l10n.promoReferralClaimLabel,
+                                          icon: Icons.person_add_alt_1_rounded,
+                                          accent: BenefitsVisual.violet,
+                                        ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.xl),
+                                      BenefitsGhostButton(
+                                        icon: Icons.add_link_rounded,
+                                        label: l10n.promoReferralClaim,
+                                        busy: _busyReferral,
+                                        onPressed: _claimReferral,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (invitees.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.section),
+                              BenefitsStagger(
+                                animation: _enter,
+                                index: stagger++,
+                                child: BenefitsPanel(
+                                  icon: Icons.groups_rounded,
+                                  accent: BenefitsVisual.sky,
+                                  title: l10n.promoReferralInviteesTitle,
+                                  child: Column(
+                                    children: [
+                                      for (
+                                        var i = 0;
+                                        i < invitees.length;
+                                        i++
+                                      ) ...[
+                                        if (i > 0)
+                                          const SizedBox(height: AppSpacing.sm),
+                                        BenefitsInviteeRow(
+                                          label: _inviteeLabel(
+                                            l10n,
+                                            invitees[i].status,
+                                          ),
+                                          status: invitees[i].status,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BenefitCard extends StatelessWidget {
-  const _BenefitCard({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-      ),
-      child: Text(
-        text.isEmpty ? '—' : text,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppColors.textPrimary,
-              height: 1.4,
-            ),
+          ),
+        ],
       ),
     );
   }

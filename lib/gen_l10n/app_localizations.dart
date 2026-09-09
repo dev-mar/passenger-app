@@ -4631,6 +4631,42 @@ abstract class AppLocalizations {
   /// **'When you have an active TEXIAPP benefit, it will show up here.'**
   String get promoBenefitsEmpty;
 
+  /// No description provided for @promoBenefitsHeroLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Codes, trip support, and what TEXIAPP covers for you.'**
+  String get promoBenefitsHeroLead;
+
+  /// No description provided for @promoBenefitsActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active now'**
+  String get promoBenefitsActiveTitle;
+
+  /// No description provided for @promoCodeCardLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Use it when you request your next trip.'**
+  String get promoCodeCardLead;
+
+  /// No description provided for @promoReferralCardLead.
+  ///
+  /// In en, this message translates to:
+  /// **'Your guests ride. You get trip support.'**
+  String get promoReferralCardLead;
+
+  /// No description provided for @promoReferralCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get promoReferralCopied;
+
+  /// No description provided for @promoReferralWalletLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Available support'**
+  String get promoReferralWalletLabel;
+
   /// No description provided for @promoChipYouPay.
   ///
   /// In en, this message translates to:
@@ -4718,7 +4754,7 @@ abstract class AppLocalizations {
   /// No description provided for @promoReferralShareMessage.
   ///
   /// In en, this message translates to:
-  /// **'Use my code {code} in TEXIAPP. Our team covers part of the inviter\'s trips.'**
+  /// **'Come ride with TEXIAPP. Use my code {code}.'**
   String promoReferralShareMessage(String code);
 
   /// No description provided for @promoReferralWallet.

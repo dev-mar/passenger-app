@@ -6,27 +6,14 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
 
   void initTripRequestScreen() {
     _d._appInForeground = true;
-    _d._driverPulseController =
-        AnimationController(
-          vsync: _d,
-          duration: const Duration(milliseconds: 1150),
-        )..addListener(() {
-          if (!mounted) return;
-          if (_d._animatedDriverLatLng == null) return;
-          setState(() {});
-        });
-    _d._searchingMapRadarController =
-        AnimationController(
-          vsync: _d,
-          duration: const Duration(milliseconds: 2600),
-        )..addListener(() {
-          if (!mounted) return;
-          // Solo rebuild cuando hay matching (evita trabajo en idle).
-          final tid = ref.read(tripRequestProvider).tripId;
-          final st = ref.read(passengerRealtimeProvider).status;
-          if (tid == null || !passengerTripIsAwaitingDriverMatch(st)) return;
-          setState(() {});
-        });
+    _d._driverPulseController = AnimationController(
+      vsync: _d,
+      duration: const Duration(milliseconds: 1150),
+    );
+    _d._searchingMapRadarController = AnimationController(
+      vsync: _d,
+      duration: const Duration(milliseconds: 2600),
+    );
     _d._chatAttentionController = AnimationController(
       vsync: _d,
       duration: const Duration(milliseconds: 1350),
@@ -54,11 +41,14 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
 
       final l10n = AppLocalizations.of(context);
       if (l10n != null) {
-        final disclosuresOk = await passengerEnsurePlayDisclosuresBeforeTripFlow(
+        unawaited(
+          passengerEnsureNotificationDisclosureForTripUpdates(context, l10n),
+        );
+        final locOk = await passengerEnsureLocationDisclosureForMap(
           context,
           l10n,
         );
-        if (!disclosuresOk || !mounted) {
+        if (!locOk || !mounted) {
           setState(() {
             _d._loadingOrigin = false;
             _d._originError = l10n.homeLocationError;
@@ -66,6 +56,8 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
           return;
         }
       }
+      await PassengerMapsBootstrap.ensureReady();
+      if (!mounted) return;
 
       final tripState = ref.read(tripRequestProvider);
       final rtState = ref.read(passengerRealtimeProvider);
@@ -289,6 +281,7 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
     _d._searchingNearbyTimer?.cancel();
     _d._driverPulseController.dispose();
     _d._searchingMapRadarController.dispose();
+    _d._searchingRadarAnchor.dispose();
     _d._chatAttentionController.dispose();
     _d._draftSearchDebounce?.cancel();
     _d._mapConfirmIdleTimer?.cancel();

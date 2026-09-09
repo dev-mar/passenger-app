@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -34,6 +35,18 @@ Future<bool> passengerEnsurePlayDisclosuresBeforeTripFlow(
   return true;
 }
 
+/// Ubicación para pintar el mapa. No espera FCM.
+Future<bool> passengerEnsureLocationDisclosureForMap(
+  BuildContext context,
+  AppLocalizations l10n,
+) async {
+  if (kIsWeb) return true;
+  if (!Platform.isAndroid && defaultTargetPlatform != TargetPlatform.iOS) {
+    return true;
+  }
+  return _ensureForegroundLocationDisclosure(context, l10n);
+}
+
 /// Solo notificaciones (viaje activo, chat, llegada del conductor).
 Future<bool> passengerEnsureNotificationDisclosureForTripUpdates(
   BuildContext context,
@@ -46,19 +59,27 @@ Future<bool> _notificationPermissionsGranted() async {
   if (!Platform.isAndroid && defaultTargetPlatform != TargetPlatform.iOS) {
     return true;
   }
+  if (Firebase.apps.isEmpty) return true;
 
-  await PassengerNotificationService.instance.initialize();
-  final fcmSettings = await FirebaseMessaging.instance.getNotificationSettings();
-  final fcmOk = _notificationAuthorized(fcmSettings);
+  try {
+    await PassengerNotificationService.instance.initialize().timeout(
+      const Duration(seconds: 2),
+    );
+    final fcmSettings = await FirebaseMessaging.instance
+        .getNotificationSettings()
+        .timeout(const Duration(seconds: 2));
+    final fcmOk = _notificationAuthorized(fcmSettings);
 
-  if (Platform.isAndroid) {
-    final androidOk =
-        await PassengerNotificationService.instance
-            .areAndroidNotificationsEnabled();
-    return fcmOk && androidOk;
+    if (Platform.isAndroid) {
+      final androidOk = await PassengerNotificationService.instance
+          .areAndroidNotificationsEnabled()
+          .timeout(const Duration(seconds: 2));
+      return fcmOk && androidOk;
+    }
+    return fcmOk;
+  } catch (_) {
+    return true;
   }
-
-  return fcmOk;
 }
 
 Future<bool> _ensureNotificationDisclosure(

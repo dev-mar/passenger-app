@@ -243,8 +243,21 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                           ),
                         ),
                       );
+                    final carouselHeight = options.any((option) {
+                      final displayedGross = displayQuotedPriceForOption(
+                        basePrice: option.estimatedPrice,
+                        serviceTypeId: option.serviceTypeId,
+                        serviceTypeName: option.serviceTypeName,
+                        specialsCount: specialsCount,
+                        surchargePct: specialSurchargePct,
+                      );
+                      return option.youPayForDisplayedGross(displayedGross) !=
+                          null;
+                    })
+                        ? PassengerQuoteServiceOptionCard.heightWithYouPay
+                        : PassengerQuoteServiceOptionCard.heightCompact;
                     return SizedBox(
-                      height: 78,
+                      height: carouselHeight,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: options.length,

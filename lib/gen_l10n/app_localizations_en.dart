@@ -2565,6 +2565,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'When you have an active TEXIAPP benefit, it will show up here.';
 
   @override
+  String get promoBenefitsHeroLead =>
+      'Codes, trip support, and what TEXIAPP covers for you.';
+
+  @override
+  String get promoBenefitsActiveTitle => 'Active now';
+
+  @override
+  String get promoCodeCardLead => 'Use it when you request your next trip.';
+
+  @override
+  String get promoReferralCardLead => 'Your guests ride. You get trip support.';
+
+  @override
+  String get promoReferralCopied => 'Code copied';
+
+  @override
+  String get promoReferralWalletLabel => 'Available support';
+
+  @override
   String promoChipYouPay(String amount) {
     return 'You pay $amount';
   }
@@ -2611,7 +2630,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String promoReferralShareMessage(String code) {
-    return 'Use my code $code in TEXIAPP. Our team covers part of the inviter\'s trips.';
+    return 'Come ride with TEXIAPP. Use my code $code.';
   }
 
   @override

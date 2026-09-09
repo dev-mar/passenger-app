@@ -26,6 +26,7 @@ import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/maps/trip_route_tracking_policy.dart';
 import '../../core/maps/passenger_google_maps_health.dart';
+import '../../core/maps/passenger_maps_bootstrap.dart';
 import '../../core/network/geocoding_service.dart';
 import '../../core/network/passenger_map_telemetry_service.dart';
 import '../../core/network/places_autocomplete_service.dart';
@@ -68,6 +69,7 @@ import 'trip_payment_method.dart';
 import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
+import 'widgets/passenger_searching_map_radar.dart';
 import 'widgets/passenger_trip_recovery_panel.dart';
 import 'trip_driver_marker.dart';
 import 'trip_request_route_service.dart';
@@ -235,6 +237,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _searchingStage3CancelInFlight = false;
   /// Evita recentrar el mapa en origen en cada rebuild durante matching.
   bool _searchingOriginCameraDone = false;
+  bool? _nearbyPollingWanted;
+  final ValueNotifier<Offset?> _searchingRadarAnchor = ValueNotifier<Offset?>(
+    null,
+  );
+  DateTime _lastRadarAnchorAt = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _radarAnchorInFlight = false;
   LatLng? _animatedDriverLatLng;
   double? _lastDriverRawLat;
   double? _lastDriverRawLng;

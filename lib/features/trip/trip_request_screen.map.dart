@@ -44,6 +44,10 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   }
 
   void _onCameraIdleForMapConfirm() {
+    final st = ref.read(passengerRealtimeProvider).status;
+    if (_m._searchingHoldUi || passengerTripIsAwaitingDriverMatch(st)) {
+      unawaited(_updateSearchingRadarAnchor());
+    }
     if (!_computeIsDraftMapConfirmMode()) return;
     _m._mapConfirmIdleTimer?.cancel();
     _m._mapConfirmIdleTimer = Timer(const Duration(milliseconds: 260), () {
@@ -347,6 +351,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
               bootstrap.longitude,
             );
         unawaited(_loadPinIcons());
+        unawaited(_refreshSearchingNearbyDrivers());
       }
     }
 
@@ -371,7 +376,8 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       ref
           .read(tripRequestProvider.notifier)
           .setOrigin(_m._origin!.latitude, _m._origin!.longitude);
-      await _loadPinIcons();
+      unawaited(_loadPinIcons());
+      unawaited(_refreshSearchingNearbyDrivers());
       unawaited(_refinePassengerOriginOnce(refineGen));
     } catch (e) {
       if (!mounted) return;
@@ -437,6 +443,37 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     }
   }
 
+  Future<void> _refreshSearchingNearbyDrivers() async {
+    if (!mounted) return;
+    final origin = _m._origin;
+    if (origin == null) return;
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty || !mounted) return;
+    try {
+      final res = await TripsApi(token: token).getNearbyDrivers(
+        lat: origin.latitude,
+        lng: origin.longitude,
+        radiusKm: 2,
+        limit: 12,
+      );
+      if (!mounted) return;
+      final within = res.drivers
+          .where((d) => d.distanceKm <= 2.0)
+          .toList(growable: false);
+      if (_m._searchingNearbyDrivers.length == within.length) {
+        var same = true;
+        for (var i = 0; i < within.length; i++) {
+          if (_m._searchingNearbyDrivers[i].driverId != within[i].driverId) {
+            same = false;
+            break;
+          }
+        }
+        if (same) return;
+      }
+      setState(() => _m._searchingNearbyDrivers = within);
+    } catch (_) {}
+  }
+
   Future<void> _loadDriverTripIcon() async {
     if (!mounted) return;
     try {
@@ -448,17 +485,10 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     }
   }
 
-  /// Enciende/apaga el pulse del marcador del conductor segÃºn haya o no
-  /// `_m._animatedDriverLatLng`. Mantiene la animaciÃ³n dormida en borrador.
+  /// El pulso ya no anima el mapa (setState 60 fps colgaba matching/accept).
   void _syncDriverPulseAnimation() {
-    if (_m._animatedDriverLatLng != null) {
-      if (!_m._driverPulseController.isAnimating) {
-        _m._driverPulseController.repeat(reverse: true);
-      }
-    } else {
-      if (_m._driverPulseController.isAnimating) {
-        _m._driverPulseController.stop();
-      }
+    if (_m._driverPulseController.isAnimating) {
+      _m._driverPulseController.stop();
     }
   }
 
@@ -571,10 +601,10 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       return;
     }
     final lowPowerVisual = _m._lowBatteryModeActive || _m._driverLikelyIdle;
-    final totalSteps = lowPowerVisual ? 5 : 9;
+    final totalSteps = lowPowerVisual ? 3 : 4;
     final stepDuration = lowPowerVisual
-        ? const Duration(milliseconds: 120)
-        : const Duration(milliseconds: 85);
+        ? const Duration(milliseconds: 140)
+        : const Duration(milliseconds: 100);
     var step = 0;
     _m._driverMotionTimer = Timer.periodic(stepDuration, (timer) {
       if (!mounted) {
@@ -604,10 +634,70 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
 
   void _onMapCreated(GoogleMapController c) {
     _m._controller = c;
+    if (_m._searchingNearbyTimer != null ||
+        passengerTripIsAwaitingDriverMatch(
+          ref.read(passengerRealtimeProvider).status,
+        )) {
+      _m._searchingOriginCameraDone = false;
+      _ensureSearchingCameraOnOrigin();
+    }
+  }
+
+  Future<void> _updateSearchingRadarAnchor() async {
+    final c = _m._controller;
+    final origin = _m._origin;
+    if (c == null || origin == null || !mounted) return;
+    if (_m._radarAnchorInFlight) return;
+    final now = DateTime.now();
+    if (now.difference(_m._lastRadarAnchorAt) <
+        const Duration(milliseconds: 80)) {
+      return;
+    }
+    _m._radarAnchorInFlight = true;
+    _m._lastRadarAnchorAt = now;
+    try {
+      final sc = await c.getScreenCoordinate(origin);
+      if (!mounted) return;
+      final dpr = MediaQuery.devicePixelRatioOf(context);
+      if (dpr <= 0) return;
+      final next = Offset(sc.x / dpr, sc.y / dpr);
+      final prev = _m._searchingRadarAnchor.value;
+      if (prev != null && (next - prev).distance < 1.2) return;
+      _m._searchingRadarAnchor.value = next;
+    } catch (_) {
+      // Cámara no lista: el próximo idle/move reintenta.
+    } finally {
+      _m._radarAnchorInFlight = false;
+    }
+  }
+
+  void _ensureSearchingCameraOnOrigin() {
+    final origin = _m._origin;
+    if (origin == null) return;
+    final c = _m._controller;
+    if (c == null) {
+      _m._searchingOriginCameraDone = false;
+      return;
+    }
+    if (_m._searchingOriginCameraDone) {
+      unawaited(_updateSearchingRadarAnchor());
+      return;
+    }
+    _m._searchingOriginCameraDone = true;
+    unawaited(() async {
+      try {
+        await c.animateCamera(CameraUpdate.newLatLngZoom(origin, 15.6));
+      } catch (_) {}
+      await _updateSearchingRadarAnchor();
+    }());
   }
 
   void _onCameraMove(CameraPosition position) {
     _m._mapCenter = position.target;
+    final st = ref.read(passengerRealtimeProvider).status;
+    if (_m._searchingHoldUi || passengerTripIsAwaitingDriverMatch(st)) {
+      unawaited(_updateSearchingRadarAnchor());
+    }
     if (_computeIsDraftMapConfirmMode()) {
       _m._mapConfirmIdleTimer?.cancel();
       final shouldHideChrome = !_m._mapConfirmInstructionHiddenWhileDragging;

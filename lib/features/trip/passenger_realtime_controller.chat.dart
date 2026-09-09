@@ -45,16 +45,14 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
     });
   }
 
-  Future<void> sendPassengerEnRoute({required String tripId}) async {
-    if (state.status != 'arrived') return;
+  Future<bool> sendPassengerEnRoute({required String tripId}) async {
+    if (state.status != 'arrived') {
+      state = state.copyWith(enRouteErrorCode: 'INVALID_STATUS_TRANSITION');
+      return false;
+    }
     final until = state.enRouteCooldownUntilMs;
     if (until != null && until > DateTime.now().millisecondsSinceEpoch) {
-      return;
-    }
-    final live = await _rt.ensureSocketConnected(tripId: tripId);
-    if (!live) {
-      state = state.copyWith(enRouteErrorCode: 'SOCKET');
-      return;
+      return false;
     }
     state = state.copyWith(
       enRouteErrorCode: null,
@@ -62,7 +60,43 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
           .add(const Duration(seconds: 2))
           .millisecondsSinceEpoch,
     );
-    _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
+
+    var sent = false;
+    try {
+      final live = await _rt
+          .ensureSocketConnected(tripId: tripId)
+          .timeout(const Duration(seconds: 3), onTimeout: () => false);
+      if (live && _rt._socket != null) {
+        _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
+        sent = true;
+      }
+    } catch (_) {
+      sent = false;
+    }
+
+    if (!sent) {
+      try {
+        final token = await AuthService.getValidToken();
+        if (token == null || token.isEmpty) {
+          state = state.copyWith(enRouteErrorCode: 'NO_TOKEN');
+          return false;
+        }
+        final res = await TripsApi(token: token)
+            .postPassengerEnRoute(tripId: tripId)
+            .timeout(const Duration(seconds: 6));
+        state = state.copyWith(
+          enRouteErrorCode: null,
+          enRouteCooldownUntilMs: DateTime.now()
+              .add(Duration(seconds: res.cooldownSec))
+              .millisecondsSinceEpoch,
+        );
+        sent = true;
+      } catch (_) {
+        state = state.copyWith(enRouteErrorCode: 'SOCKET');
+        return false;
+      }
+    }
+    return sent;
   }
 
   /// Hidrata chat desde FCM solo si el WS no puede entregar `trip:chat:new`.

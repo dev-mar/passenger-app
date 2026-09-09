@@ -124,12 +124,13 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
         trackingDriver &&
         expiresAt != null &&
         !now.isBefore(expiresAt.subtract(photoExpiryBuffer));
-    // Matching: poll agresivo (WS sin replay; si se pierde trip:accepted no esperar 60s).
-    // Tracking: poll medio. Idle/otros: holgado.
+    // Matching: poll corto (WS sin replay de accept). Tracking: holgado;
+    // GPS/status van por socket y el GET firma foto.
     final Duration minGap;
-    if (awaitingMatch || trackingDriver) {
-      // Matching + tracking: poll corto (WS sin replay / foto REST lenta).
+    if (awaitingMatch) {
       minGap = const Duration(seconds: 3);
+    } else if (trackingDriver) {
+      minGap = const Duration(seconds: 12);
     } else {
       minGap = const Duration(seconds: 55);
     }
@@ -167,7 +168,11 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     _d._tripStatusSyncTimerTripId = tripId;
     _d._tripStatusSyncInterval = interval;
 
-    unawaited(_syncTripStatusOnceThrottled(tripId));
+    // No GET extra al pasar matching→tracking: trip:accepted ya pintó UI.
+    final sinceLast = DateTime.now().difference(_d._lastTripStatusSyncAt);
+    if (sinceLast >= const Duration(seconds: 8)) {
+      unawaited(_syncTripStatusOnceThrottled(tripId));
+    }
 
     _d._tripStatusSyncTimer = Timer.periodic(interval, (_) {
       unawaited(_syncTripStatusOnceThrottled(tripId));

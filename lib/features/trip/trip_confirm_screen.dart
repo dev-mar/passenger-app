@@ -241,6 +241,15 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
       );
     }
 
+    final displayedGross = displayQuotedPriceForOption(
+      basePrice: option.estimatedPrice,
+      serviceTypeId: option.serviceTypeId,
+      serviceTypeName: option.serviceTypeName,
+      specialsCount: state.specials.selectedCount,
+      surchargePct: state.specialSurchargePct,
+    );
+    final youPay = option.youPayForDisplayedGross(displayedGross);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -261,9 +270,9 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
           _card(
             context,
             l10n.quoteTitle,
-            '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)}',
+            '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatMoney(displayedGross, currencyCode: option.currencyCode, decimals: 1)}',
           ),
-          if (option.youPayCashDue != null) ...[
+          if (youPay != null) ...[
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -271,7 +280,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   PassengerPromoYouPayChip(
-                    cashDuePassenger: option.youPayCashDue!,
+                    cashDuePassenger: youPay,
                     currencyCode: option.currencyCode,
                   ),
                   const SizedBox(height: 6),

@@ -995,6 +995,12 @@
   "appUpdateLater": "Later",
   "promoBenefitsTitle": "Your benefits",
   "promoBenefitsEmpty": "When you have an active TEXIAPP benefit, it will show up here.",
+  "promoBenefitsHeroLead": "Codes, trip support, and what TEXIAPP covers for you.",
+  "promoBenefitsActiveTitle": "Active now",
+  "promoCodeCardLead": "Use it when you request your next trip.",
+  "promoReferralCardLead": "Your guests ride. You get trip support.",
+  "promoReferralCopied": "Code copied",
+  "promoReferralWalletLabel": "Available support",
   "promoChipYouPay": "You pay {amount}",
   "@promoChipYouPay": {
     "placeholders": {
@@ -1014,7 +1020,7 @@
   "promoReferralClaimed": "Code saved.",
   "promoReferralUnavailable": "We could not use that code.",
   "promoReferralShare": "Share",
-  "promoReferralShareMessage": "Use my code {code} in TEXIAPP. Our team covers part of the inviter's trips.",
+  "promoReferralShareMessage": "Come ride with TEXIAPP. Use my code {code}.",
   "@promoReferralShareMessage": {
     "placeholders": {
       "code": { "type": "String" }

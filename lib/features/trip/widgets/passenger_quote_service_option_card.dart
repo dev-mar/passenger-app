@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/utils/service_type_display.dart';
@@ -20,6 +21,14 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
     this.displayPrice,
   });
 
+  /// Altura del carrusel cuando no hay “Tú pagas”.
+  static const double heightCompact = 78;
+
+  /// Altura con tarifa bruta grande + chip de beneficio (el ListView debe usar esta).
+  static const double heightWithYouPay = 128;
+
+  static const double cardWidth = 210;
+
   final QuoteOption option;
   final bool selected;
   final VoidCallback onTap;
@@ -35,8 +44,9 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
       l10n,
       serviceTypeId: option.serviceTypeId,
     );
+    final displayedGross = displayPrice ?? option.estimatedPrice;
     final price = formatMoney(
-      displayPrice ?? option.estimatedPrice,
+      displayedGross,
       currencyCode: option.currencyCode,
       decimals: 1,
     );
@@ -49,7 +59,7 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
       serviceTypeId: option.serviceTypeId,
     );
     final etaLabel = etaMinutes > 0 ? '$etaMinutes min' : '—';
-    final youPay = option.youPayCashDue;
+    final youPay = option.youPayForDisplayedGross(displayedGross);
     final hasYouPay = youPay != null;
 
     return TexiScalePress(
@@ -57,15 +67,16 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOutCubic,
-            width: 210,
-            height: hasYouPay ? 94 : 78,
-            padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+            width: cardWidth,
+            height: hasYouPay ? heightWithYouPay : heightCompact,
+            padding: EdgeInsets.fromLTRB(8, 8, 10, hasYouPay ? 8 : 8),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
               color: selected
                   ? const Color(0xFF3A3428)
                   : const Color(0xFF24221C),
@@ -83,121 +94,164 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
+            child: Column(
               children: [
-                SizedBox(
-                  width: 76,
-                  height: 62,
-                  child: ServiceTypeVehicleImage(
-                    asset: asset,
-                    selected: selected,
-                      errorBuilder: (_, _, _) => Icon(
-                      serviceTypeIconData(
-                        option.serviceTypeName,
-                        serviceTypeId: option.serviceTypeId,
-                      ),
-                      color: AppColors.primary,
-                      size: 34,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
+                      SizedBox(
+                        width: 76,
+                        height: hasYouPay ? 70 : 62,
+                        child: ServiceTypeVehicleImage(
+                          asset: asset,
+                          selected: selected,
+                          errorBuilder: (_, _, _) => Icon(
+                            serviceTypeIconData(
+                              option.serviceTypeName,
+                              serviceTypeId: option.serviceTypeId,
+                            ),
+                            color: AppColors.primary,
+                            size: 34,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: hasYouPay
+                              ? MainAxisAlignment.start
+                              : MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: selected
+                                          ? AppColors.primary
+                                          : AppColors.textPrimary,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                ),
+                                if (selected)
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.person_rounded,
+                                  size: 12,
+                                  color: AppColors.textSecondary.withValues(
+                                    alpha: 0.95,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '$seats',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  '  ·  ',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Text(
+                                    etaLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              price,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
+                              style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                                height: 1.1,
+                                color: AppColors.textPrimary,
+                                fontSize: 18,
+                                height: 1.05,
                               ),
                             ),
-                          ),
-                          if (selected)
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person_rounded,
-                            size: 12,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.95,
-                            ),
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            '$seats',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            '  ·  ',
-                            style: TextStyle(
-                              color: AppColors.textSecondary.withValues(
-                                alpha: 0.7,
-                              ),
-                              fontSize: 11,
-                            ),
-                          ),
-                          Flexible(
-                            child: Text(
-                              etaLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        price,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          height: 1.05,
+                          ],
                         ),
                       ),
-                      if (hasYouPay) ...[
-                        const SizedBox(height: 2),
-                        PassengerPromoYouPayChip(
-                          cashDuePassenger: youPay,
-                          currencyCode: option.currencyCode,
-                          compact: true,
-                        ),
-                      ],
                     ],
                   ),
                 ),
+                if (youPay != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  _YouPayShadowBand(
+                    child: PassengerPromoYouPayChip(
+                      cashDuePassenger: youPay,
+                      currencyCode: option.currencyCode,
+                      compact: true,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Franja oscura detrás de “Tú pagas”, con aire respecto al borde de la tarjeta.
+class _YouPayShadowBand extends StatelessWidget {
+  const _YouPayShadowBand({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: AppSpacing.xxs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 3.5,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xE60A0A0A),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

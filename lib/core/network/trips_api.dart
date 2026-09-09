@@ -347,12 +347,34 @@ class TripsApi {
     );
   }
 
+  /// POST /passengers/trips/:tripId/passenger-en-route (fallback del WS).
+  Future<({int cooldownSec, String sentAt})> postPassengerEnRoute({
+    required String tripId,
+  }) async {
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'trip_en_route',
+      endpoint: '/passengers/trips/:tripId/passenger-en-route',
+      maxAttempts: 1,
+      operation: () => _dio.post('/passengers/trips/$tripId/passenger-en-route'),
+    );
+    final data = response.data?['data'];
+    final map = data is Map ? Map<String, dynamic>.from(data) : const <String, dynamic>{};
+    final cooldown = map['cooldownSec'] is num
+        ? (map['cooldownSec'] as num).toInt()
+        : int.tryParse('${map['cooldownSec']}') ?? 45;
+    return (
+      cooldownSec: cooldown.clamp(15, 300),
+      sentAt: '${map['sentAt'] ?? ''}',
+    );
+  }
+
   Future<List<TripRatingFeedbackItem>> getPassengerRatingFeedbackCatalog({
     required int stars,
   }) async {
     final response = await _requestWithRetry<Map<String, dynamic>>(
       flow: 'trip_rating',
       endpoint: '/passengers/trips/rating-feedback-catalog',
+      maxAttempts: 1,
       operation: () => _dio.get(
         '/passengers/trips/rating-feedback-catalog',
         queryParameters: {'stars': stars},

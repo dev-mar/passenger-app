@@ -569,9 +569,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       _d._searchingNearbyTimer?.cancel();
       _d._searchingNearbyTimer = null;
       _d._searchingOriginCameraDone = false;
-      if (_d._searchingNearbyDrivers.isNotEmpty) {
-        setState(() => _d._searchingNearbyDrivers = const []);
-      }
+      _d._searchingRadarAnchor.value = null;
       if (_d._searchingMapRadarController.isAnimating) {
         _d._searchingMapRadarController.stop();
         _d._searchingMapRadarController.reset();
@@ -581,44 +579,13 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     if (!_d._searchingMapRadarController.isAnimating) {
       _d._searchingMapRadarController.repeat();
     }
-    // Centrar mapa en origen una sola vez al entrar en matching.
-    if (!_d._searchingOriginCameraDone && _d._origin != null) {
-      _d._searchingOriginCameraDone = true;
-      final o = _d._origin!;
-      unawaited(
-        _d._controller?.animateCamera(
-              CameraUpdate.newLatLngZoom(o, 15.6),
-            ) ??
-            Future<void>.value(),
-      );
-    }
+    _ensureSearchingCameraOnOrigin();
     if (_d._searchingNearbyTimer != null) return;
-    unawaited(_refreshSearchingNearbyDrivers());
+    unawaited(_refreshSearchingNearbyDrivers()); // defined on map mixin
     _d._searchingNearbyTimer = Timer.periodic(
       const Duration(seconds: 12),
       (_) => unawaited(_refreshSearchingNearbyDrivers()),
     );
-  }
-
-  Future<void> _refreshSearchingNearbyDrivers() async {
-    if (!mounted) return;
-    final origin = _d._origin;
-    if (origin == null) return;
-    final token = await AuthService.getValidToken();
-    if (token == null || token.isEmpty || !mounted) return;
-    try {
-      final res = await TripsApi(token: token).getNearbyDrivers(
-        lat: origin.latitude,
-        lng: origin.longitude,
-        radiusKm: 2,
-        limit: 12,
-      );
-      if (!mounted) return;
-      final within = res.drivers
-          .where((d) => d.distanceKm <= 2.0)
-          .toList(growable: false);
-      setState(() => _d._searchingNearbyDrivers = within);
-    } catch (_) {}
   }
 
   /// Cancela la búsqueda: **POST /passengers/trips/:id/cancel** para invalidar ofertas en servidor

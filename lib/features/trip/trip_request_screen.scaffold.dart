@@ -88,6 +88,12 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
           Navigator.of(context, rootNavigator: true).maybePop();
         });
       }
+
+      final nowTracking = passengerTripIsTrackingDriver(next.status);
+      if (nowTracking && _d._searchingHoldUi) {
+        _d._searchingHoldUi = false;
+        _d._searchingStage3CancelInFlight = false;
+      }
     });
 
     // Sincroniza flags de calificaci├│n cuando cambia el trip (p. ej. creado en esta sesi├│n sin pasar por splash).
@@ -134,14 +140,21 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       });
     });
 
+    final tripAssigned =
+        passengerTripIsTrackingDriver(rtState.status) ||
+        rtState.status == 'completed';
     final isSearchingDriver =
-        _d._searchingHoldUi ||
-        (effectiveTripId != null &&
-            passengerTripIsAwaitingDriverMatch(rtState.status));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _syncSearchingNearbyPolling(isSearchingDriver);
-    });
+        !tripAssigned &&
+        (_d._searchingHoldUi ||
+            (effectiveTripId != null &&
+                passengerTripIsAwaitingDriverMatch(rtState.status)));
+    if (_d._nearbyPollingWanted != isSearchingDriver) {
+      _d._nearbyPollingWanted = isSearchingDriver;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _syncSearchingNearbyPolling(isSearchingDriver);
+      });
+    }
     final isRecoveringActiveTrip =
         effectiveTripId != null &&
         rtState.status == null &&
@@ -159,11 +172,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     );
     final animatedDriver = _d._animatedDriverLatLng;
     final showDriverMarker = effectiveTripId != null && animatedDriver != null;
-    final showDriverPulse =
-        showDriverMarker &&
-        _d._appInForeground &&
-        !_d._driverLikelyIdle &&
-        !_lowBatteryModeActive;
+    final showDriverPulse = showDriverMarker && _d._appInForeground;
     _emitMapOptimizationTelemetryIfNeeded(effectiveTripId);
     final shouldPeriodicSync =
         effectiveTripId != null &&
@@ -174,9 +183,12 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       final resolvedTripId = effectiveTripId;
       final trackingDriver = passengerTripIsTrackingDriver(rtState.status);
       final awaitingMatch = passengerTripIsAwaitingDriverMatch(rtState.status);
-      // Matching/tracking: 4s (aceptación, arrived, started, completed).
-      final Duration syncInterval = (awaitingMatch || trackingDriver)
+      // Matching: poll corto (WS sin replay de accept). Tracking: holgado
+      // (GPS/status van por socket; el GET firma foto y no debe ir cada 3 s).
+      final Duration syncInterval = awaitingMatch
           ? const Duration(seconds: 4)
+          : trackingDriver
+          ? const Duration(seconds: 16)
           : const Duration(seconds: 60);
       _startTripStatusPeriodicSync(resolvedTripId, interval: syncInterval);
     } else {
@@ -390,42 +402,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     Circle(
                       circleId: const CircleId('driver_pulse'),
                       center: animatedDriver,
-                      radius: 18 + (10 * _d._driverPulseController.value),
-                      fillColor: AppColors.primary.withValues(
-                        alpha: 0.11 - (_d._driverPulseController.value * 0.05),
-                      ),
-                      strokeColor: AppColors.primary.withValues(
-                        alpha: 0.34 - (_d._driverPulseController.value * 0.14),
-                      ),
+                      radius: 22,
+                      fillColor: AppColors.primary.withValues(alpha: 0.10),
+                      strokeColor: AppColors.primary.withValues(alpha: 0.28),
                       strokeWidth: 2,
                     ),
-                  // Radar expansivo en origen durante matching (con o sin nearby).
-                  if (isSearchingDriver && _d._origin != null) ...[
-                    Circle(
-                      circleId: const CircleId('search_radar_outer'),
-                      center: _d._origin!,
-                      radius: 180 +
-                          (420 * _d._searchingMapRadarController.value),
-                      fillColor: const Color(0xFF4FC3F7).withValues(
-                        alpha: 0.07 *
-                            (1 - _d._searchingMapRadarController.value),
-                      ),
-                      strokeColor: const Color(0xFFFFC107).withValues(
-                        alpha: 0.35 *
-                            (1 - _d._searchingMapRadarController.value * 0.6),
-                      ),
-                      strokeWidth: 2,
-                    ),
-                    Circle(
-                      circleId: const CircleId('search_radar_core'),
-                      center: _d._origin!,
-                      radius: 55,
-                      fillColor: const Color(0xFFFFC107).withValues(alpha: 0.12),
-                      strokeColor:
-                          const Color(0xFFFFC107).withValues(alpha: 0.45),
-                      strokeWidth: 1,
-                    ),
-                  ],
                 },
                 polylines:
                     _d._destination != null && mapRoutePolylinePoints.length >= 2
@@ -452,6 +433,13 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     : {},
               ),
             ),
+            if (isSearchingDriver)
+              Positioned.fill(
+                child: PassengerSearchingMapRadarOverlay(
+                  controller: _d._searchingMapRadarController,
+                  anchorListenable: _d._searchingRadarAnchor,
+                ),
+              ),
             // Aguja debajo del chrome de borrador/sugerencias para no tapar la lista.
             if (isMapConfirmMode)
               Positioned.fill(
@@ -906,15 +894,23 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                             waitGraceSec: rtState.waitGraceSec,
                           ),
                           onPassengerEnRoute: rtState.status == 'arrived'
-                              ? () => unawaited(
-                                    ref
+                              ? () => unawaited(() async {
+                                    final ok = await ref
                                         .read(
                                           passengerRealtimeProvider.notifier,
                                         )
                                         .sendPassengerEnRoute(
                                           tripId: effectiveTripId,
-                                        ),
-                                  )
+                                        );
+                                    if (!mounted || !ok) return;
+                                    final loc = AppLocalizations.of(context);
+                                    if (loc == null) return;
+                                    PassengerTripToast.show(
+                                      context,
+                                      message: loc.tripPassengerEnRouteSent,
+                                      icon: Icons.directions_walk_rounded,
+                                    );
+                                  }())
                               : null,
                           passengerEnRouteConnected: rtState.connected,
                           enRouteCooldownUntilMs: rtState.enRouteCooldownUntilMs,

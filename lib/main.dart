@@ -1,14 +1,10 @@
 import 'dart:async' show unawaited;
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
 import 'core/config/app_config.dart';
 import 'core/config/locale_provider.dart';
@@ -24,12 +20,13 @@ import 'core/notifications/passenger_push_token_service.dart';
 import 'core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'core/router/app_router.dart';
+import 'core/maps/passenger_maps_bootstrap.dart';
 import 'firebase_options.dart';
 import 'gen_l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initAndroidGoogleMapsRenderer();
+  unawaited(PassengerMapsBootstrap.startAndroidRenderer());
   FirebaseMessaging.onBackgroundMessage(
     passengerFirebaseMessagingBackgroundHandler,
   );
@@ -63,19 +60,6 @@ Future<void> main() async {
 
   // Firebase no debe bloquear el primer frame (release prod en algunos devices).
   unawaited(_initializeFirebaseCore());
-}
-
-/// Play entrega un AAB partido; SurfaceView + renderer explícito antes de [GoogleMap].
-Future<void> _initAndroidGoogleMapsRenderer() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
-  final maps = GoogleMapsFlutterPlatform.instance;
-  if (maps is! GoogleMapsFlutterAndroid) return;
-  maps.useAndroidViewSurface = true;
-  try {
-    await maps.initializeWithRenderer(AndroidMapRenderer.latest);
-  } catch (e) {
-    debugPrint('[main] Maps renderer: $e');
-  }
 }
 
 Future<void> _initializeFirebaseCore() async {

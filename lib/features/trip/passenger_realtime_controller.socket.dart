@@ -157,8 +157,20 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             driverPhotoExpiresAt: driverPhotoExpiresAt?.toIso8601String(),
           );
         }());
-        // Completar coords/foto vía REST sin bloquear el cambio de UI.
-        unawaited(_rt.syncTripStatusFromApi(tripId: tripIdData, force: true));
+        // No GET inmediato: el overlay ya pintó el snapshot WS. Foto/coords
+        // llegan por GPS o por el poll de tracking (~2 s, sin force).
+        Future<void>.delayed(const Duration(seconds: 2), () {
+          if (_rt._tearDown) return;
+          if (state.activeTripId != tripIdData) return;
+          final photo = state.driverPhotoUrl;
+          final needsPhoto = photo == null || photo.trim().isEmpty;
+          unawaited(
+            _rt.syncTripStatusFromApi(
+              tripId: tripIdData,
+              force: needsPhoto,
+            ),
+          );
+        });
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[PASSENGER_RT] Error manejando trip:accepted: $e');

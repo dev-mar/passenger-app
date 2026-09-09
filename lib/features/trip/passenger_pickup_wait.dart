@@ -230,13 +230,12 @@ class _PassengerEnRouteCtaState extends State<PassengerEnRouteCta> {
     if (l10n == null) return const SizedBox.shrink();
     final cooldownLeft = _cooldownLeftSec();
     final coolingDown = cooldownLeft > 0;
-    final offline = !widget.connected;
-    final canSend = !offline && !coolingDown;
+    final canSend = !coolingDown;
     String? helper;
-    if (offline) {
+    if (widget.errorCode == 'SOCKET' || widget.errorCode == 'NO_TOKEN') {
       helper = l10n.tripPassengerEnRouteNeedConnection;
-    } else if (widget.errorCode == 'SOCKET') {
-      helper = l10n.tripPassengerEnRouteNeedConnection;
+    } else if (widget.errorCode == 'INVALID_STATUS_TRANSITION') {
+      helper = l10n.tripPassengerEnRouteError;
     } else if (widget.errorCode != null && widget.errorCode!.isNotEmpty) {
       helper = l10n.tripPassengerEnRouteError;
     } else if (coolingDown) {

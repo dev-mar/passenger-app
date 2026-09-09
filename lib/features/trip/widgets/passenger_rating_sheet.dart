@@ -76,18 +76,16 @@ class _PassengerRatingSheetContentState
   }
 
   Future<void> _preloadFeedbackCatalogs() async {
-    setState(() => _loadingCatalog = true);
+    _applyFallbackCatalogs();
+    if (mounted) setState(() => _loadingCatalog = false);
     try {
       final token = await AuthService.getValidToken();
-      if (token == null || token.isEmpty) {
-        _applyFallbackCatalogs();
-        return;
-      }
+      if (token == null || token.isEmpty) return;
       final api = TripsApi(token: token);
       final results = await Future.wait([
         api.getPassengerRatingFeedbackCatalog(stars: 3),
         api.getPassengerRatingFeedbackCatalog(stars: 5),
-      ]);
+      ]).timeout(const Duration(seconds: 4));
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       final lowRaw = results[0];
@@ -101,10 +99,7 @@ class _PassengerRatingSheetContentState
             .toList(growable: false);
       });
     } catch (_) {
-      if (!mounted) return;
-      _applyFallbackCatalogs();
-    } finally {
-      if (mounted) setState(() => _loadingCatalog = false);
+      // Fallback ya visible; no dejar el sheet en spinner.
     }
   }
 

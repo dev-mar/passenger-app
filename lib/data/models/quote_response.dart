@@ -211,6 +211,22 @@ class QuoteOption {
     return null;
   }
 
+  /// Campaña/apoyo cubierto sobre la tarifa **base** de quote (sin recargo de especiales).
+  double get coveredBenefitAmount {
+    final due = youPayCashDue;
+    if (due == null) return 0;
+    final covered = estimatedPrice - due;
+    return covered > 0 ? covered : 0;
+  }
+
+  /// “Tú pagas” contra el precio que la UI muestra (base + recargo de especiales).
+  /// Evita pintar un descuento fantasma cuando el recargo se aplica solo en cliente.
+  double? youPayForDisplayedGross(double displayedGross) {
+    if (youPayCashDue == null) return null;
+    final due = displayedGross - coveredBenefitAmount;
+    return due < 0 ? 0 : due;
+  }
+
   factory QuoteOption.fromJson(Map<String, dynamic> json) {
     final rawId = json['serviceTypeId'];
     int serviceTypeId = 0;
