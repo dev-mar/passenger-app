@@ -19,6 +19,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_motion.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/constants/app_assets.dart';
+import '../../core/utils/money_formatter.dart';
 import '../../core/network/trips_api.dart';
 import '../promotions/passenger_promo_request.dart';
 import '../../core/network/texi_backend_error.dart';
@@ -70,6 +71,7 @@ import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
 import 'widgets/passenger_searching_map_radar.dart';
+import 'widgets/passenger_map_picking_needle.dart';
 import 'widgets/passenger_trip_recovery_panel.dart';
 import 'trip_driver_marker.dart';
 import 'trip_request_route_service.dart';
@@ -236,6 +238,14 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _matchingSubmitUi = false;
   /// El timeout de matching no debe borrar origen/destino/cotización.
   bool _keepDraftAfterMatchingCancel = false;
+  /// Copia de la ruta para Continuar, por si un reset de `cancelled` llega tarde.
+  QuoteResponse? _matchingRetryQuote;
+  QuoteOption? _matchingRetryOption;
+  LatLng? _matchingRetryOrigin;
+  LatLng? _matchingRetryDestination;
+  String? _matchingRetryOriginLabel;
+  String? _matchingRetryDestinationLabel;
+  String? _matchingRetryRouteEncoded;
   /// Si el usuario cancela mientras createTrip sigue en vuelo.
   int _tripSubmitGeneration = 0;
   /// Regenera el overlay (etapas 0) al reintentar búsqueda.

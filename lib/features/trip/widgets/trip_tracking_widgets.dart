@@ -148,6 +148,7 @@ class TripStatusCard extends StatelessWidget {
     this.onCancelTrip,
     this.cancelTripLabel,
     this.showCancelAction = false,
+    this.promoPayDriverAmount,
   });
 
   final String status;
@@ -197,6 +198,9 @@ class TripStatusCard extends StatelessWidget {
   final String? cancelTripLabel;
   /// Visible solo con el sheet del viaje a tope (gesto de arrastre).
   final bool showCancelAction;
+
+  /// Monto ya formateado (`Bs 12.5`) si el viaje activo tiene beneficio.
+  final String? promoPayDriverAmount;
 
   /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
@@ -417,6 +421,10 @@ class TripStatusCard extends StatelessWidget {
               ),
               accent: accent,
               l10n: l10n,
+              shareLabel: onShareTrip != null
+                  ? (shareTripLabel ?? l10n.tripShareRide)
+                  : null,
+              onShare: onShareTrip,
             ),
             if (status == 'arrived' && pickupWaitSpec != null)
               PickupWaitClockStrip(
@@ -592,17 +600,6 @@ class TripStatusCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (onShareTrip != null) ...[
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _TripShareRouteChip(
-                        label: shareTripLabel ?? l10n.tripShareRide,
-                        onPressed: onShareTrip!,
-                        accent: accent,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
                   _TripDetailRow(
                     icon: Icons.trip_origin_rounded,
                     label: statusFromLabel,
@@ -648,10 +645,9 @@ class TripStatusCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        formatMoney(
+                        formatTripMoney(
                           estimatedPrice,
                           currencyCode: currencyCode,
-                          decimals: 1,
                         ),
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
@@ -660,6 +656,68 @@ class TripStatusCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (promoPayDriverAmount != null &&
+                      promoPayDriverAmount!.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xl,
+                        AppSpacing.lg,
+                        AppSpacing.xl,
+                        AppSpacing.lg,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.28),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.promoActiveBannerTitle,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                  height: 1.1,
+                                ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${l10n.promoActivePayDriverLead}  ',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.25,
+                                      ),
+                                ),
+                                TextSpan(
+                                  text: promoPayDriverAmount,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 18,
+                                        height: 1.15,
+                                        letterSpacing: -0.2,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   if (paymentMethod != null ||
                       tripExtras.isNotEmpty ||
                       tripSpecials.isNotEmpty) ...[
@@ -826,11 +884,13 @@ class _TripShareRouteChip extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.accent,
+    this.compact = false,
   });
 
   final String label;
   final VoidCallback onPressed;
   final Color accent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -838,7 +898,9 @@ class _TripShareRouteChip extends StatelessWidget {
       message: label,
       child: TexiScalePress(
         child: Material(
-          color: accent.withValues(alpha: 0.16),
+          color: compact
+              ? Colors.white.withValues(alpha: 0.72)
+              : accent.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(AppRadii.pill),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -847,29 +909,32 @@ class _TripShareRouteChip extends StatelessWidget {
               onPressed();
             },
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minHeight: AppSizes.buttonHeight,
-                minWidth: AppSizes.circleButton,
+              constraints: BoxConstraints(
+                minHeight: compact ? 40 : AppSizes.buttonHeight,
+                minWidth: compact ? 40 : AppSizes.circleButton,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.md,
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? AppSpacing.md : AppSpacing.xl,
+                  vertical: compact ? AppSpacing.sm : AppSpacing.md,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.share_location_rounded,
-                      size: AppIconSizes.lg,
+                      size: compact ? AppIconSizes.md : AppIconSizes.lg,
                       color: accent,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    SizedBox(width: compact ? AppSpacing.xs : AppSpacing.sm),
                     Text(
                       label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
+                        fontSize: compact ? AppTypography.captionAlt : null,
                       ),
                     ),
                   ],
@@ -934,27 +999,46 @@ class _TripLiveEtaStrip extends StatelessWidget {
     required this.eta,
     required this.accent,
     required this.l10n,
+    this.shareLabel,
+    this.onShare,
   });
 
   final PassengerTripLiveEta? eta;
   final Color accent;
   final AppLocalizations l10n;
+  final String? shareLabel;
+  final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
     final resolved = eta;
-    if (resolved == null) return const SizedBox(height: AppSpacing.xxx);
+    final share = onShare != null
+        ? _TripShareRouteChip(
+            label: shareLabel ?? l10n.tripShareRide,
+            onPressed: onShare!,
+            accent: accent,
+            compact: true,
+          )
+        : null;
+    if (resolved == null && share == null) {
+      return const SizedBox(height: AppSpacing.xxx);
+    }
 
-    final minutes = resolved.minutes;
-    final title = switch (resolved.kind) {
-      PassengerTripLiveEtaKind.pickup => l10n.tripLiveEtaPickup(minutes ?? 1),
-      PassengerTripLiveEtaKind.destination =>
-        l10n.tripLiveEtaDestination(minutes ?? 1),
-      PassengerTripLiveEtaKind.atPickup => l10n.tripLiveEtaAtPickup,
-    };
+    final minutes = resolved?.minutes;
+    final title = resolved == null
+        ? null
+        : switch (resolved.kind) {
+            PassengerTripLiveEtaKind.pickup =>
+              l10n.tripLiveEtaPickup(minutes ?? 1),
+            PassengerTripLiveEtaKind.destination =>
+              l10n.tripLiveEtaDestination(minutes ?? 1),
+            PassengerTripLiveEtaKind.atPickup => l10n.tripLiveEtaAtPickup,
+          };
 
     String? clock;
-    if (minutes != null && resolved.kind != PassengerTripLiveEtaKind.atPickup) {
+    if (resolved != null &&
+        minutes != null &&
+        resolved.kind != PassengerTripLiveEtaKind.atPickup) {
       final when = DateTime.now().add(Duration(minutes: minutes));
       clock = l10n.tripLiveEtaClockHint(
         TimeOfDay.fromDateTime(when).format(context),
@@ -967,8 +1051,8 @@ class _TripLiveEtaStrip extends StatelessWidget {
         duration: TexiMotion.medium,
         width: double.infinity,
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl,
-          vertical: AppSpacing.lg,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.12),
@@ -977,40 +1061,49 @@ class _TripLiveEtaStrip extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              resolved.kind == PassengerTripLiveEtaKind.atPickup
-                  ? Icons.location_on_rounded
-                  : Icons.schedule_rounded,
-              size: AppIconSizes.lg,
-              color: accent,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
-                    ),
-                  ),
-                  if (clock != null) ...[
-                    const SizedBox(height: 2),
+            if (resolved != null) ...[
+              Icon(
+                resolved.kind == PassengerTripLiveEtaKind.atPickup
+                    ? Icons.location_on_rounded
+                    : Icons.schedule_rounded,
+                size: AppIconSizes.lg,
+                color: accent,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      clock,
-                      style: TextStyle(
-                        fontSize: AppTypography.captionAlt,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary.withValues(alpha: 0.95),
+                      title!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
                       ),
                     ),
+                    if (clock != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        clock,
+                        style: TextStyle(
+                          fontSize: AppTypography.captionAlt,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary.withValues(alpha: 0.95),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+            ] else
+              const Spacer(),
+            if (share != null) ...[
+              if (resolved != null) const SizedBox(width: AppSpacing.sm),
+              share,
+            ],
           ],
         ),
       ),

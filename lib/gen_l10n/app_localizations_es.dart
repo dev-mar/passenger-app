@@ -1276,7 +1276,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu viaje ya está en curso. No se puede cancelar desde aquí.';
 
   @override
-  String get tripCancelCta => 'No continuar';
+  String get tripCancelCta => 'No continuar el viaje';
 
   @override
   String get tripCancelChooseReason => '¿Por qué cancelas?';
@@ -2566,6 +2566,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get appUpdateLater => 'Más tarde';
 
   @override
+  String get appUpdateDownloadedMessage =>
+      'La actualización se descargó. Reinicia para instalarla.';
+
+  @override
+  String get appUpdateRestart => 'Reiniciar';
+
+  @override
   String get promoBenefitsTitle => 'Tus beneficios';
 
   @override
@@ -2594,6 +2601,17 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String promoChipYouPay(String amount) {
     return 'Tú pagas $amount';
+  }
+
+  @override
+  String get promoActiveBannerTitle => 'TEXIAPP Beneficios';
+
+  @override
+  String get promoActivePayDriverLead => 'Usted solo paga al conductor';
+
+  @override
+  String promoActivePayDriver(String amount) {
+    return 'Usted solo paga al conductor $amount';
   }
 
   @override

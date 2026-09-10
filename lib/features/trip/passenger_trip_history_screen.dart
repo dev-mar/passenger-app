@@ -816,7 +816,7 @@ class _TripHistoryTileState extends State<_TripHistoryTile> {
         : '${created.day.toString().padLeft(2, '0')}/${created.month.toString().padLeft(2, '0')}/${created.year}';
     final price = trip.finalPrice ?? trip.estimatedPrice;
     final amount = price != null
-        ? formatMoney(price, currencyCode: trip.currencyCode)
+        ? formatTripMoney(price, currencyCode: trip.currencyCode)
         : l10n.tripHistoryPricePending;
     final statusText = _statusText(l10n, trip.status);
     final statusColor = _statusColor(trip.status);

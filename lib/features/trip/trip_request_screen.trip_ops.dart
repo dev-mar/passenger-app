@@ -182,8 +182,15 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._searchingStage3CancelInFlight = false;
         _d._submittingTrip = false;
         _d._draftEditTarget = PassengerDraftEditTarget.none;
+        _d._matchingRetryQuote = null;
+        _d._matchingRetryOption = null;
+        _d._matchingRetryOrigin = null;
+        _d._matchingRetryDestination = null;
+        _d._matchingRetryOriginLabel = null;
+        _d._matchingRetryDestinationLabel = null;
+        _d._matchingRetryRouteEncoded = null;
         if (_d._origin != null) {
-          // Para el siguiente viaje, empezamos forzando confirmaci├│n del origen.
+          // Para el siguiente viaje, empezamos forzando confirmación del origen.
           _d._pickingOrigin = true;
           _d._activeStop = ActiveStop.none;
         }
@@ -237,6 +244,13 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._submittingTrip = false;
         _d._tripSubmitGeneration++;
         _d._draftEditTarget = PassengerDraftEditTarget.none;
+        _d._matchingRetryQuote = null;
+        _d._matchingRetryOption = null;
+        _d._matchingRetryOrigin = null;
+        _d._matchingRetryDestination = null;
+        _d._matchingRetryOriginLabel = null;
+        _d._matchingRetryDestinationLabel = null;
+        _d._matchingRetryRouteEncoded = null;
         if (_d._origin != null) {
           _d._pickingOrigin = true;
           _d._activeStop = ActiveStop.none;
@@ -405,10 +419,78 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     }
   }
 
+  void _captureMatchingRetryDraft() {
+    final s = ref.read(tripRequestProvider);
+    final quote = s.quote ?? _d._matchingRetryQuote;
+    final opt = s.selectedOption ?? _d._matchingRetryOption;
+    final origin = _d._origin ?? _d._matchingRetryOrigin;
+    final dest = _d._destination ?? _d._matchingRetryDestination;
+    if (quote == null || opt == null || origin == null || dest == null) return;
+    _d._matchingRetryQuote = quote;
+    _d._matchingRetryOption = opt;
+    _d._matchingRetryOrigin = origin;
+    _d._matchingRetryDestination = dest;
+    final originLabel = _d._originDisplayLabel?.trim();
+    final destLabel = _d._destinationDisplayLabel?.trim();
+    if (originLabel != null && originLabel.isNotEmpty) {
+      _d._matchingRetryOriginLabel = originLabel;
+    }
+    if (destLabel != null && destLabel.isNotEmpty) {
+      _d._matchingRetryDestinationLabel = destLabel;
+    }
+    final encoded = _d._routeOverviewEncoded;
+    if (encoded != null && encoded.isNotEmpty) {
+      _d._matchingRetryRouteEncoded = encoded;
+    }
+  }
+
+  void _restoreMatchingRetryDraftIfNeeded() {
+    final quote = _d._matchingRetryQuote;
+    final opt = _d._matchingRetryOption;
+    final origin = _d._matchingRetryOrigin;
+    final dest = _d._matchingRetryDestination;
+    if (quote == null || opt == null || origin == null || dest == null) return;
+
+    final notifier = ref.read(tripRequestProvider.notifier);
+    final current = ref.read(tripRequestProvider);
+    if (current.quote == null) {
+      notifier.setQuote(quote);
+      notifier.selectOption(opt);
+    } else if (current.selectedOption == null) {
+      notifier.selectOption(opt);
+    }
+    if (current.origin == null) {
+      notifier.setOrigin(origin.latitude, origin.longitude);
+    }
+    if (current.destination == null) {
+      notifier.setDestination(dest.latitude, dest.longitude);
+    }
+
+    _d._origin ??= origin;
+    _d._destination ??= dest;
+    _d._originConfirmed = true;
+    if ((_d._originDisplayLabel == null ||
+            _d._originDisplayLabel!.trim().isEmpty) &&
+        _d._matchingRetryOriginLabel != null) {
+      _d._originDisplayLabel = _d._matchingRetryOriginLabel;
+    }
+    if ((_d._destinationDisplayLabel == null ||
+            _d._destinationDisplayLabel!.trim().isEmpty) &&
+        _d._matchingRetryDestinationLabel != null) {
+      _d._destinationDisplayLabel = _d._matchingRetryDestinationLabel;
+    }
+    if ((_d._routeOverviewEncoded == null ||
+            _d._routeOverviewEncoded!.isEmpty) &&
+        _d._matchingRetryRouteEncoded != null) {
+      _d._routeOverviewEncoded = _d._matchingRetryRouteEncoded;
+    }
+  }
+
   /// Stage 3: invalida ofertas en servidor y mantiene el overlay (Continuar / Cancelar).
   /// No cancela si el viaje ya fue aceptado (GET previo + cancelScope=matching).
   Future<void> _onSearchingStage3Reached() async {
     if (_d._searchingStage3CancelInFlight || _d._searchingHoldUi) return;
+    _captureMatchingRetryDraft();
     // Hold UI ANTES de limpiar tripId: evita un frame sin overlay (remount → reinicio visual).
     setState(() {
       _d._searchingHoldUi = true;
@@ -490,13 +572,14 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
 
   /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
   Future<void> _restartSearchingTripAfterTimeout() async {
+    _captureMatchingRetryDraft();
+    _restoreMatchingRetryDraftIfNeeded();
     final tripState = ref.read(tripRequestProvider);
-    final q = tripState.quote;
-    final opt = tripState.selectedOption;
-    if (q == null ||
-        opt == null ||
-        _d._origin == null ||
-        _d._destination == null) {
+    final q = tripState.quote ?? _d._matchingRetryQuote;
+    final opt = tripState.selectedOption ?? _d._matchingRetryOption;
+    final origin = _d._origin ?? _d._matchingRetryOrigin;
+    final dest = _d._destination ?? _d._matchingRetryDestination;
+    if (q == null || opt == null || origin == null || dest == null) {
       if (mounted) {
         final loc = AppLocalizations.of(context);
         if (loc != null) {
@@ -539,30 +622,34 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       _d._searchingOverlayGeneration += 1;
     });
     final l10n = AppLocalizations.of(context)!;
-    final originAddress =
-        (_d._originDisplayLabel != null &&
+    final originLabel = (_d._originDisplayLabel != null &&
             _d._originDisplayLabel!.trim().isNotEmpty)
         ? _d._originDisplayLabel!.trim()
-        : '${_d._origin!.latitude.toStringAsFixed(6)},${_d._origin!.longitude.toStringAsFixed(6)}';
-    final destinationAddress =
-        (_d._destinationDisplayLabel != null &&
+        : (_d._matchingRetryOriginLabel?.trim().isNotEmpty == true
+            ? _d._matchingRetryOriginLabel!.trim()
+            : '${origin.latitude.toStringAsFixed(6)},${origin.longitude.toStringAsFixed(6)}');
+    final destinationLabel = (_d._destinationDisplayLabel != null &&
             _d._destinationDisplayLabel!.trim().isNotEmpty)
         ? _d._destinationDisplayLabel!.trim()
-        : '${_d._destination!.latitude.toStringAsFixed(6)},${_d._destination!.longitude.toStringAsFixed(6)}';
+        : (_d._matchingRetryDestinationLabel?.trim().isNotEmpty == true
+            ? _d._matchingRetryDestinationLabel!.trim()
+            : '${dest.latitude.toStringAsFixed(6)},${dest.longitude.toStringAsFixed(6)}');
 
     final result = await submitPassengerTripFromQuote(
       ref: ref,
       context: context,
       quote: q,
       option: opt,
-      originLat: _d._origin!.latitude,
-      originLng: _d._origin!.longitude,
-      destinationLat: _d._destination!.latitude,
-      destinationLng: _d._destination!.longitude,
-      originAddress: originAddress,
-      destinationAddress: destinationAddress,
-      routeOverviewEncoded: _d._routeOverviewEncoded,
+      originLat: origin.latitude,
+      originLng: origin.longitude,
+      destinationLat: dest.latitude,
+      destinationLng: dest.longitude,
+      originAddress: originLabel,
+      destinationAddress: destinationLabel,
+      routeOverviewEncoded:
+          _d._routeOverviewEncoded ?? _d._matchingRetryRouteEncoded,
       ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
+      skipPhoneProfileCheck: true,
     );
     if (!mounted) return;
     if (await _discardSubmitIfGenerationChanged(
@@ -578,7 +665,9 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       if (result.kind == PassengerTripSubmitResultKind.success ||
           result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
         _d._searchingHoldUi = false;
-        _d._keepDraftAfterMatchingCancel = false;
+        // Sigue true hasta accepted: un `cancelled` tardío del viaje anterior
+        // no debe borrar la nueva búsqueda.
+        _d._keepDraftAfterMatchingCancel = true;
         _d._searchingOriginCameraDone = false;
       } else {
         _d._searchingHoldUi = true;
@@ -675,6 +764,8 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
   /// y que los conductores no sigan viendo la solicitud. Si falla la red, no limpiamos estado.
   /// Nunca cancela un viaje ya aceptado/en curso (protección ante overlay erróneo).
   Future<void> _cancelSearchingTrip() async {
+    // Cancelar explícito: no conservar overlay/borrador del timeout (Continuar).
+    _d._keepDraftAfterMatchingCancel = false;
     final tripId = ref.read(tripRequestProvider).tripId;
     final holdOnly =
         (_d._searchingHoldUi || _d._matchingSubmitUi) &&

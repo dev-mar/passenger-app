@@ -95,7 +95,7 @@ class TripQuoteScreen extends ConsumerWidget {
                                         ),
                                   ),
                                   Text(
-                                    '${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
+                                    '${formatTripMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: state.specials.selectedCount, surchargePct: state.specialSurchargePct), currencyCode: option.currencyCode)} ${l10n.quotePerTrip}',
                                     style: Theme.of(context).textTheme.bodyMedium,
                                   ),
                                 ],

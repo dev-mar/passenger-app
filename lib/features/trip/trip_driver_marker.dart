@@ -117,86 +117,199 @@ Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
   );
 }
 
+enum PassengerWaypointPinStyle { pickupPerson, destinationX }
+
+/// Amarillo / negro de marca.
+const Color kPassengerPinBrandYellow = Color(0xFFF9AB00);
+const Color kPassengerPinBrandBlack = Color(0xFF111111);
+
+/// Punta del pin en la textura (0–1). El Marker debe usar el mismo ancla.
+const double kPassengerWaypointPinTipAnchorY = 0.97;
+
+const double kPassengerMapPinPixelRatio = 3;
+
+double _waypointPinPixelRatio() {
+  final views = WidgetsBinding.instance.platformDispatcher.views;
+  if (views.isEmpty) return kPassengerMapPinPixelRatio;
+  return math.max(kPassengerMapPinPixelRatio, views.first.devicePixelRatio);
+}
+
 Future<BitmapDescriptor> buildPassengerWaypointMapPinIcon({
-  double logicalSize = 56,
+  double logicalWidth = 54,
+  double logicalHeight = 72,
   required Color fill,
-  Color stroke = const Color(0xFFFFFFFF),
+  Color? stroke,
+  PassengerWaypointPinStyle style = PassengerWaypointPinStyle.pickupPerson,
 }) async {
+  final outline = stroke ??
+      (style == PassengerWaypointPinStyle.destinationX
+          ? kPassengerPinBrandYellow
+          : kPassengerPinBrandBlack);
+  final dpr = _waypointPinPixelRatio();
+  final pixelW = (logicalWidth * dpr).ceil();
+  final pixelH = (logicalHeight * dpr).ceil();
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
-  final w = logicalSize;
-  final h = logicalSize;
-  final center = Offset(w * 0.5, h * 0.38);
-  final radius = w * 0.24;
+  canvas.scale(dpr);
+  _paintModernWaypointPin(
+    canvas,
+    Size(logicalWidth, logicalHeight),
+    fill: fill,
+    stroke: outline,
+    style: style,
+  );
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(pixelW, pixelH);
+  final bd = await img.toByteData(format: ui.ImageByteFormat.png);
+  if (bd == null) {
+    return BitmapDescriptor.defaultMarkerWithHue(
+      style == PassengerWaypointPinStyle.destinationX
+          ? BitmapDescriptor.hueRed
+          : BitmapDescriptor.hueYellow,
+    );
+  }
+  return BitmapDescriptor.bytes(
+    bd.buffer.asUint8List(),
+    width: logicalWidth,
+    height: logicalHeight,
+    imagePixelRatio: dpr,
+  );
+}
+
+void _paintModernWaypointPin(
+  Canvas canvas,
+  Size size, {
+  required Color fill,
+  required Color stroke,
+  required PassengerWaypointPinStyle style,
+}) {
+  final w = size.width;
+  final h = size.height;
+  final cx = w * 0.5;
+  final headCenter = Offset(cx, h * 0.34);
+  final headR = w * 0.30;
 
   final pinPath = Path()
-    ..addOval(Rect.fromCircle(center: center, radius: radius))
-    ..moveTo(w * 0.5, h * 0.93)
-    ..lineTo(w * 0.68, h * 0.56)
-    ..lineTo(w * 0.32, h * 0.56)
+    ..moveTo(cx, h * 0.97)
+    ..quadraticBezierTo(
+      cx + headR * 0.42,
+      headCenter.dy + headR * 0.92,
+      cx + headR,
+      headCenter.dy,
+    )
+    ..arcToPoint(
+      Offset(cx - headR, headCenter.dy),
+      radius: Radius.circular(headR),
+      clockwise: true,
+    )
+    ..quadraticBezierTo(
+      cx - headR * 0.42,
+      headCenter.dy + headR * 0.92,
+      cx,
+      h * 0.97,
+    )
     ..close();
 
-  canvas.drawShadow(pinPath, Colors.black.withValues(alpha: 0.35), 5, true);
+  canvas.drawShadow(pinPath, Colors.black.withValues(alpha: 0.38), 6, true);
   canvas.drawPath(
     pinPath,
     Paint()
+      ..isAntiAlias = true
       ..color = fill
       ..style = PaintingStyle.fill,
   );
   canvas.drawPath(
     pinPath,
     Paint()
+      ..isAntiAlias = true
       ..color = stroke
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2,
+      ..strokeWidth = 2.4
+      ..strokeJoin = StrokeJoin.round,
   );
+
   canvas.drawCircle(
-    center,
-    radius * 0.45,
+    headCenter,
+    headR * 0.62,
     Paint()
-      ..color = Colors.white.withValues(alpha: 0.92)
+      ..isAntiAlias = true
+      ..color = Colors.white
       ..style = PaintingStyle.fill,
   );
-  final haloRadius = radius * 0.62;
   canvas.drawCircle(
-    center,
-    haloRadius,
+    headCenter,
+    headR * 0.62,
     Paint()
-      ..color = Colors.white.withValues(alpha: 0.22)
+      ..isAntiAlias = true
+      ..color = stroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6,
   );
 
-  final pulseAngle = math.pi / 6;
-  final accentPath = Path()
-    ..moveTo(
-      center.dx + math.cos(pulseAngle) * radius * 1.08,
-      center.dy - math.sin(pulseAngle) * radius * 1.08,
-    )
-    ..arcTo(
-      Rect.fromCircle(center: center, radius: radius * 1.08),
-      -pulseAngle,
-      pulseAngle * 1.4,
-      false,
-    );
-  canvas.drawPath(
-    accentPath,
-    Paint()
-      ..color = Colors.white.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 1.8,
-  );
-
-  final picture = recorder.endRecording();
-  final img = await picture.toImage(logicalSize.ceil(), logicalSize.ceil());
-  final bd = await img.toByteData(format: ui.ImageByteFormat.png);
-  if (bd == null) {
-    return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+  if (style == PassengerWaypointPinStyle.pickupPerson) {
+    _paintWavingPerson(canvas, headCenter, headR * 0.52, stroke);
+  } else {
+    _paintDestinationX(canvas, headCenter, headR * 0.36, stroke);
   }
-  return BitmapDescriptor.bytes(
-    bd.buffer.asUint8List(),
-    width: logicalSize,
-    height: logicalSize,
+}
+
+void _paintWavingPerson(Canvas canvas, Offset center, double r, Color color) {
+  final paint = Paint()
+    ..isAntiAlias = true
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = math.max(2.2, r * 0.22)
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+  final fill = Paint()
+    ..isAntiAlias = true
+    ..color = color
+    ..style = PaintingStyle.fill;
+
+  canvas.drawCircle(Offset(center.dx, center.dy - r * 0.42), r * 0.22, fill);
+  canvas.drawLine(
+    Offset(center.dx, center.dy - r * 0.16),
+    Offset(center.dx, center.dy + r * 0.28),
+    paint,
+  );
+  canvas.drawLine(
+    Offset(center.dx, center.dy + r * 0.02),
+    Offset(center.dx - r * 0.38, center.dy + r * 0.22),
+    paint,
+  );
+  canvas.drawLine(
+    Offset(center.dx, center.dy),
+    Offset(center.dx + r * 0.46, center.dy - r * 0.48),
+    paint,
+  );
+  canvas.drawLine(
+    Offset(center.dx, center.dy + r * 0.28),
+    Offset(center.dx - r * 0.26, center.dy + r * 0.62),
+    paint,
+  );
+  canvas.drawLine(
+    Offset(center.dx, center.dy + r * 0.28),
+    Offset(center.dx + r * 0.24, center.dy + r * 0.62),
+    paint,
+  );
+}
+
+void _paintDestinationX(Canvas canvas, Offset center, double r, Color color) {
+  final paint = Paint()
+    ..isAntiAlias = true
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = math.max(2.6, r * 0.38)
+    ..strokeCap = StrokeCap.round;
+  canvas.drawLine(
+    Offset(center.dx - r, center.dy - r),
+    Offset(center.dx + r, center.dy + r),
+    paint,
+  );
+  canvas.drawLine(
+    Offset(center.dx + r, center.dy - r),
+    Offset(center.dx - r, center.dy + r),
+    paint,
   );
 }

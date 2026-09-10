@@ -270,7 +270,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
           _card(
             context,
             l10n.quoteTitle,
-            '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatMoney(displayedGross, currencyCode: option.currencyCode, decimals: 1)}',
+            '${displayServiceTypeName(option.serviceTypeName, l10n, serviceTypeId: option.serviceTypeId)} — ${formatTripMoney(displayedGross, currencyCode: option.currencyCode)}',
           ),
           if (youPay != null) ...[
             const SizedBox(height: 12),

@@ -48,6 +48,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   required String? destinationAddress,
   required String? routeOverviewEncoded,
   required Future<bool> Function() ensureDeviceGpsForNewTrip,
+  bool skipPhoneProfileCheck = false,
 }) async {
   final l10n = AppLocalizations.of(context);
   if (l10n == null) {
@@ -74,18 +75,20 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
     );
   }
 
-  try {
-    final meData = await ref
-        .read(passengerMeProfileServiceProvider)
-        .fetchData();
-    if (meData['phone_verified'] != true) {
-      return PassengerTripSubmitResult(
-        PassengerTripSubmitResultKind.phoneRequired,
-        message: l10n.tripPhoneRequired,
-      );
+  if (!skipPhoneProfileCheck) {
+    try {
+      final meData = await ref
+          .read(passengerMeProfileServiceProvider)
+          .fetchData();
+      if (meData['phone_verified'] != true) {
+        return PassengerTripSubmitResult(
+          PassengerTripSubmitResultKind.phoneRequired,
+          message: l10n.tripPhoneRequired,
+        );
+      }
+    } catch (_) {
+      // Si falla /auth/me, el gate server-side responderá 403.
     }
-  } catch (_) {
-    // Si falla /auth/me, el gate server-side responderá 403.
   }
 
   try {
@@ -177,6 +180,8 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
             tripId: result.tripId,
             quote: quote,
             assumeAwaitingDriver: true,
+            cashDuePassenger: result.cashDuePassenger,
+            companyGuaranteeToDriver: result.companyGuaranteeToDriver,
           ),
     );
 

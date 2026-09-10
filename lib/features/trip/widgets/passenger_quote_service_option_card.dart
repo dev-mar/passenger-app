@@ -45,10 +45,9 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
       serviceTypeId: option.serviceTypeId,
     );
     final displayedGross = displayPrice ?? option.estimatedPrice;
-    final price = formatMoney(
+    final price = formatTripMoney(
       displayedGross,
       currencyCode: option.currencyCode,
-      decimals: 1,
     );
     final seats = serviceTypeSeatCapacity(
       option.serviceTypeName,

@@ -524,9 +524,9 @@
   "@tripCancelBlockedActiveBody": {
     "description": "SnackBar if cancel is attempted on an accepted trip"
   },
-  "tripCancelCta": "Don't continue",
+  "tripCancelCta": "Don't continue the trip",
   "@tripCancelCta": {
-    "description": "Button on the active-trip panel; keep error color; softer than Cancel trip"
+    "description": "Button at the bottom of the active-trip panel; keep error color"
   },
   "tripCancelChooseReason": "Why are you cancelling?",
   "tripCancelNoteHint": "Write the reason",
@@ -993,6 +993,8 @@
   "appUpdateOptionalMessage": "An update is available on the Play Store. Install it to get the latest version.",
   "appUpdateOpenStore": "Go to Play Store",
   "appUpdateLater": "Later",
+  "appUpdateDownloadedMessage": "The update downloaded. Restart to install it.",
+  "appUpdateRestart": "Restart",
   "promoBenefitsTitle": "Your benefits",
   "promoBenefitsEmpty": "When you have an active TEXIAPP benefit, it will show up here.",
   "promoBenefitsHeroLead": "Codes, trip support, and what TEXIAPP covers for you.",
@@ -1003,6 +1005,14 @@
   "promoReferralWalletLabel": "Available support",
   "promoChipYouPay": "You pay {amount}",
   "@promoChipYouPay": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoActiveBannerTitle": "TEXIAPP Benefits",
+  "promoActivePayDriverLead": "You only pay the driver",
+  "promoActivePayDriver": "You only pay the driver {amount}",
+  "@promoActivePayDriver": {
     "placeholders": {
       "amount": { "type": "String" }
     }

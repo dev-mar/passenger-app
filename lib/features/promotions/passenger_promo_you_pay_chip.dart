@@ -20,10 +20,9 @@ class PassengerPromoYouPayChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final amount = formatMoney(
+    final amount = formatTripMoney(
       cashDuePassenger,
       currencyCode: currencyCode,
-      decimals: 1,
     );
     return Text(
       l10n.promoChipYouPay(amount),

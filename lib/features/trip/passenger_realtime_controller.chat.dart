@@ -58,59 +58,87 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       return false;
     }
     _rt._enRouteInFlight = true;
-    const defaultCooldown = Duration(seconds: 45);
-    state = state.copyWith(
-      enRouteErrorCode: null,
-      enRouteCooldownUntilMs: DateTime.now()
-          .add(defaultCooldown)
-          .millisecondsSinceEpoch,
-    );
 
-    var sent = false;
+    bool applySuccessCooldown([int? sec]) {
+      final s = (sec ?? 45).clamp(15, 300);
+      state = state.copyWith(
+        enRouteErrorCode: null,
+        enRouteCooldownUntilMs: DateTime.now()
+            .add(Duration(seconds: s))
+            .millisecondsSinceEpoch,
+      );
+      return true;
+    }
+
+    void failSend(String code) {
+      state = state.copyWith(
+        enRouteErrorCode: code,
+        enRouteCooldownUntilMs: 0,
+      );
+    }
+
     try {
+      try {
+        final token = await AuthService.getValidToken();
+        if (token != null && token.isNotEmpty) {
+          try {
+            final res = await TripsApi(token: token)
+                .postPassengerEnRoute(tripId: tripId)
+                .timeout(const Duration(seconds: 8));
+            return applySuccessCooldown(res.cooldownSec);
+          } on DioException catch (e) {
+            final code = TexiBackendError.codeFromDio(e);
+            if (code == 'TRIP_PASSENGER_EN_ROUTE_COOLDOWN') {
+              final retry = e.response?.data is Map
+                  ? (e.response!.data['error'] is Map
+                        ? (e.response!.data['error'] as Map)['retryAfterSec']
+                        : e.response!.data['retryAfterSec'])
+                  : null;
+              final retrySec = retry is num
+                  ? retry.toInt()
+                  : int.tryParse('$retry');
+              return applySuccessCooldown(retrySec);
+            }
+            if (code == 'INVALID_STATUS_TRANSITION') {
+              failSend('INVALID_STATUS_TRANSITION');
+              return false;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+
       try {
         final live = await _rt
             .ensureSocketConnected(tripId: tripId)
             .timeout(const Duration(seconds: 3), onTimeout: () => false);
         if (live && _rt._socket != null) {
+          _rt._enRouteAckWait = Completer<bool>();
           _rt._socket!.emit('trip:passenger_en_route', {'tripId': tripId});
-          sent = true;
-        }
-      } catch (_) {
-        sent = false;
-      }
-
-      if (!sent) {
-        try {
-          final token = await AuthService.getValidToken();
-          if (token == null || token.isEmpty) {
-            state = state.copyWith(
-              enRouteErrorCode: 'NO_TOKEN',
-              enRouteCooldownUntilMs: 0,
-            );
-            return false;
+          final acked = await _rt._enRouteAckWait!.future.timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => false,
+          );
+          _rt._enRouteAckWait = null;
+          if (acked) {
+            if (state.enRouteCooldownUntilMs == null ||
+                state.enRouteCooldownUntilMs! <=
+                    DateTime.now().millisecondsSinceEpoch) {
+              applySuccessCooldown();
+            }
+            return true;
           }
-          final res = await TripsApi(token: token)
-              .postPassengerEnRoute(tripId: tripId)
-              .timeout(const Duration(seconds: 6));
-          state = state.copyWith(
-            enRouteErrorCode: null,
-            enRouteCooldownUntilMs: DateTime.now()
-                .add(Duration(seconds: res.cooldownSec))
-                .millisecondsSinceEpoch,
-          );
-          sent = true;
-        } catch (_) {
-          state = state.copyWith(
-            enRouteErrorCode: 'SOCKET',
-            enRouteCooldownUntilMs: 0,
-          );
-          return false;
         }
-      }
-      return sent;
+      } catch (_) {}
+
+      failSend('SOCKET');
+      return false;
     } finally {
       _rt._enRouteInFlight = false;
+      final leftover = _rt._enRouteAckWait;
+      if (leftover != null && !leftover.isCompleted) {
+        leftover.complete(false);
+      }
+      _rt._enRouteAckWait = null;
     }
   }
 

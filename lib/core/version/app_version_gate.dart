@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../network/passenger_api_client.dart';
 import '../../gen_l10n/app_localizations.dart';
+import 'play_in_app_update_helper.dart';
 
 enum AppVersionGateOutcome {
   ok,
@@ -178,14 +179,27 @@ class AppVersionGate {
   static Future<bool> runStartupCheck(BuildContext context) async {
     final result = await ensureChecked();
     if (!context.mounted) return false;
+
     if (!result.canProceed) {
+      final started = await PlayInAppUpdateHelper.tryImmediateUpdate();
+      if (started) return false;
+      if (!context.mounted) return false;
       await showGateUi(context, result);
       return false;
     }
+
     if (result.outcome == AppVersionGateOutcome.optionalUpdate) {
-      await showGateUi(context, result);
+      PlayInAppUpdateHelper.ensureFlexibleUpdateListener();
+      final started = await PlayInAppUpdateHelper.tryFlexibleUpdate();
+      if (!started) {
+        if (!context.mounted) return false;
+        await showGateUi(context, result);
+      }
       if (!context.mounted) return false;
+      return true;
     }
+
+    PlayInAppUpdateHelper.scheduleOptionalPlayUpdateCheck();
     return true;
   }
 

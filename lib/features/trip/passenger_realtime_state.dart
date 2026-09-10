@@ -39,6 +39,13 @@ class PassengerRealtimeState {
   final String? cancelledBy;
   final String? reasonLabel;
   final bool helpAvailable;
+  final double? cashDuePassenger;
+  final double? companyGuaranteeToDriver;
+
+  bool get hasPromoBreakdown =>
+      cashDuePassenger != null &&
+      companyGuaranteeToDriver != null &&
+      companyGuaranteeToDriver! > 0;
 
   const PassengerRealtimeState({
     required this.connecting,
@@ -73,6 +80,8 @@ class PassengerRealtimeState {
     this.cancelledBy,
     this.reasonLabel,
     this.helpAvailable = false,
+    this.cashDuePassenger,
+    this.companyGuaranteeToDriver,
   });
 
   static const initial = PassengerRealtimeState(
@@ -108,6 +117,8 @@ class PassengerRealtimeState {
     cancelledBy: null,
     reasonLabel: null,
     helpAvailable: false,
+    cashDuePassenger: null,
+    companyGuaranteeToDriver: null,
   );
 
   PassengerRealtimeState copyWith({
@@ -143,6 +154,8 @@ class PassengerRealtimeState {
     String? cancelledBy,
     String? reasonLabel,
     bool? helpAvailable,
+    double? cashDuePassenger,
+    double? companyGuaranteeToDriver,
   }) {
     return PassengerRealtimeState(
       connecting: connecting ?? this.connecting,
@@ -177,6 +190,9 @@ class PassengerRealtimeState {
       cancelledBy: cancelledBy ?? this.cancelledBy,
       reasonLabel: reasonLabel ?? this.reasonLabel,
       helpAvailable: helpAvailable ?? this.helpAvailable,
+      cashDuePassenger: cashDuePassenger ?? this.cashDuePassenger,
+      companyGuaranteeToDriver:
+          companyGuaranteeToDriver ?? this.companyGuaranteeToDriver,
     );
   }
 }

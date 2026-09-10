@@ -704,10 +704,12 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
           );
         }
         if (!mounted) return;
-        final keepDraft = (_o._searchingHoldUi ||
-                _o._keepDraftAfterMatchingCancel ||
-                _o._matchingSubmitUi) &&
-            rtState.cancelledBy != 'driver';
+        final keepDraft = passengerShouldKeepDraftAfterMatchingCancel(
+          searchingHoldUi: _o._searchingHoldUi,
+          keepDraftAfterMatchingCancel: _o._keepDraftAfterMatchingCancel,
+          matchingSubmitUi: _o._matchingSubmitUi,
+          cancelledBy: rtState.cancelledBy,
+        );
         if (keepDraft) return;
         unawaited(_o._resetTripSessionToDraftHome(tripIdForGuard: tripId));
       });

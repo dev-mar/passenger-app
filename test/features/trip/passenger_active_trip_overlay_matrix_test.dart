@@ -103,10 +103,50 @@ void main() {
       );
     });
 
+    test('cancelled/expired no es buscando', () {
+      expect(
+        passengerOverlayIsSearchingDriver(tripId: tripId, status: 'cancelled'),
+        isFalse,
+      );
+      expect(
+        passengerOverlayIsSearchingDriver(tripId: tripId, status: 'expired'),
+        isFalse,
+      );
+    });
+
     test('sin tripId → ningún overlay de viaje', () {
       expect(passengerOverlayIsSearchingDriver(tripId: null, status: null), isFalse);
       expect(passengerOverlayIsRecovering(tripId: null, status: null), isFalse);
       expect(passengerOverlayIsTripActive(tripId: null, status: 'accepted'), isFalse);
+    });
+
+    test('hold/submit conservan borrador si cancela matching, no si cancela el conductor', () {
+      expect(
+        passengerShouldKeepDraftAfterMatchingCancel(
+          searchingHoldUi: true,
+          keepDraftAfterMatchingCancel: false,
+          matchingSubmitUi: false,
+          cancelledBy: 'passenger',
+        ),
+        isTrue,
+      );
+      expect(
+        passengerShouldKeepDraftAfterMatchingCancel(
+          searchingHoldUi: false,
+          keepDraftAfterMatchingCancel: true,
+          matchingSubmitUi: false,
+        ),
+        isTrue,
+      );
+      expect(
+        passengerShouldKeepDraftAfterMatchingCancel(
+          searchingHoldUi: true,
+          keepDraftAfterMatchingCancel: true,
+          matchingSubmitUi: true,
+          cancelledBy: 'driver',
+        ),
+        isFalse,
+      );
     });
 
     test('submit o hold sin tripId → overlay matching (no cotización)', () {

@@ -310,10 +310,14 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           enRouteCooldownUntilMs: until,
           enRouteErrorCode: null,
         );
+        final wait = _rt._enRouteAckWait;
+        if (wait != null && !wait.isCompleted) wait.complete(true);
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[PASSENGER_RT] Error ack passenger_en_route: $e');
         }
+        final wait = _rt._enRouteAckWait;
+        if (wait != null && !wait.isCompleted) wait.complete(true);
       }
     });
 
@@ -335,6 +339,8 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             ? state.enRouteCooldownUntilMs
             : 0,
       );
+      final wait = _rt._enRouteAckWait;
+      if (wait != null && !wait.isCompleted) wait.complete(isCooldown);
     });
 
     socket.on('trip:chat:new', (data) {
@@ -388,6 +394,8 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     required String tripId,
     QuoteResponse? quote,
     bool assumeAwaitingDriver = false,
+    double? cashDuePassenger,
+    double? companyGuaranteeToDriver,
   }) async {
     if (_socketLive && state.activeTripId == tripId) {
       state = state.copyWith(
@@ -434,6 +442,8 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     final preservedDriverBearing = state.driverBearing;
     final preservedChatMessages = List<TripChatMessage>.from(state.chatMessages);
     final preservedTripChatErrorCode = state.tripChatErrorCode;
+    final preservedCashDuePassenger = state.cashDuePassenger;
+    final preservedCompanyGuaranteeToDriver = state.companyGuaranteeToDriver;
     final sameTripReconnect =
         preservedTripId == null || preservedTripId == tripId;
 
@@ -519,6 +529,15 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           : state.chatMessages,
       tripChatErrorCode:
           sameTripReconnect ? preservedTripChatErrorCode : null,
+      cashDuePassenger: cashDuePassenger ??
+          (sameTripReconnect
+              ? (preservedCashDuePassenger ?? state.cashDuePassenger)
+              : state.cashDuePassenger),
+      companyGuaranteeToDriver: companyGuaranteeToDriver ??
+          (sameTripReconnect
+              ? (preservedCompanyGuaranteeToDriver ??
+                  state.companyGuaranteeToDriver)
+              : state.companyGuaranteeToDriver),
     );
     if (kDebugMode) {
       debugPrint('[PASSENGER_RT] Conectando Socket.IO para tripId=$tripId');

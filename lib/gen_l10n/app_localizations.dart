@@ -2342,10 +2342,10 @@ abstract class AppLocalizations {
   /// **'Your trip is already in progress. It can\'t be cancelled from here.'**
   String get tripCancelBlockedActiveBody;
 
-  /// Button on the active-trip panel; keep error color; softer than Cancel trip
+  /// Button at the bottom of the active-trip panel; keep error color
   ///
   /// In en, this message translates to:
-  /// **'Don\'t continue'**
+  /// **'Don\'t continue the trip'**
   String get tripCancelCta;
 
   /// No description provided for @tripCancelChooseReason.
@@ -4619,6 +4619,18 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get appUpdateLater;
 
+  /// No description provided for @appUpdateDownloadedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The update downloaded. Restart to install it.'**
+  String get appUpdateDownloadedMessage;
+
+  /// No description provided for @appUpdateRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get appUpdateRestart;
+
   /// No description provided for @promoBenefitsTitle.
   ///
   /// In en, this message translates to:
@@ -4672,6 +4684,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You pay {amount}'**
   String promoChipYouPay(String amount);
+
+  /// No description provided for @promoActiveBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP Benefits'**
+  String get promoActiveBannerTitle;
+
+  /// No description provided for @promoActivePayDriverLead.
+  ///
+  /// In en, this message translates to:
+  /// **'You only pay the driver'**
+  String get promoActivePayDriverLead;
+
+  /// No description provided for @promoActivePayDriver.
+  ///
+  /// In en, this message translates to:
+  /// **'You only pay the driver {amount}'**
+  String promoActivePayDriver(String amount);
 
   /// No description provided for @promoConfirmHint.
   ///

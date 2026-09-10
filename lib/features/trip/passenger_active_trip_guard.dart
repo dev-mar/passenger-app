@@ -4,7 +4,6 @@ import '../../core/network/trips_api.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
 import 'passenger_realtime_controller.dart';
-import 'passenger_stored_trip_session_helper.dart';
 import 'trip_recovery_feedback.dart';
 import 'trip_request_state.dart';
 import 'trip_request_trip_phase_helpers.dart';
@@ -45,7 +44,8 @@ Future<void> _recoverExistingPassengerTrip({
 ///
 /// - Si `GET /passengers/trips/:id` indica estado final, limpia almacenamiento y provider.
 /// - Cualquier otro estado no final → [recoveredExisting] (reconectar socket, no duplicar).
-/// - Error de red/5xx → [recoveredExisting] sin borrar storage (evita duplicar viaje).
+/// - Error de red/5xx/404 → [allowCreateNew] y limpia storage. Un viaje realmente
+///   activo lo recupera el `409 PASSENGER_ACTIVE_TRIP_EXISTS` del POST.
 Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
   required WidgetRef ref,
   required TripsApi api,
@@ -81,19 +81,10 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
     );
     return ActiveTripGuardResult.recoveredExisting;
   } catch (e) {
-    if (passengerActiveTripGuardShouldClearStorageOnError(e)) {
-      await TripSessionStorage.clearActiveTripId();
-      clearTripRecoverySnackTracking(ref);
-      ref.read(passengerRealtimeProvider.notifier).disconnect();
-      ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
-      return ActiveTripGuardResult.allowCreateNew;
-    }
-
-    await _recoverExistingPassengerTrip(
-      ref: ref,
-      tid: tid,
-      quoteForSocket: quoteForSocket,
-    );
-    return ActiveTripGuardResult.recoveredExisting;
+    await TripSessionStorage.clearActiveTripId();
+    clearTripRecoverySnackTracking(ref);
+    ref.read(passengerRealtimeProvider.notifier).disconnect();
+    ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
+    return ActiveTripGuardResult.allowCreateNew;
   }
 }

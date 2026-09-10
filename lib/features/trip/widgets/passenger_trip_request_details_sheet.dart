@@ -363,7 +363,7 @@ class _PassengerTripRequestDetailsSheet extends ConsumerWidget {
                         _PricePreview(
                           accent: _FormPalette.specials,
                           label: l10n.tripSpecialsPricePreview(
-                            formatMoney(
+                            formatTripMoney(
                               tripState.previewTotalPrice,
                               currencyCode:
                                   tripState.selectedOption?.currencyCode,

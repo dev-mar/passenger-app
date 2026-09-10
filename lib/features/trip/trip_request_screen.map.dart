@@ -120,9 +120,14 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
 
   Future<bool> _ensureDeviceGpsForNewTrip() async {
     if (_m._deviceGpsFixOk) return true;
-    final hasTrip = ref.read(tripRequestProvider).tripId != null;
-    await _refreshPassengerGpsDot(preserveTripGeometry: hasTrip);
-    return _m._deviceGpsFixOk;
+    // No bloquear POST /trips: el origen ya está elegido y la oferta al conductor
+    // sale en el create. El GPS del punto azul se refresca en segundo plano.
+    unawaited(
+      _refreshPassengerGpsDot(
+        preserveTripGeometry: ref.read(tripRequestProvider).tripId != null,
+      ),
+    );
+    return true;
   }
 
   Future<void> _recenterMapForPassenger({
@@ -430,10 +435,14 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     if (!mounted) return;
     try {
       final originIcon = await buildPassengerWaypointMapPinIcon(
-        fill: const Color(0xFFF9AB00),
+        fill: kPassengerPinBrandYellow,
+        stroke: kPassengerPinBrandBlack,
+        style: PassengerWaypointPinStyle.pickupPerson,
       );
       final destinationIcon = await buildPassengerWaypointMapPinIcon(
-        fill: const Color(0xFF111111),
+        fill: kPassengerPinBrandBlack,
+        stroke: kPassengerPinBrandYellow,
+        style: PassengerWaypointPinStyle.destinationX,
       );
       if (!mounted) return;
       setState(() {

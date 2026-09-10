@@ -28,6 +28,18 @@ bool passengerTripIsAwaitingDriverMatch(String? status) {
   return s == 'requested' || s == 'searching' || s == 'offered';
 }
 
+/// El timeout de matching no debe borrar origen/destino/cotización.
+/// Si cancela el conductor, sí volvemos al inicio (help + draft limpio).
+bool passengerShouldKeepDraftAfterMatchingCancel({
+  required bool searchingHoldUi,
+  required bool keepDraftAfterMatchingCancel,
+  required bool matchingSubmitUi,
+  String? cancelledBy,
+}) {
+  if (cancelledBy == 'driver') return false;
+  return searchingHoldUi || keepDraftAfterMatchingCancel || matchingSubmitUi;
+}
+
 /// Overlay de matching: hold (timeout), submit en vuelo, o viaje en requested/searching/offered.
 bool passengerMatchingOverlayVisible({
   required bool tripAssigned,

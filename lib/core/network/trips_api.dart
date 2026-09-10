@@ -696,6 +696,8 @@ class CreateTripResponse {
     this.estimatedPrice,
     this.offers,
     this.currencyCode,
+    this.cashDuePassenger,
+    this.companyGuaranteeToDriver,
   });
 
   final String tripId;
@@ -703,6 +705,8 @@ class CreateTripResponse {
   final double? estimatedPrice;
   final List<CreateTripOffer>? offers;
   final String? currencyCode;
+  final double? cashDuePassenger;
+  final double? companyGuaranteeToDriver;
 
   factory CreateTripResponse.fromJson(Map<String, dynamic> json) {
     final offersList = json['offers'] as List<dynamic>? ?? [];
@@ -710,6 +714,7 @@ class CreateTripResponse {
     double? estimatedPrice;
     if (rawPrice is num) estimatedPrice = rawPrice.toDouble();
     if (rawPrice is String) estimatedPrice = double.tryParse(rawPrice);
+    final promo = parseTripPromoAmounts(json);
     return CreateTripResponse(
       tripId: json['tripId'] as String? ?? '',
       status: json['status'] as String? ?? '',
@@ -718,6 +723,8 @@ class CreateTripResponse {
           .map((e) => CreateTripOffer.fromJson(e as Map<String, dynamic>))
           .toList(),
       currencyCode: (json['currencyCode'] ?? json['currency'])?.toString(),
+      cashDuePassenger: promo?.cashDuePassenger,
+      companyGuaranteeToDriver: promo?.companyGuaranteeToDriver,
     );
   }
 }
@@ -733,6 +740,47 @@ class PassengerTripShareLink {
   final String token;
   final String shareUrl;
   final String? expiresAt;
+}
+
+/// Montos de beneficio TEXIAPP en create/GET viaje (`promoSnapshot`).
+class TripPromoAmounts {
+  const TripPromoAmounts({
+    required this.cashDuePassenger,
+    required this.companyGuaranteeToDriver,
+  });
+
+  final double cashDuePassenger;
+  final double companyGuaranteeToDriver;
+}
+
+double? _parseTripMoneyNum(dynamic v) {
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v);
+  return null;
+}
+
+TripPromoAmounts? parseTripPromoAmounts(Map<String, dynamic> json) {
+  Map<String, dynamic>? snap;
+  final raw = json['promoSnapshot'] ?? json['promo_snapshot'];
+  if (raw is Map) snap = Map<String, dynamic>.from(raw);
+  final src = snap ?? json;
+  final cash = _parseTripMoneyNum(
+    src['cashDuePassenger'] ??
+        src['cash_due_passenger'] ??
+        json['cashDuePassenger'] ??
+        json['cash_due_passenger'],
+  );
+  final guarantee = _parseTripMoneyNum(
+    src['companyGuaranteeToDriver'] ??
+        src['company_guarantee_to_driver'] ??
+        json['companyGuaranteeToDriver'] ??
+        json['company_guarantee_to_driver'],
+  );
+  if (cash == null || guarantee == null || guarantee <= 0) return null;
+  return TripPromoAmounts(
+    cashDuePassenger: cash,
+    companyGuaranteeToDriver: guarantee,
+  );
 }
 
 /// Respuesta mínima de `GET /passengers/trips/:tripId`.
@@ -759,6 +807,8 @@ class TripStatusResponse {
     this.arrivedAt,
     this.waitSec,
     this.waitGraceSec,
+    this.cashDuePassenger,
+    this.companyGuaranteeToDriver,
   });
 
   final String tripId;
@@ -786,6 +836,8 @@ class TripStatusResponse {
   final DateTime? arrivedAt;
   final int? waitSec;
   final int? waitGraceSec;
+  final double? cashDuePassenger;
+  final double? companyGuaranteeToDriver;
 
   factory TripStatusResponse.fromJson(Map<String, dynamic> json) {
     double? dLat;
@@ -855,6 +907,7 @@ class TripStatusResponse {
     final payRaw =
         json['paymentMethod'] ?? json['payment_method'];
     final paymentMethod = payRaw?.toString().trim();
+    final promo = parseTripPromoAmounts(json);
 
     return TripStatusResponse(
       tripId: json['tripId']?.toString() ?? '',
@@ -888,6 +941,8 @@ class TripStatusResponse {
       waitGraceSec: _optionalInt(
         json['waitGraceSec'] ?? json['wait_grace_sec'],
       ),
+      cashDuePassenger: promo?.cashDuePassenger,
+      companyGuaranteeToDriver: promo?.companyGuaranteeToDriver,
     );
   }
 }

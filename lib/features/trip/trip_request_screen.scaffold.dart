@@ -90,9 +90,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       }
 
       final nowTracking = passengerTripIsTrackingDriver(next.status);
-      if (nowTracking && _d._searchingHoldUi) {
+      if (nowTracking) {
         _d._searchingHoldUi = false;
         _d._searchingStage3CancelInFlight = false;
+        _d._keepDraftAfterMatchingCancel = false;
+        _d._matchingSubmitUi = false;
       }
       if (!nowTracking && next.status != 'completed') {
         _d._tripSheetFullyExpanded = false;
@@ -281,13 +283,23 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       _d._completedStaleAutoResetTripId = null;
     }
 
-    // Si el viaje termina en estados finales sin rating (cancelled/expired), resetear autom├íticamente.
+    // Cancelled/expired: al inicio, salvo timeout de matching (Continuar reusa la ruta).
     if (effectiveTripId != null &&
         (rtState.status == 'cancelled' || rtState.status == 'expired')) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        unawaited(_resetTripSessionToDraftHome(tripIdForGuard: effectiveTripId));
-      });
+      final keepDraft = passengerShouldKeepDraftAfterMatchingCancel(
+        searchingHoldUi: _d._searchingHoldUi,
+        keepDraftAfterMatchingCancel: _d._keepDraftAfterMatchingCancel,
+        matchingSubmitUi: _d._matchingSubmitUi,
+        cancelledBy: rtState.cancelledBy,
+      );
+      if (!keepDraft) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          unawaited(
+            _resetTripSessionToDraftHome(tripIdForGuard: effectiveTripId),
+          );
+        });
+      }
     }
 
     // Marcadores: al confirmar, deben quedar visibles en el mapa (como antes).
@@ -368,13 +380,15 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                       markerId: const MarkerId('origin'),
                       position: originMarkerPos,
                       icon: _d._originOnTripIcon ?? _d._originFallbackIcon,
-                      // Ancla por defecto (0.5, 1.0): la punta inferior del pin marca el punto real.
+                      anchor: const Offset(0.5, kPassengerWaypointPinTipAnchorY),
                     ),
-                  if (destMarkerPos != null)
+                  if (destMarkerPos != null &&
+                      !(isMapConfirmMode && !confirmingOrigin))
                     Marker(
                       markerId: const MarkerId('destination'),
                       position: destMarkerPos,
                       icon: _d._destinationOnTripIcon ?? _d._destFallbackIcon,
+                      anchor: const Offset(0.5, kPassengerWaypointPinTipAnchorY),
                     ),
                   if (showDriverMarker)
                     Marker(
@@ -451,38 +465,19 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 child: IgnorePointer(
                   child: Align(
                     alignment: Alignment.center,
-                    child: SizedBox(
-                      key: _d._needleRenderKey,
-                      width: 56,
-                      height: 72,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.center,
-                        children: [
-                          Transform.translate(
-                            offset: const Offset(0, 3),
-                            child: Container(
-                              width: 16,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.22),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          Transform.translate(
-                            offset: const Offset(0, -27),
-                            child: Icon(
-                              confirmingOrigin
-                                  ? Icons.place_rounded
-                                  : Icons.location_on_rounded,
-                              size: 52,
-                              color: confirmingOrigin
-                                  ? const Color(0xFFF9AB00)
-                                  : const Color(0xFF111111),
-                            ),
-                          ),
-                        ],
+                    child: Transform.translate(
+                      // La punta del alfiler = centro del mapa (mismo lat/lng que se confirma).
+                      offset: Offset(
+                        0,
+                        -PassengerMapPickingNeedle.tipOffsetFromCenter,
+                      ),
+                      child: SizedBox(
+                        key: _d._needleRenderKey,
+                        width: PassengerMapPickingNeedle.pinWidth,
+                        height: PassengerMapPickingNeedle.pinHeight,
+                        child: PassengerMapPickingNeedle(
+                          forOrigin: confirmingOrigin,
+                        ),
                       ),
                     ),
                   ),
@@ -788,7 +783,38 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   initialChildSize: 0.34,
                   minChildSize: 0.14,
                   maxChildSize: 0.72,
-                  builder: (context, scrollController) => Container(
+                  builder: (context, scrollController) {
+                    final estimatedPrice = rtState.estimatedPrice ??
+                        tripState.previewTotalPrice ??
+                        tripState.selectedOption?.estimatedPrice ??
+                        tripState.quote?.options.firstOrNull?.estimatedPrice ??
+                        rtState.quote?.options.firstOrNull?.estimatedPrice ??
+                        0.0;
+                    final quoteCashDue = tripState.selectedOption
+                        ?.youPayForDisplayedGross(
+                          tripState.previewTotalPrice ?? estimatedPrice,
+                        );
+                    final cashDuePassenger =
+                        rtState.cashDuePassenger ?? quoteCashDue;
+                    final hasPromoBenefit = rtState.hasPromoBreakdown ||
+                        (quoteCashDue != null &&
+                            (tripState.selectedOption?.coveredBenefitAmount ??
+                                    0) >
+                                0);
+                    final promoPayDriverAmount =
+                        hasPromoBenefit &&
+                            cashDuePassenger != null &&
+                            passengerTripIsTrackingDriver(rtState.status)
+                        ? formatTripMoney(
+                            cashDuePassenger,
+                            currencyCode:
+                                tripState.selectedOption?.currencyCode ??
+                                tripState.quote?.currencyCode ??
+                                rtState.quote?.currencyCode ??
+                                rtState.currencyCode,
+                          )
+                        : null;
+                    return Container(
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: const BorderRadius.vertical(
@@ -838,26 +864,13 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                               tripState.quote?.distanceKm ??
                               rtState.quote?.distanceKm ??
                               0.0,
-                          estimatedPrice:
-                              rtState.estimatedPrice ??
-                              tripState.previewTotalPrice ??
-                              tripState.selectedOption?.estimatedPrice ??
-                              tripState
-                                  .quote
-                                  ?.options
-                                  .firstOrNull
-                                  ?.estimatedPrice ??
-                              rtState
-                                  .quote
-                                  ?.options
-                                  .firstOrNull
-                                  ?.estimatedPrice ??
-                              0.0,
+                          estimatedPrice: estimatedPrice,
                           currencyCode:
                               tripState.selectedOption?.currencyCode ??
                               tripState.quote?.currencyCode ??
                               rtState.quote?.currencyCode ??
                               rtState.currencyCode,
+                          promoPayDriverAmount: promoPayDriverAmount,
                           statusFromLabel: l10n.tripStatusFrom,
                           statusToLabel: l10n.tripStatusTo,
                           driverAssignedLabel: l10n.tripStatusDriverAssigned,
@@ -944,10 +957,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                         ),
                       ],
                     ),
-                  ),
-                ),
+                  );
+                  },
                 ),
               ),
+            ),
             // Error de conexi├│n Socket: tripId existe pero fall├│ connect (NO_TOKEN, SOCKET, etc.)
             if (hasConnectionError)
               Positioned(

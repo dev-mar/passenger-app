@@ -119,8 +119,7 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
         if (!mounted) return;
         if (lastStatus != null &&
             (passengerTripIsTrackingDriver(lastStatus) ||
-                lastStatus == 'completed' ||
-                passengerTripIsAwaitingDriverMatch(lastStatus))) {
+                lastStatus == 'completed')) {
           ref
               .read(passengerRealtimeProvider.notifier)
               .hydrateStatusHintFromLocalCache(
@@ -142,6 +141,13 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
             .read(passengerRealtimeProvider.notifier)
             .syncTripStatusFromApi(tripId: storedTripId, force: true);
         if (storedSyncCode == 'TRIP_NOT_FOUND') {
+          await _d._resetTripSessionToDraftHome(tripIdForGuard: storedTripId);
+          return;
+        }
+        if (!mounted) return;
+        if (passengerTripIsFinalStatus(
+          ref.read(passengerRealtimeProvider).status,
+        )) {
           await _d._resetTripSessionToDraftHome(tripIdForGuard: storedTripId);
           return;
         }

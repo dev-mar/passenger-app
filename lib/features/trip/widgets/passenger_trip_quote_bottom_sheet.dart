@@ -189,7 +189,7 @@ class _PassengerTripQuoteBottomSheetState
                         ),
                         serviceTypeId: option.serviceTypeId,
                         priceText:
-                            '${formatMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: tripState.specials.selectedCount, surchargePct: tripState.specialSurchargePct), currencyCode: option.currencyCode, decimals: 1)} ${l10n.quotePerTrip}',
+                            '${formatTripMoney(displayQuotedPriceForOption(basePrice: option.estimatedPrice, serviceTypeId: option.serviceTypeId, serviceTypeName: option.serviceTypeName, specialsCount: tripState.specials.selectedCount, surchargePct: tripState.specialSurchargePct), currencyCode: option.currencyCode)} ${l10n.quotePerTrip}',
                         isSelected: isSelected,
                         onTap: () {
                           setState(() => _selected = option);
