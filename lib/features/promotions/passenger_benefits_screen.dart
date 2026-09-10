@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/config/app_config.dart';
 import '../../core/device/passenger_device_identity.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/theme/app_colors.dart';
@@ -134,7 +135,10 @@ class _PassengerBenefitsScreenState
     TexiUiFeedback.lightTap();
     final l10n = AppLocalizations.of(context)!;
     await SharePlus.instance.share(
-      ShareParams(text: l10n.promoReferralShareMessage(code)),
+      ShareParams(
+        text: l10n.promoReferralShareMessage(code, AppConfig.playStoreUrl),
+        subject: AppConfig.appName,
+      ),
     );
   }
 
@@ -382,13 +386,9 @@ class _PassengerBenefitsScreenState
                                       BenefitsTicketCode(
                                         code: referralCode,
                                         onCopy: () => _copyMine(referralCode),
-                                      ),
-                                      const SizedBox(height: AppSpacing.xl),
-                                      BenefitsGhostButton(
-                                        icon: Icons.ios_share_rounded,
-                                        label: l10n.promoReferralShare,
-                                        onPressed: () =>
-                                            _shareMine(referralCode),
+                                        onShare: () => _shareMine(referralCode),
+                                        copyTooltip: l10n.promoReferralCopy,
+                                        shareTooltip: l10n.promoReferralShare,
                                       ),
                                     ],
                                     if (claimed) ...[

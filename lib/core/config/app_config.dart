@@ -12,6 +12,10 @@ class AppConfig {
   static const String appName = 'TEXIAPP';
   static const String packageName = 'com.taxitexi.texi_passenger_app';
 
+  /// Listado prod en Play Store (el que se comparte en referidos).
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=$packageName';
+
   /// `applicationId` Android (debe coincidir con `google-services.json` / FCM).
   static String get firebaseAndroidApplicationId =>
       PassengerAppEnvironment.firebaseAndroidApplicationId;

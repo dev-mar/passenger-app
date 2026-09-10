@@ -2588,6 +2588,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get promoReferralCopied => 'Code copied';
 
   @override
+  String get promoReferralCopy => 'Copy';
+
+  @override
   String get promoReferralWalletLabel => 'Available support';
 
   @override
@@ -2647,8 +2650,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get promoReferralShare => 'Share';
 
   @override
-  String promoReferralShareMessage(String code) {
-    return 'Come ride with TEXIAPP. Use my code $code.';
+  String promoReferralShareMessage(String code, String storeUrl) {
+    return 'TEXIAPP\n\nCome ride with TEXIAPP.\nUse my code: $code\n\nDownload the app on Play Store:\n$storeUrl';
   }
 
   @override

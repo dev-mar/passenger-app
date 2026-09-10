@@ -1011,6 +1011,7 @@
   "promoCodeCardLead": "Úsalo al pedir tu próximo viaje.",
   "promoReferralCardLead": "Tus invitados viajan. Tú recibes apoyo.",
   "promoReferralCopied": "Código copiado",
+  "promoReferralCopy": "Copiar",
   "promoReferralWalletLabel": "Apoyo disponible",
   "promoChipYouPay": "Tú pagas {amount}",
   "@promoChipYouPay": {
@@ -1039,10 +1040,11 @@
   "promoReferralClaimed": "Código registrado.",
   "promoReferralUnavailable": "No pudimos usar ese código.",
   "promoReferralShare": "Compartir",
-  "promoReferralShareMessage": "Te invito a viajar con TEXIAPP. Usa mi código {code}.",
+  "promoReferralShareMessage": "TEXIAPP\n\nTe invito a viajar con TEXIAPP.\nUsa mi código: {code}\n\nDescarga la app en Play Store:\n{storeUrl}",
   "@promoReferralShareMessage": {
     "placeholders": {
-      "code": { "type": "String" }
+      "code": { "type": "String" },
+      "storeUrl": { "type": "String" }
     }
   },
   "promoReferralWallet": "Apoyo disponible: {amount}",

@@ -4673,6 +4673,12 @@ abstract class AppLocalizations {
   /// **'Code copied'**
   String get promoReferralCopied;
 
+  /// No description provided for @promoReferralCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get promoReferralCopy;
+
   /// No description provided for @promoReferralWalletLabel.
   ///
   /// In en, this message translates to:
@@ -4784,8 +4790,8 @@ abstract class AppLocalizations {
   /// No description provided for @promoReferralShareMessage.
   ///
   /// In en, this message translates to:
-  /// **'Come ride with TEXIAPP. Use my code {code}.'**
-  String promoReferralShareMessage(String code);
+  /// **'TEXIAPP\n\nCome ride with TEXIAPP.\nUse my code: {code}\n\nDownload the app on Play Store:\n{storeUrl}'**
+  String promoReferralShareMessage(String code, String storeUrl);
 
   /// No description provided for @promoReferralWallet.
   ///

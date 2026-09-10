@@ -372,48 +372,60 @@ class BenefitsTicketCode extends StatelessWidget {
     super.key,
     required this.code,
     required this.onCopy,
+    required this.onShare,
+    required this.copyTooltip,
+    required this.shareTooltip,
   });
 
   final String code;
   final VoidCallback onCopy;
+  final VoidCallback onShare;
+  final String copyTooltip;
+  final String shareTooltip;
 
   @override
   Widget build(BuildContext context) {
-    return TexiScalePress(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onCopy,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            decoration: BoxDecoration(
-              color: BenefitsVisual.cardHi,
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(color: BenefitsVisual.line, width: 1.2),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    code,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2.2,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.copy_rounded,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ],
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 4, 4, 4),
+      decoration: BoxDecoration(
+        color: BenefitsVisual.cardHi,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: BenefitsVisual.line, width: 1.2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              code,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.2,
+              ),
             ),
           ),
-        ),
+          IconButton(
+            tooltip: copyTooltip,
+            onPressed: onCopy,
+            icon: const Icon(Icons.copy_rounded, size: 22),
+            color: AppColors.primary,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          IconButton(
+            tooltip: shareTooltip,
+            onPressed: onShare,
+            icon: const Icon(Icons.share_rounded, size: 22),
+            color: AppColors.primary,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
       ),
     );
   }
