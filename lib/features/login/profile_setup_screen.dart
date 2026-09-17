@@ -225,7 +225,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
       if (!mounted) return;
       setState(() => _saving = false);
-      context.goNamed('trip_request');
+      context.goNamed('home');
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

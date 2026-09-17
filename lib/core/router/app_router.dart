@@ -119,7 +119,7 @@ class AppRouter {
       final hasSession = await _hasStoredSession();
 
       if (location == '/login' && hasSession) {
-        return '/trip/request';
+        return '/home';
       }
 
       if (_isProtectedPath(location) && !hasSession) {
@@ -274,7 +274,18 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final lat = q['lat'] != null ? double.tryParse(q['lat']!) : null;
           final lng = q['lng'] != null ? double.tryParse(q['lng']!) : null;
-          return TripRequestScreen(originLat: lat, originLng: lng);
+          final destLat =
+              q['destLat'] != null ? double.tryParse(q['destLat']!) : null;
+          final destLng =
+              q['destLng'] != null ? double.tryParse(q['destLng']!) : null;
+          final destLabel = q['destLabel'];
+          return TripRequestScreen(
+            originLat: lat,
+            originLng: lng,
+            destLat: destLat,
+            destLng: destLng,
+            destLabel: destLabel,
+          );
         },
       ),
       GoRoute(

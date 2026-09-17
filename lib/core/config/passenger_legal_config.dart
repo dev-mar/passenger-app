@@ -67,6 +67,24 @@ class PassengerLegalConfig {
         : _servicesGuideEnDefault;
   }
 
+  static const String _announcementsUrlRaw = String.fromEnvironment(
+    'TEXI_ANNOUNCEMENTS_URL',
+    defaultValue: '',
+  );
+  static const String _announcementsEsDefault =
+      'https://www.taxitexi.com/es/novedades/';
+  static const String _announcementsEnDefault =
+      'https://www.taxitexi.com/en/novedades/';
+
+  /// Destino único del carrusel de inicio (landing, no por imagen).
+  static String announcementsUrl(Locale locale) {
+    final override = _announcementsUrlRaw.trim();
+    if (override.isNotEmpty) return override;
+    return _isSpanish(locale)
+        ? _announcementsEsDefault
+        : _announcementsEnDefault;
+  }
+
   static bool _isSpanish(Locale locale) {
     return locale.languageCode.toLowerCase().startsWith('es');
   }

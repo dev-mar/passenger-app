@@ -667,7 +667,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     if (dest != null && dest.isNotEmpty) {
       context.goNamed(dest);
     } else {
-      context.goNamed(AppRouter.tripRequest);
+      context.goNamed(AppRouter.home);
     }
     return true;
   }
@@ -700,7 +700,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       await AuthService.savePassengerDisplayName(display);
     }
     if (!mounted) return true;
-    context.goNamed('trip_request');
+    context.goNamed('home');
     return true;
   }
 
@@ -795,7 +795,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-      context.goNamed('trip_request');
+      context.goNamed('home');
     } on DioException catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -838,7 +838,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (next == LoginNextStep.tripRequest) {
-        context.goNamed('trip_request');
+        context.goNamed('home');
         return;
       }
       if (next == LoginNextStep.profileRequired) {
@@ -1045,7 +1045,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
                   if (context.canPop()) {
                     context.pop();
                   } else {
-                    context.goNamed(AppRouter.tripRequest);
+                    context.goNamed(AppRouter.home);
                   }
                   return;
                 }

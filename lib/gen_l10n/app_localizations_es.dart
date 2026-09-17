@@ -300,6 +300,48 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeRequestRide => 'Solicitar viaje';
 
   @override
+  String get homeHubTitle => 'Inicio';
+
+  @override
+  String get homeLocationBanner =>
+      'Activa la ubicación para pedir un viaje con un toque. Mientras tanto puedes ver anuncios y atajos.';
+
+  @override
+  String get homeEnableLocation => 'Activar';
+
+  @override
+  String get homeLocationNeededForTrip =>
+      'Necesitamos tu GPS para armar el viaje. Actívalo y vuelve a intentar.';
+
+  @override
+  String get homeShortcutsTitle => 'Viajes rápidos';
+
+  @override
+  String get homeAirportCta => 'Ir al aeropuerto';
+
+  @override
+  String homeAirportSubtitle(String name) {
+    return 'Destino: $name';
+  }
+
+  @override
+  String get homeAirportSubtitleFallback =>
+      'Al aeropuerto más cercano a tu ubicación';
+
+  @override
+  String get homeAirportUnavailable =>
+      'No hay un aeropuerto cercano configurado.';
+
+  @override
+  String get homeChooseOriginDestination => 'Elegir origen y destino';
+
+  @override
+  String get homePlaceTapToRide => 'Pedir viaje aquí';
+
+  @override
+  String get menuHome => 'Inicio';
+
+  @override
   String get homeProfileQuickAccess => 'Mi perfil';
 
   @override

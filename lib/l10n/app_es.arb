@@ -98,6 +98,23 @@
   "loginPhoneRequired": "Ingresa tu número.",
   "loginPhoneInvalidBolivia": "Ingresa tu número. Ej.: 70000000",
   "homeRequestRide": "Solicitar viaje",
+  "homeHubTitle": "Inicio",
+  "homeLocationBanner": "Activa la ubicación para pedir un viaje con un toque. Mientras tanto puedes ver anuncios y atajos.",
+  "homeEnableLocation": "Activar",
+  "homeLocationNeededForTrip": "Necesitamos tu GPS para armar el viaje. Actívalo y vuelve a intentar.",
+  "homeShortcutsTitle": "Viajes rápidos",
+  "homeAirportCta": "Ir al aeropuerto",
+  "homeAirportSubtitle": "Destino: {name}",
+  "@homeAirportSubtitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "homeAirportSubtitleFallback": "Al aeropuerto más cercano a tu ubicación",
+  "homeAirportUnavailable": "No hay un aeropuerto cercano configurado.",
+  "homeChooseOriginDestination": "Elegir origen y destino",
+  "homePlaceTapToRide": "Pedir viaje aquí",
+  "menuHome": "Inicio",
   "homeProfileQuickAccess": "Mi perfil",
   "homeProfileQuickAccessSubtitle": "Tus datos y foto de perfil",
   "homeNearbyDrivers": "{count} conductor cercano",

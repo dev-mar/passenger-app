@@ -8,6 +8,7 @@ import '../../../core/utils/service_type_display.dart';
 import '../../../data/models/quote_response.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../trip_service_addon_policy.dart';
+import 'passenger_fan_menu.dart';
 import 'passenger_quote_service_option_card.dart';
 
 /// Barra fija inferior del borrador: cotización, CTA y confirmación en mapa.
@@ -406,56 +407,9 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
           Positioned(
             right: 12,
             top: -28,
-            child: Tooltip(
-              message: menuTooltip,
-              child: Builder(
-                builder: (btnCtx) {
-                  return Material(
-                    elevation: 14,
-                    shadowColor: AppColors.primary.withValues(alpha: 0.55),
-                    shape: const CircleBorder(),
-                    color: Colors.transparent,
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () {
-                        final box = btnCtx.findRenderObject() as RenderBox?;
-                        final anchor = box == null
-                            ? Offset.zero
-                            : box.localToGlobal(box.size.center(Offset.zero));
-                        onMenuPressed(anchor);
-                      },
-                      child: Ink(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primary.withValues(alpha: 0.82),
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.35),
-                              blurRadius: 14,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.grid_view_rounded,
-                          size: 26,
-                          color: AppColors.onPrimary,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            child: PassengerFanMenuFab(
+              tooltip: menuTooltip,
+              onPressed: onMenuPressed,
             ),
           ),
         ],

@@ -608,6 +608,78 @@ abstract class AppLocalizations {
   /// **'Request ride'**
   String get homeRequestRide;
 
+  /// No description provided for @homeHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeHubTitle;
+
+  /// No description provided for @homeLocationBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location to request a ride with one tap. You can still browse ads and shortcuts.'**
+  String get homeLocationBanner;
+
+  /// No description provided for @homeEnableLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get homeEnableLocation;
+
+  /// No description provided for @homeLocationNeededForTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'We need GPS to build the trip. Enable it and try again.'**
+  String get homeLocationNeededForTrip;
+
+  /// No description provided for @homeShortcutsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick trips'**
+  String get homeShortcutsTitle;
+
+  /// No description provided for @homeAirportCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the airport'**
+  String get homeAirportCta;
+
+  /// No description provided for @homeAirportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Destination: {name}'**
+  String homeAirportSubtitle(String name);
+
+  /// No description provided for @homeAirportSubtitleFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'To the nearest airport from your location'**
+  String get homeAirportSubtitleFallback;
+
+  /// No description provided for @homeAirportUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No nearby airport is configured.'**
+  String get homeAirportUnavailable;
+
+  /// No description provided for @homeChooseOriginDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose pickup and destination'**
+  String get homeChooseOriginDestination;
+
+  /// No description provided for @homePlaceTapToRide.
+  ///
+  /// In en, this message translates to:
+  /// **'Request a ride here'**
+  String get homePlaceTapToRide;
+
+  /// No description provided for @menuHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get menuHome;
+
   /// No description provided for @homeProfileQuickAccess.
   ///
   /// In en, this message translates to:

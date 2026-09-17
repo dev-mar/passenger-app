@@ -298,6 +298,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeRequestRide => 'Request ride';
 
   @override
+  String get homeHubTitle => 'Home';
+
+  @override
+  String get homeLocationBanner =>
+      'Turn on location to request a ride with one tap. You can still browse ads and shortcuts.';
+
+  @override
+  String get homeEnableLocation => 'Enable';
+
+  @override
+  String get homeLocationNeededForTrip =>
+      'We need GPS to build the trip. Enable it and try again.';
+
+  @override
+  String get homeShortcutsTitle => 'Quick trips';
+
+  @override
+  String get homeAirportCta => 'Go to the airport';
+
+  @override
+  String homeAirportSubtitle(String name) {
+    return 'Destination: $name';
+  }
+
+  @override
+  String get homeAirportSubtitleFallback =>
+      'To the nearest airport from your location';
+
+  @override
+  String get homeAirportUnavailable => 'No nearby airport is configured.';
+
+  @override
+  String get homeChooseOriginDestination => 'Choose pickup and destination';
+
+  @override
+  String get homePlaceTapToRide => 'Request a ride here';
+
+  @override
+  String get menuHome => 'Home';
+
+  @override
   String get homeProfileQuickAccess => 'My profile';
 
   @override

@@ -112,6 +112,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     context.goNamed('trip_request');
   }
 
+  void _goHome() {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+    context.goNamed('home');
+  }
+
   Future<void> _navigateAfterDelay() async {
     try {
       await _resolveAndNavigate().timeout(
@@ -145,8 +151,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (hasSession) {
       if (storedId != null && storedId.isNotEmpty) {
         ref.read(tripRequestProvider.notifier).setTripId(storedId);
+        _goTripRequest();
+      } else {
+        _goHome();
       }
-      _goTripRequest();
       return;
     }
 

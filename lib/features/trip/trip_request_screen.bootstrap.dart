@@ -234,8 +234,15 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
             tripState.destination!.lat,
             tripState.destination!.lng,
           );
+          if (widget.destLabel != null && widget.destLabel!.trim().isNotEmpty) {
+            _d._destinationDisplayLabel = widget.destLabel!.trim();
+            _d._destinationPoiLabelLocked = true;
+          }
           _d._mapCenter = _d._destination;
           _fetchRoute();
+          if (_d._destinationPoiLabelLocked) {
+            unawaited(_enrichLockedDestinationLabel());
+          }
         } else {
           _d._originConfirmed = false;
           _d._pickingOrigin = true;
@@ -253,10 +260,33 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
         ref
             .read(tripRequestProvider.notifier)
             .setOrigin(_d._origin!.latitude, _d._origin!.longitude);
-        _d._originConfirmed = false;
-        _d._pickingOrigin = true;
-        _d._pickingDestination = false;
-        _d._activeStop = ActiveStop.none;
+        if (widget.destLat != null && widget.destLng != null) {
+          _d._originConfirmed = true;
+          _d._pickingOrigin = false;
+          _d._pickingDestination = false;
+          _d._activeStop = ActiveStop.none;
+          _d._destination = LatLng(widget.destLat!, widget.destLng!);
+          _d._destinationDisplayLabel =
+              (widget.destLabel != null && widget.destLabel!.trim().isNotEmpty)
+                  ? widget.destLabel!.trim()
+                  : _d._destinationDisplayLabel;
+          _d._destinationPoiLabelLocked =
+              widget.destLabel != null && widget.destLabel!.trim().isNotEmpty;
+          _d._mapCenter = _d._destination;
+          ref.read(tripRequestProvider.notifier).setDestination(
+                widget.destLat!,
+                widget.destLng!,
+              );
+          _fetchRoute();
+          if (_d._destinationPoiLabelLocked) {
+            unawaited(_enrichLockedDestinationLabel());
+          }
+        } else {
+          _d._originConfirmed = false;
+          _d._pickingOrigin = true;
+          _d._pickingDestination = false;
+          _d._activeStop = ActiveStop.none;
+        }
         _loadPinIcons();
         setState(() {});
         return;

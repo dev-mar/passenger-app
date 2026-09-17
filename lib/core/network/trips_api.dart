@@ -341,7 +341,7 @@ class TripsApi {
       '/passengers/trips/$tripId/claim',
       data: {
         'message': message,
-        if (stars != null) 'stars': stars,
+        'stars': ?stars,
         if (feedbackCodes?.isNotEmpty ?? false) 'feedbackCodes': feedbackCodes,
       },
     );
@@ -410,6 +410,29 @@ class TripsApi {
         .whereType<Map>()
         .map((e) => PassengerRecentPlace.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+  }
+
+  /// GET /passengers/home — banners + aeropuerto más cercano. Fail-open.
+  Future<PassengerHomeHub> getPassengerHomeHub({
+    double? lat,
+    double? lng,
+    String? locale,
+  }) async {
+    final response = await _requestWithRetry<Map<String, dynamic>>(
+      flow: 'passenger_home',
+      endpoint: '/passengers/home',
+      operation: () => _dio.get(
+        '/passengers/home',
+        queryParameters: {
+          'lat': ?lat,
+          'lng': ?lng,
+          if (locale != null && locale.isNotEmpty) 'locale': locale,
+        },
+      ),
+    );
+    final body = response.data ?? const <String, dynamic>{};
+    final data = body['data'] as Map<String, dynamic>? ?? const {};
+    return PassengerHomeHub.fromJson(data);
   }
 
   Future<PassengerTripHistoryResponse> getPassengerTripHistory({
@@ -507,6 +530,94 @@ class TripsApi {
     final body = response.data as Map<String, dynamic>? ?? const {};
     final payload = body['data'] as Map<String, dynamic>? ?? const {};
     return PassengerSavedPlace.fromJson(payload);
+  }
+}
+
+class PassengerHomeBanner {
+  const PassengerHomeBanner({
+    required this.id,
+    required this.imageUrl,
+    this.imageExpiresAt,
+  });
+
+  final String id;
+  final String imageUrl;
+  final String? imageExpiresAt;
+
+  factory PassengerHomeBanner.fromJson(Map<String, dynamic> json) {
+    return PassengerHomeBanner(
+      id: json['id']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ?? json['image_url']?.toString() ?? '',
+      imageExpiresAt: json['imageExpiresAt']?.toString() ??
+          json['image_expires_at']?.toString(),
+    );
+  }
+}
+
+class PassengerHomeAirport {
+  const PassengerHomeAirport({
+    required this.id,
+    required this.name,
+    required this.lat,
+    required this.lng,
+    this.code,
+    this.distanceKm,
+  });
+
+  final String id;
+  final String name;
+  final String? code;
+  final double lat;
+  final double lng;
+  final double? distanceKm;
+
+  factory PassengerHomeAirport.fromJson(Map<String, dynamic> json) {
+    final latRaw = json['lat'];
+    final lngRaw = json['lng'];
+    final distRaw = json['distanceKm'] ?? json['distance_km'];
+    return PassengerHomeAirport(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString(),
+      lat: latRaw is num ? latRaw.toDouble() : double.tryParse('$latRaw') ?? 0,
+      lng: lngRaw is num ? lngRaw.toDouble() : double.tryParse('$lngRaw') ?? 0,
+      distanceKm: distRaw is num
+          ? distRaw.toDouble()
+          : double.tryParse('$distRaw'),
+    );
+  }
+}
+
+class PassengerHomeHub {
+  const PassengerHomeHub({
+    required this.banners,
+    this.landingUrl,
+    this.nearestAirport,
+  });
+
+  final List<PassengerHomeBanner> banners;
+  final String? landingUrl;
+  final PassengerHomeAirport? nearestAirport;
+
+  factory PassengerHomeHub.fromJson(Map<String, dynamic> json) {
+    final raw = json['banners'] as List<dynamic>? ?? const [];
+    return PassengerHomeHub(
+      banners: raw
+          .whereType<Map>()
+          .map((e) => PassengerHomeBanner.fromJson(Map<String, dynamic>.from(e)))
+          .where((e) => e.id.isNotEmpty && e.imageUrl.isNotEmpty)
+          .toList(growable: false),
+      landingUrl: json['landingUrl']?.toString() ?? json['landing_url']?.toString(),
+      nearestAirport: json['nearestAirport'] is Map
+          ? PassengerHomeAirport.fromJson(
+              Map<String, dynamic>.from(json['nearestAirport'] as Map),
+            )
+          : json['nearest_airport'] is Map
+              ? PassengerHomeAirport.fromJson(
+                  Map<String, dynamic>.from(json['nearest_airport'] as Map),
+                )
+              : null,
+    );
   }
 }
 

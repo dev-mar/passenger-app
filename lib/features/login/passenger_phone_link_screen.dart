@@ -138,7 +138,7 @@ class _PassengerPhoneLinkScreenState
                 if (context.canPop()) {
                   context.pop();
                 } else {
-                  context.goNamed('trip_request');
+                  context.goNamed('home');
                 }
               },
       ),

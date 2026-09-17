@@ -113,6 +113,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       final dl = raw['destLabel']?.toString();
       _d._originDisplayLabel = (ol != null && ol.isNotEmpty) ? ol : null;
       _d._destinationDisplayLabel = (dl != null && dl.isNotEmpty) ? dl : null;
+      _d._destinationPoiLabelLocked = dl != null && dl.isNotEmpty;
       _d._originConfirmed = true;
       _d._pickingOrigin = false;
       _d._pickingDestination = false;
@@ -169,6 +170,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._ratingSheetShownForTripId = null;
         _d._destination = null;
         _d._destinationDisplayLabel = null;
+        _d._destinationPoiLabelLocked = false;
         _d._routePoints = null;
         _d._passengerEnRouteToDestPoints = null;
         _d._loadingRoute = false;
@@ -229,6 +231,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._ratingSheetShownForTripId = null;
         _d._destination = null;
         _d._destinationDisplayLabel = null;
+        _d._destinationPoiLabelLocked = false;
         _d._routePoints = null;
         _d._passengerEnRouteToDestPoints = null;
         _d._loadingRoute = false;
@@ -276,6 +279,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       _d._ratingSheetShownForTripId = null;
       _d._destination = null;
       _d._destinationDisplayLabel = null;
+      _d._destinationPoiLabelLocked = false;
       _d._routePoints = null;
       _d._passengerEnRouteToDestPoints = null;
       _d._loadingRoute = false;
@@ -478,6 +482,10 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
             _d._destinationDisplayLabel!.trim().isEmpty) &&
         _d._matchingRetryDestinationLabel != null) {
       _d._destinationDisplayLabel = _d._matchingRetryDestinationLabel;
+    }
+    if (_d._destinationDisplayLabel != null &&
+        _d._destinationDisplayLabel!.trim().isNotEmpty) {
+      _d._destinationPoiLabelLocked = true;
     }
     if ((_d._routeOverviewEncoded == null ||
             _d._routeOverviewEncoded!.isEmpty) &&

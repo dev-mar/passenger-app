@@ -404,7 +404,7 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
       await AuthService.savePassengerDisplayName(display);
     }
     if (!mounted) return true;
-    context.goNamed('trip_request');
+    context.goNamed('home');
     return true;
   }
 
@@ -472,7 +472,7 @@ class _VerifySmsScreenState extends ConsumerState<VerifySmsScreen> {
       }
       if (!mounted) return;
       setState(() => _isLoading = false);
-      context.goNamed('trip_request');
+      context.goNamed('home');
     } on DioException catch (e) {
       if (!mounted) return;
       final code = TexiBackendError.codeFromResponse(e.response?.data);

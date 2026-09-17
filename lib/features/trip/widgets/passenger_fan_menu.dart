@@ -9,6 +9,7 @@ import '../../../core/theme/app_ui_tokens.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
 enum PassengerFanMenuAction {
+  home,
   safety,
   operator,
   profile,
@@ -38,10 +39,17 @@ class PassengerFanMenuItem {
 Future<PassengerFanMenuAction?> showPassengerFanMenu({
   required BuildContext context,
   required Offset anchorGlobal,
+  bool showHome = false,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  // Orden (arriba → abajo): Seguridad, Perfil, Operador, Mis viajes, Cerrar sesión.
+  // Orden (arriba → abajo): Inicio, Seguridad, Perfil, Operador, Mis viajes, Cerrar sesión.
   final items = <PassengerFanMenuItem>[
+    if (showHome)
+      PassengerFanMenuItem(
+        action: PassengerFanMenuAction.home,
+        icon: Icons.home_rounded,
+        label: l10n.menuHome,
+      ),
     PassengerFanMenuItem(
       action: PassengerFanMenuAction.safety,
       assetIcon: AppAssets.safetyButton,
@@ -350,5 +358,73 @@ class _FanArcPainter extends CustomPainter {
     return oldDelegate.progress != progress ||
         oldDelegate.anchor != anchor ||
         oldDelegate.radius != radius;
+  }
+}
+
+/// FAB circular del abanico (misma pieza en mapa e inicio).
+class PassengerFanMenuFab extends StatelessWidget {
+  const PassengerFanMenuFab({
+    super.key,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  final ValueChanged<Offset> onPressed;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Builder(
+        builder: (btnCtx) {
+          return Material(
+            elevation: 14,
+            shadowColor: AppColors.primary.withValues(alpha: 0.55),
+            shape: const CircleBorder(),
+            color: Colors.transparent,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                final box = btnCtx.findRenderObject() as RenderBox?;
+                final anchor = box == null
+                    ? Offset.zero
+                    : box.localToGlobal(box.size.center(Offset.zero));
+                onPressed(anchor);
+              },
+              child: Ink(
+                width: AppSizes.circleButton + 8,
+                height: AppSizes.circleButton + 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withValues(alpha: 0.82),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 14,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.grid_view_rounded,
+                  size: 26,
+                  color: AppColors.onPrimary,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

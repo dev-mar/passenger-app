@@ -210,6 +210,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() {
       _d._destination = p;
       _d._destinationDisplayLabel = place.label;
+      _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
     });
     ref
@@ -252,6 +253,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._destinationDisplayLabel = place.address.isNotEmpty
           ? place.address
           : place.label;
+      _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
     });
     ref
@@ -804,6 +806,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._destinationDisplayLabel = details.formattedAddress.isNotEmpty
           ? _composePlaceLabel(suggestion, details.formattedAddress)
           : suggestion.fullText;
+      _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
       _d._searchingDestinationAddress = false;
     });
@@ -937,10 +940,13 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final action = await showPassengerFanMenu(
       context: context,
       anchorGlobal: resolvedAnchor,
+      showHome: ref.read(tripRequestProvider).tripId == null,
     );
     if (!context.mounted || action == null) return;
 
     switch (action) {
+      case PassengerFanMenuAction.home:
+        context.goNamed(AppRouter.home);
       case PassengerFanMenuAction.safety:
         context.pushNamed(AppRouter.safetyHub);
       case PassengerFanMenuAction.operator:
@@ -1220,6 +1226,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       setState(() {
         _d._destination = LatLng(result.lat, result.lng);
         _d._destinationDisplayLabel = result.formattedAddress ?? query;
+        _d._destinationPoiLabelLocked = true;
         _d._routePoints = null;
       });
       ref
@@ -1277,6 +1284,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._error = null;
       _d._destination = LatLng(position!.latitude, position.longitude);
       _d._destinationDisplayLabel = null;
+      _d._destinationPoiLabelLocked = false;
       _d._routePoints = null;
       _d._deviceGpsFixOk = true;
       _d._draftEditTarget = PassengerDraftEditTarget.none;
@@ -1300,6 +1308,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._destination = center;
       _d._destinationDisplayLabel =
           '${center.latitude.toStringAsFixed(4)}, ${center.longitude.toStringAsFixed(4)}';
+      _d._destinationPoiLabelLocked = false;
       _d._pickingDestination = false;
       _d._routePoints = null;
     });
@@ -1447,6 +1456,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() {
       _d._destination = null;
       _d._destinationDisplayLabel = null;
+      _d._destinationPoiLabelLocked = false;
       _d._routePoints = null;
       _d._loadingRoute = false;
       _d._originDisplayLabel = null;

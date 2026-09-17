@@ -292,7 +292,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleGoogleLoginNextStep(LoginNextStep next) {
     if (next == LoginNextStep.tripRequest) {
-      context.goNamed('trip_request');
+      context.goNamed('home');
       return;
     }
     if (next == LoginNextStep.attemptsLimitReached) {
@@ -377,7 +377,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }) async {
     switch (nextStep) {
       case LoginNextStep.tripRequest:
-        context.goNamed('trip_request');
+        context.goNamed('home');
         break;
       case LoginNextStep.verifyCode:
         final loginState = ref.read(loginControllerProvider);
@@ -603,7 +603,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           content: Text(l10n.passengerLoginAccountDeletionRecoverSuccess),
         ),
       );
-      context.goNamed('trip_request');
+      context.goNamed('home');
       return;
     }
 

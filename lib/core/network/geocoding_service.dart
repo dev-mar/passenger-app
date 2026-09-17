@@ -118,11 +118,35 @@ class GeocodingService {
     );
   }
 
+  /// Zona/ciudad sin calle: para enriquecer un nombre de POI (aeropuerto, Places).
+  Future<String?> reverseGeocodeArea({
+    required double lat,
+    required double lng,
+  }) async {
+    final key = 'a:${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}';
+    return _reverseCache.run(
+      key: key,
+      fetcher: () async {
+        try {
+          return _fetchBestReverseLabel(
+            lat: lat,
+            lng: lng,
+            preferStreetLevel: false,
+            includeStreet: false,
+          );
+        } catch (_) {
+          return null;
+        }
+      },
+    );
+  }
+
   Future<String?> _fetchBestReverseLabel({
     required double lat,
     required double lng,
     String? resultType,
     required bool preferStreetLevel,
+    bool includeStreet = true,
   }) async {
     final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
     if (apiKey == null) {
@@ -152,6 +176,7 @@ class GeocodingService {
     return _bestReadableAddressFromResults(
       results,
       preferStreetLevel: preferStreetLevel,
+      includeStreet: includeStreet,
     );
   }
 }
@@ -164,7 +189,10 @@ bool _looksLikePlusCodeOnly(String formatted) {
   ).hasMatch(head);
 }
 
-String? _composeReadableAddressFromComponents(List<dynamic>? components) {
+String? _composeReadableAddressFromComponents(
+  List<dynamic>? components, {
+  bool includeStreet = true,
+}) {
   if (components == null) return null;
 
   String? route;
@@ -218,7 +246,7 @@ String? _composeReadableAddressFromComponents(List<dynamic>? components) {
   // calle -> barrio/zona -> distrito/comuna/municipio
   // -> provincia/estado -> ciudad.
   // Se omite explícitamente "departamento de ...".
-  if (route != null) {
+  if (includeStreet && route != null) {
     addIfUseful(streetNumber != null ? '$route $streetNumber' : route);
   }
   addIfUseful(neighborhood ?? sublocality1);
@@ -245,6 +273,7 @@ bool _looksLikeDepartmentLabel(String value) {
 String? _bestReadableAddressFromResults(
   List<dynamic> results, {
   required bool preferStreetLevel,
+  bool includeStreet = true,
 }) {
   String? fallback;
 
@@ -253,10 +282,12 @@ String? _bestReadableAddressFromResults(
     final formatted = m['formatted_address'] as String?;
     final composed = _composeReadableAddressFromComponents(
       m['address_components'] as List<dynamic>?,
+      includeStreet: includeStreet,
     );
     final readable = (composed != null && composed.isNotEmpty)
         ? composed
-        : (formatted != null &&
+        : (includeStreet &&
+              formatted != null &&
               formatted.isNotEmpty &&
               !_looksLikePlusCodeOnly(formatted))
         ? formatted

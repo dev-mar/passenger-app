@@ -95,6 +95,23 @@
   "loginPhoneRequired": "Enter your number.",
   "loginPhoneInvalidBolivia": "Enter your number. E.g.: 70000000",
   "homeRequestRide": "Request ride",
+  "homeHubTitle": "Home",
+  "homeLocationBanner": "Turn on location to request a ride with one tap. You can still browse ads and shortcuts.",
+  "homeEnableLocation": "Enable",
+  "homeLocationNeededForTrip": "We need GPS to build the trip. Enable it and try again.",
+  "homeShortcutsTitle": "Quick trips",
+  "homeAirportCta": "Go to the airport",
+  "homeAirportSubtitle": "Destination: {name}",
+  "@homeAirportSubtitle": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "homeAirportSubtitleFallback": "To the nearest airport from your location",
+  "homeAirportUnavailable": "No nearby airport is configured.",
+  "homeChooseOriginDestination": "Choose pickup and destination",
+  "homePlaceTapToRide": "Request a ride here",
+  "menuHome": "Home",
   "homeProfileQuickAccess": "My profile",
   "homeProfileQuickAccessSubtitle": "Account details and profile photo",
   "homeNearbyDrivers": "{count} nearby driver",

@@ -773,18 +773,38 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   }
 
   Future<void> _updateDestinationStreetLabel(LatLng p) async {
+    if (_m._destinationPoiLabelLocked) return;
     final label = await _m._geocoding.reverseGeocodeStreet(
       lat: p.latitude,
       lng: p.longitude,
     );
     if (!mounted) return;
-    if (_m._destination == null) return;
+    if (_m._destination == null || _m._destinationPoiLabelLocked) return;
     final samePoint =
         (_m._destination!.latitude - p.latitude).abs() < 0.00001 &&
         (_m._destination!.longitude - p.longitude).abs() < 0.00001;
     if (!samePoint) return;
     if (label == null || label.isEmpty) return;
     setState(() => _m._destinationDisplayLabel = label);
+  }
+
+  /// Conserva el nombre del POI (aeropuerto / Places) y añade zona/ciudad, como el buscador.
+  Future<void> _enrichLockedDestinationLabel() async {
+    final dest = _m._destination;
+    final name = _m._destinationDisplayLabel?.trim();
+    if (dest == null || name == null || name.isEmpty) return;
+    if (!_m._destinationPoiLabelLocked) return;
+    if (name.contains(' · ')) return;
+    final area = await _m._geocoding.reverseGeocodeArea(
+      lat: dest.latitude,
+      lng: dest.longitude,
+    );
+    if (!mounted) return;
+    if (!_m._destinationPoiLabelLocked) return;
+    if (_m._destinationDisplayLabel?.trim() != name) return;
+    final zone = area?.trim();
+    if (zone == null || zone.isEmpty) return;
+    setState(() => _m._destinationDisplayLabel = '$name · $zone');
   }
 
   Future<void> _setOriginFromNeedle() async {
@@ -822,6 +842,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       _m._destinationDisplayLabel = preview != null && preview.isNotEmpty
           ? preview
           : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+      _m._destinationPoiLabelLocked = false;
       _m._pickingDestination = false;
       _m._routePoints = null;
       _m._mapNeedleAddressPreview = null;

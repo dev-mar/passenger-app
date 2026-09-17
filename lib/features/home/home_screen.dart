@@ -1,26 +1,33 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../core/auth/auth_service.dart';
+import '../../core/compliance/passenger_legal_links.dart';
+import '../../core/compliance/passenger_play_permission_disclosures.dart';
+import '../../core/config/passenger_legal_config.dart';
+import '../../core/constants/app_assets.dart';
+import '../../core/feedback/texi_ui_feedback.dart';
+import '../../core/location/passenger_geolocation_permission_cache.dart';
+import '../../core/network/trips_api.dart';
+import '../../core/router/app_router.dart';
+import '../../core/storage/trip_session_storage.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_scale_press.dart';
-import '../../core/router/app_router.dart';
-import '../../core/session/passenger_internal_tools_gate.dart';
-import '../../core/network/trips_api.dart';
-import '../../core/network/texi_backend_error.dart';
-import '../../core/compliance/passenger_play_permission_disclosures.dart';
-import '../../core/location/passenger_geolocation_permission_cache.dart';
-import '../../core/l10n/trip_error_localization.dart';
-import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/widgets/premium_state_view.dart';
-import '../../data/models/nearby_driver.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../trip/trip_request_state.dart';
+import '../trip/widgets/passenger_fan_menu.dart';
+import 'widgets/passenger_home_banner_carousel.dart';
+import 'widgets/passenger_home_look.dart';
+import 'widgets/passenger_home_shortcut_tile.dart';
 
-/// Pantalla Home: mapa con tu ubicación y conductores cercanos.
+/// Hub post-login: atajos, anuncios y GPS en segundo plano.
+/// No bloquea la UI si faltan permisos; el mapa de viaje sigue intacto.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -29,363 +36,678 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  static const _nearbyRefreshSeconds = 12;
-
-  Position? _userPosition;
-  List<NearbyDriver> _drivers = [];
-  String? _error;
-  bool _loadingLocation = true;
-  Timer? _timer;
+  Position? _position;
+  bool _locationReady = false;
+  bool _requestingLocation = false;
+  List<PassengerHomeBanner> _banners = const [];
+  String? _landingUrl;
+  PassengerHomeAirport? _airport;
+  List<PassengerSavedPlace> _saved = const [];
+  List<PassengerRecentPlace> _recent = const [];
+  bool _loadingHub = true;
 
   @override
   void initState() {
     super.initState();
-    _initLocationAndDrivers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_bootstrap());
+    });
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _bootstrap() async {
+    final storedId = await TripSessionStorage.getActiveTripId();
+    if (!mounted) return;
+    if (storedId != null && storedId.isNotEmpty) {
+      ref.read(tripRequestProvider.notifier).setTripId(storedId);
+      context.goNamed(AppRouter.tripRequest);
+      return;
+    }
+    await Future.wait<void>([
+      _probeLocation(requestIfDenied: false),
+      _loadPlaces(),
+    ]);
+    await _loadHub();
   }
 
-  Future<void> _initLocationAndDrivers() async {
+  Future<TripsApi?> _api() async {
+    final token = await AuthService.getValidToken();
+    if (token == null || token.isEmpty) return null;
+    return TripsApi(token: token);
+  }
+
+  Future<void> _probeLocation({required bool requestIfDenied}) async {
+    try {
+      final serviceOn = await Geolocator.isLocationServiceEnabled();
+      if (!serviceOn) {
+        if (mounted) {
+          setState(() {
+            _locationReady = false;
+            _position = null;
+          });
+        }
+        return;
+      }
+      final permission =
+          await PassengerGeolocationPermissionCache.ensureLocationPermission(
+        requestIfDenied: requestIfDenied,
+      );
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _locationReady = false;
+            _position = null;
+          });
+        }
+        return;
+      }
+      Position? pos;
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+          ),
+        ).timeout(const Duration(seconds: 8));
+      } catch (_) {
+        pos = await Geolocator.getLastKnownPosition();
+      }
+      if (!mounted) return;
+      setState(() {
+        _position = pos;
+        _locationReady = pos != null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _locationReady = false;
+      });
+    }
+  }
+
+  Future<void> _loadHub() async {
+    final api = await _api();
+    if (api == null || !mounted) {
+      if (mounted) setState(() => _loadingHub = false);
+      return;
+    }
+    final locale = Localizations.localeOf(context).languageCode;
+    try {
+      final hub = await api.getPassengerHomeHub(
+        lat: _position?.latitude,
+        lng: _position?.longitude,
+        locale: locale,
+      );
+      if (!mounted) return;
+      setState(() {
+        _banners = hub.banners;
+        _landingUrl = hub.landingUrl;
+        _airport = hub.nearestAirport;
+        _loadingHub = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingHub = false);
+    }
+  }
+
+  Future<void> _loadPlaces() async {
+    final api = await _api();
+    if (api == null) return;
+    try {
+      final saved = await api.getPassengerSavedPlaces(limit: 5);
+      final recent = await api.getPassengerRecentPlaces(limit: 8);
+      if (!mounted) return;
+      setState(() {
+        _saved = saved;
+        _recent = _dedupeRecent(recent);
+      });
+    } catch (_) {}
+  }
+
+  List<PassengerRecentPlace> _dedupeRecent(List<PassengerRecentPlace> rows) {
+    final seen = <String>{};
+    final out = <PassengerRecentPlace>[];
+    for (final p in rows) {
+      if (p.lat == 0 && p.lng == 0) continue;
+      final key =
+          '${p.label.trim().toLowerCase()}|${p.lat.toStringAsFixed(4)}|${p.lng.toStringAsFixed(4)}';
+      if (!seen.add(key)) continue;
+      out.add(p);
+      if (out.length >= 6) break;
+    }
+    return out;
+  }
+
+  Future<bool> _ensureGpsForTrip() async {
+    if (_locationReady && _position != null) return true;
+    if (!mounted) return false;
+    setState(() => _requestingLocation = true);
+    final l10n = AppLocalizations.of(context);
+    if (l10n != null) {
+      final ok = await passengerEnsureLocationDisclosureForMap(context, l10n);
+      if (!ok || !mounted) {
+        setState(() => _requestingLocation = false);
+        return false;
+      }
+    }
+    PassengerGeolocationPermissionCache.clear();
+    await _probeLocation(requestIfDenied: true);
+    if (_locationReady && _position != null) {
+      await _loadHub();
+    }
+    if (mounted) setState(() => _requestingLocation = false);
+    return _locationReady && _position != null;
+  }
+
+  void _openMap({
+    required double destLat,
+    required double destLng,
+    String? destLabel,
+  }) {
+    final origin = _position;
+    if (origin == null) return;
+    final notifier = ref.read(tripRequestProvider.notifier);
+    notifier.reset();
+    notifier.setOrigin(origin.latitude, origin.longitude);
+    notifier.setDestination(destLat, destLng);
+    context.pushNamed(
+      AppRouter.tripRequest,
+      queryParameters: {
+        'lat': origin.latitude.toStringAsFixed(6),
+        'lng': origin.longitude.toStringAsFixed(6),
+        'destLat': destLat.toStringAsFixed(6),
+        'destLng': destLng.toStringAsFixed(6),
+        if (destLabel != null && destLabel.trim().isNotEmpty)
+          'destLabel': destLabel.trim(),
+      },
+    );
+  }
+
+  Future<void> _openNormalFlow() async {
+    TexiUiFeedback.lightTap();
+    final ok = await _ensureGpsForTrip();
+    if (!ok || !mounted) {
+      _showNeedLocation();
+      return;
+    }
+    final origin = _position!;
+    ref.read(tripRequestProvider.notifier).reset();
+    ref.read(tripRequestProvider.notifier).setOrigin(
+          origin.latitude,
+          origin.longitude,
+        );
+    context.pushNamed(
+      AppRouter.tripRequest,
+      queryParameters: {
+        'lat': origin.latitude.toStringAsFixed(6),
+        'lng': origin.longitude.toStringAsFixed(6),
+      },
+    );
+  }
+
+  Future<void> _openAirport() async {
+    TexiUiFeedback.lightTap();
+    final ok = await _ensureGpsForTrip();
+    if (!ok || !mounted) {
+      _showNeedLocation();
+      return;
+    }
+    var airport = _airport;
+    if (airport == null) {
+      await _loadHub();
+      airport = _airport;
+    }
+    if (!mounted) return;
+    if (airport == null) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.homeAirportUnavailable)),
+      );
+      return;
+    }
+    _openMap(
+      destLat: airport.lat,
+      destLng: airport.lng,
+      destLabel: airport.name,
+    );
+  }
+
+  Future<void> _openPlace({
+    required double lat,
+    required double lng,
+    required String label,
+  }) async {
+    TexiUiFeedback.lightTap();
+    final ok = await _ensureGpsForTrip();
+    if (!ok || !mounted) {
+      _showNeedLocation();
+      return;
+    }
+    _openMap(destLat: lat, destLng: lng, destLabel: label);
+  }
+
+  void _showNeedLocation() {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    if (!await passengerEnsurePlayDisclosuresBeforeTripFlow(context, l10n)) {
-      if (!mounted) return;
-      setState(() {
-        _loadingLocation = false;
-        _error = l10n.homeLocationError;
-      });
-      return;
-    }
-
-    final permission =
-        await PassengerGeolocationPermissionCache.ensureLocationPermission(
-      requestIfDenied: false,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.homeLocationNeededForTrip)),
     );
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      setState(() {
-        _loadingLocation = false;
-        _error = AppLocalizations.of(context)!.homeLocationError;
-      });
-      return;
-    }
+  }
 
-    try {
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-        ),
-      ).timeout(const Duration(seconds: 8));
-      if (mounted) {
-        setState(() {
-          _userPosition = position;
-          _loadingLocation = false;
-          _error = null;
-        });
-        _fetchNearbyDrivers();
-        _timer = Timer.periodic(
-          const Duration(seconds: _nearbyRefreshSeconds),
-          (_) => _fetchNearbyDrivers(),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loadingLocation = false;
-          _error = AppLocalizations.of(context)!.homeLocationErrorGps;
-        });
-      }
+  Future<void> _openAnnouncements() async {
+    TexiUiFeedback.lightTap();
+    final locale = Localizations.localeOf(context);
+    final url = (_landingUrl != null && _landingUrl!.trim().isNotEmpty)
+        ? _landingUrl!.trim()
+        : PassengerLegalConfig.announcementsUrl(locale);
+    await openPassengerExternalUrl(url);
+  }
+
+  Future<void> _openFanMenu(Offset anchor) async {
+    final action = await showPassengerFanMenu(
+      context: context,
+      anchorGlobal: anchor,
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case PassengerFanMenuAction.home:
+        break;
+      case PassengerFanMenuAction.safety:
+        context.pushNamed(AppRouter.safetyHub);
+      case PassengerFanMenuAction.operator:
+        context.pushNamed(AppRouter.operatorTexi);
+      case PassengerFanMenuAction.profile:
+        context.pushNamed(AppRouter.passengerProfile);
+      case PassengerFanMenuAction.history:
+        context.pushNamed(AppRouter.tripHistory);
+      case PassengerFanMenuAction.logout:
+        await _confirmLogout();
     }
   }
 
-  Future<void> _fetchNearbyDrivers() async {
-    final pos = _userPosition;
-    if (pos == null || !mounted) return;
+  Future<void> _confirmLogout() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+              decoration: BoxDecoration(
+                color: PassengerHomeLook.cardLift,
+                borderRadius: BorderRadius.circular(AppRadii.dialog),
+                border: Border.all(color: PassengerHomeLook.hairline),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.menuLogoutConfirmTitle,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      color: PassengerHomeLook.ink,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    l10n.menuLogoutConfirmMessage,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: PassengerHomeLook.muted,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxxx),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFE05140),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(AppSizes.buttonHeight),
+                    ),
+                    child: Text(l10n.menuLogoutConfirmAction),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(
+                      l10n.menuLogoutConfirmBack,
+                      style: const TextStyle(color: PassengerHomeLook.muted),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    await AuthService.logout();
+    if (!mounted) return;
+    context.goNamed(AppRouter.login);
+  }
 
-    final token = await AuthService.getValidToken();
-    if (token == null || token.isEmpty) return;
-
-    try {
-      final api = TripsApi(token: token);
-      final response = await api.getNearbyDrivers(
-        lat: pos.latitude,
-        lng: pos.longitude,
-        radiusKm: 5,
-        limit: 20,
-      );
-      if (mounted) {
-        setState(() {
-          _drivers = response.drivers;
-          _error = null;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final code = TexiBackendError.codeFromDio(e);
-      final msg = (code != null && code.startsWith('RBAC_'))
-          ? localizedTripApiError(AppLocalizations.of(context)!, code)
-          : null;
-      setState(() {
-        _drivers = [];
-        if (msg != null) _error = msg;
-      });
-    }
+  Widget _sectionLabel(BuildContext context, String text) {
+    return Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.1,
+            color: PassengerHomeLook.muted,
+          ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final toolsAsync = ref.watch(passengerInternalToolsVisibleProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final bottom = AppSafeScrolling.systemNavBottom(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.appName),
-        actions: [
-          if (toolsAsync.hasValue && toolsAsync.value == true)
-            IconButton(
-              icon: const Icon(Icons.science_outlined),
-              tooltip: 'Labs (beta)',
-              onPressed: () {
-                TexiUiFeedback.lightTap();
-                context.pushNamed(AppRouter.labs);
-              },
-            ),
-          IconButton(
-            icon: const Icon(Icons.receipt_long_outlined),
-            tooltip: AppLocalizations.of(context)!.tripHistoryMenu,
-            onPressed: () {
-              TexiUiFeedback.lightTap();
-              context.pushNamed(AppRouter.tripHistory);
-            },
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            AppAssets.loginBackground,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const ColoredBox(color: AppColors.background),
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: AppLocalizations.of(context)!.homeTooltipProfile,
-            onPressed: () {
-              TexiUiFeedback.lightTap();
-              context.pushNamed(AppRouter.passengerProfile);
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.85),
+                radius: 1.15,
+                colors: [
+                  Color(0x33FFD600),
+                  Color(0x00000000),
+                ],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.38),
+                  Colors.black.withValues(alpha: 0.62),
+                  const Color(0xF2070605),
+                ],
+                stops: const [0.0, 0.42, 1.0],
+              ),
+            ),
+          ),
+          RefreshIndicator(
+            color: PassengerHomeLook.sky,
+            backgroundColor: PassengerHomeLook.card,
+            onRefresh: () async {
+              await _probeLocation(requestIfDenied: false);
+              await Future.wait<void>([_loadPlaces(), _loadHub()]);
             },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.xxx,
+                        AppSpacing.md,
+                        AppSpacing.xxx,
+                        AppSpacing.lg,
+                      ),
+                      child: Center(
+                        child: Semantics(
+                          label: l10n.homeHubTitle,
+                          image: true,
+                          child: Image.asset(
+                            AppAssets.logoAmaBlanco,
+                            height: 40,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox(height: 40),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.xxx,
+                    0,
+                    AppSpacing.xxx,
+                    108 + bottom,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      if (!_locationReady) ...[
+                        _GpsBanner(
+                          message: l10n.homeLocationBanner,
+                          actionLabel: l10n.homeEnableLocation,
+                          loading: _requestingLocation,
+                          onAction: () async {
+                            TexiUiFeedback.lightTap();
+                            final ok = await _ensureGpsForTrip();
+                            if (!ok) _showNeedLocation();
+                          },
+                        ),
+                        const SizedBox(height: AppSpacing.xxxx),
+                      ],
+                      if (_banners.isNotEmpty)
+                        PassengerHomeBannerCarousel(
+                          banners: _banners,
+                          onTap: _openAnnouncements,
+                        )
+                      else if (_loadingHub)
+                        const _BannerSkeleton()
+                      else
+                        const SizedBox.shrink(),
+                      if (_banners.isNotEmpty || _loadingHub)
+                        const SizedBox(height: AppSpacing.section),
+                      _sectionLabel(context, l10n.homeShortcutsTitle),
+                      const SizedBox(height: AppSpacing.lg),
+                      PassengerHomeShortcutTile(
+                        icon: Icons.flight_takeoff_rounded,
+                        label: l10n.homeAirportCta,
+                        subtitle: _airport != null
+                            ? l10n.homeAirportSubtitle(_airport!.name)
+                            : l10n.homeAirportSubtitleFallback,
+                        featured: true,
+                        accent: PassengerHomeLook.sky,
+                        onTap: _openAirport,
+                      ),
+                      const SizedBox(height: AppSpacing.xxxx),
+                      TexiScalePress(
+                        minScale: 0.97,
+                        child: OutlinedButton.icon(
+                          onPressed: _openNormalFlow,
+                          icon: const Icon(Icons.explore_rounded),
+                          label: Text(l10n.homeChooseOriginDestination),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(
+                              AppSizes.buttonHeight,
+                            ),
+                            foregroundColor: PassengerHomeLook.ink,
+                            side: const BorderSide(
+                              color: PassengerHomeLook.hairline,
+                            ),
+                            backgroundColor: PassengerHomeLook.card,
+                          ),
+                        ),
+                      ),
+                      if (_saved.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.section),
+                        _sectionLabel(context, l10n.profileSavedPlaces),
+                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          height: 128,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _saved.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: AppSpacing.lg),
+                            itemBuilder: (context, i) {
+                              final p = _saved[i];
+                              return PassengerHomePlaceChip(
+                                icon: p.isFavorite
+                                    ? Icons.star_rounded
+                                    : Icons.bookmark_rounded,
+                                accent: PassengerHomeLook.violet,
+                                title: p.label,
+                                subtitle: p.address.isNotEmpty
+                                    ? p.address
+                                    : l10n.homePlaceTapToRide,
+                                onTap: () => _openPlace(
+                                  lat: p.lat,
+                                  lng: p.lng,
+                                  label: p.label,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      if (_recent.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.section),
+                        _sectionLabel(context, l10n.profileRecentPlaces),
+                        const SizedBox(height: AppSpacing.lg),
+                        SizedBox(
+                          height: 128,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _recent.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: AppSpacing.lg),
+                            itemBuilder: (context, i) {
+                              final p = _recent[i];
+                              return PassengerHomePlaceChip(
+                                icon: Icons.history_rounded,
+                                accent: PassengerHomeLook.teal,
+                                title: p.label,
+                                subtitle:
+                                    p.subtitle ?? l10n.homePlaceTapToRide,
+                                onTap: () => _openPlace(
+                                  lat: p.lat,
+                                  lng: p.lng,
+                                  label: p.label,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: AppSpacing.xxx,
+            bottom: 16 + bottom,
+            child: PassengerFanMenuFab(
+              tooltip: l10n.menuOpenTooltip,
+              onPressed: (anchor) => unawaited(_openFanMenu(anchor)),
+            ),
           ),
         ],
       ),
-      body: _buildBody(),
-      bottomSheet: _userPosition != null ? _buildBottomSheet() : null,
-      floatingActionButton: _userPosition != null
-          ? Padding(
-              padding: EdgeInsets.only(
-                bottom: 8 + AppSafeScrolling.systemNavBottom(context),
-              ),
-              child: TexiScalePress(
-                minScale: 0.96,
-                child: FloatingActionButton.extended(
-                  onPressed: () {
-                    TexiUiFeedback.lightTap();
-                    final lat = _userPosition!.latitude;
-                    final lng = _userPosition!.longitude;
-                    context.push(
-                      '/trip/request?lat=${lat.toStringAsFixed(6)}&lng=${lng.toStringAsFixed(6)}',
-                    );
-                  },
-                  icon: const Icon(Icons.directions_car_rounded),
-                  label: Text(AppLocalizations.of(context)!.homeRequestRide),
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                ),
-              ),
-            )
-          : null,
     );
   }
+}
 
-  Widget _buildBody() {
-    if (_loadingLocation) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
-        child: Column(
-          children: [
-            PremiumSkeletonBox(height: 180, radius: 22),
-            SizedBox(height: 12),
-            PremiumSkeletonBox(height: 96, radius: 16),
-            SizedBox(height: 10),
-            PremiumSkeletonBox(height: 96, radius: 16),
-          ],
-        ),
-      );
-    }
+class _GpsBanner extends StatelessWidget {
+  const _GpsBanner({
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+    required this.loading,
+  });
 
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: PremiumStateView(
-            icon: Icons.location_off_rounded,
-            title: AppLocalizations.of(context)!.homeLocationMissingTitle,
-            message: _error!,
-            actionLabel: AppLocalizations.of(context)!.homeRetry,
-            onAction: () {
-              TexiUiFeedback.lightTap();
-              setState(() {
-                _error = null;
-                _loadingLocation = true;
-              });
-              _initLocationAndDrivers();
-            },
-          ),
-        ),
-      );
-    }
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+  final bool loading;
 
-    final pos = _userPosition!;
-    final initialPosition = LatLng(pos.latitude, pos.longitude);
-
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(target: initialPosition, zoom: 15),
-      zoomControlsEnabled: false,
-      compassEnabled: false,
-      mapToolbarEnabled: false,
-      buildingsEnabled: false,
-      indoorViewEnabled: false,
-      trafficEnabled: false,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      markers: _buildMarkers(initialPosition),
-    );
-  }
-
-  Set<Marker> _buildMarkers(LatLng userLatLng) {
-    final markers = <Marker>{};
-
-    markers.add(
-      Marker(
-        markerId: const MarkerId('me'),
-        position: userLatLng,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: InfoWindow(title: AppLocalizations.of(context)!.homeMapMe),
-      ),
-    );
-
-    for (final d in _drivers) {
-      markers.add(
-        Marker(
-          markerId: MarkerId('driver_${d.driverId}'),
-          position: LatLng(d.lat, d.lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueGreen,
-          ),
-          infoWindow: InfoWindow(
-            title: AppLocalizations.of(context)!.homeMapDriverTitle(d.driverId),
-            snippet: AppLocalizations.of(
-              context,
-            )!.homeDriverDistanceKm(d.distanceKm.toStringAsFixed(1)),
-          ),
-        ),
-      );
-    }
-
-    return markers;
-  }
-
-  Widget _buildBottomSheet() {
-    final l10n = AppLocalizations.of(context)!;
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        color: PassengerHomeLook.card,
+        borderRadius: BorderRadius.circular(AppRadii.lg + 2),
+        border: Border.all(color: PassengerHomeLook.gps.withValues(alpha: 0.35)),
       ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  TexiUiFeedback.lightTap();
-                  context.pushNamed(AppRouter.passengerProfile);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: PassengerHomeLook.gps.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.location_off_rounded,
+              color: PassengerHomeLook.gps,
+              size: AppIconSizes.md,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: PassengerHomeLook.muted,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.homeProfileQuickAccess,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                            ),
-                            Text(
-                              l10n.homeProfileQuickAccessSubtitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              _drivers.isEmpty
-                  ? l10n.homeNearbyDriversNone
-                  : l10n.homeNearbyDrivers(_drivers.length),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          TextButton(
+            onPressed: loading ? null : onAction,
+            style: TextButton.styleFrom(
+              foregroundColor: PassengerHomeLook.sky,
             ),
-            const SizedBox(height: 6),
-            Text(
-              l10n.homeUpdatesEvery(_nearbyRefreshSeconds),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
+            child: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: PassengerHomeLook.sky,
+                    ),
+                  )
+                : Text(actionLabel),
+          ),
+        ],
       ),
     );
   }
+}
 
+class _BannerSkeleton extends StatelessWidget {
+  const _BannerSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 168,
+      decoration: BoxDecoration(
+        color: PassengerHomeLook.card,
+        borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+        border: Border.all(color: PassengerHomeLook.hairline),
+      ),
+    );
+  }
 }

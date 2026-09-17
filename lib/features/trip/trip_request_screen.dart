@@ -89,10 +89,20 @@ part 'trip_request_screen.scaffold.dart';
 /// Pantalla unificada: Origen, destino y precios en la misma ventana.
 /// Si originLat/originLng son null, se obtiene la ubicaciÃ³n actual al abrir.
 class TripRequestScreen extends ConsumerStatefulWidget {
-  const TripRequestScreen({super.key, this.originLat, this.originLng});
+  const TripRequestScreen({
+    super.key,
+    this.originLat,
+    this.originLng,
+    this.destLat,
+    this.destLng,
+    this.destLabel,
+  });
 
   final double? originLat;
   final double? originLng;
+  final double? destLat;
+  final double? destLng;
+  final String? destLabel;
 
   @override
   ConsumerState<TripRequestScreen> createState() => _TripRequestScreenState();
@@ -136,6 +146,8 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _pickingDestination = false;
   LatLng? _destination;
   String? _destinationDisplayLabel; // null = coordenadas o placeholder
+  /// Nombre de POI (aeropuerto, Places, guardados). No lo pisa el reverse-geocode de calle al snap de ruta.
+  bool _destinationPoiLabelLocked = false;
   LatLng? _mapCenter;
 
   /// Invalida refinados GPS diferidos si [_resolveOrigin] se vuelve a ejecutar.
