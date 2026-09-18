@@ -26,4 +26,12 @@ class AppAssets {
 
   /// Botón flotante / menú Seguridad.
   static const String safetyButton = 'assets/images/safety/boton-seguridad.png';
+
+  /// Ilustraciones 3D de viajes rápidos (hub).
+  static const String quickTripAirport =
+      'assets/images/quick_trips/airport.png';
+  static const String quickTripWork = 'assets/images/quick_trips/work.png';
+  static const String quickTripHome = 'assets/images/quick_trips/home.png';
+  static const String quickTripFavorite =
+      'assets/images/quick_trips/favorite.png';
 }

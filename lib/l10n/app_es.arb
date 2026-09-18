@@ -5,6 +5,9 @@
   },
   "appName": "TEXIAPP",
   "splashGettingLocation": "Obteniendo tu ubicación...",
+  "texiBrandLoaderA11y": "Cargando TEXIAPP",
+  "texiBrandLoaderDriverPin": "Conductor disponible",
+  "texiBrandLoaderPassengerPin": "Pasajero",
   "loginWelcome": "Bienvenido",
   "loginSubtitle": "Ingresa tu número para iniciar sesión o crear tu cuenta.",
   "loginMethodChoiceTitle": "Tu viaje empieza aquí",
@@ -99,7 +102,7 @@
   "loginPhoneInvalidBolivia": "Ingresa tu número. Ej.: 70000000",
   "homeRequestRide": "Solicitar viaje",
   "homeHubTitle": "Inicio",
-  "homeLocationBanner": "Activa la ubicación para pedir un viaje con un toque. Mientras tanto puedes ver anuncios y atajos.",
+  "homeLocationBanner": "Activa tu ubicación para iniciar tu viaje con un toque.",
   "homeEnableLocation": "Activar",
   "homeLocationNeededForTrip": "Necesitamos tu GPS para armar el viaje. Actívalo y vuelve a intentar.",
   "homeShortcutsTitle": "Viajes rápidos",
@@ -112,6 +115,24 @@
   },
   "homeAirportSubtitleFallback": "Al aeropuerto más cercano a tu ubicación",
   "homeAirportUnavailable": "No hay un aeropuerto cercano configurado.",
+  "homeAirportCardSubtitle": "Ideal para viajes y vuelos",
+  "homeWorkCta": "Ir al trabajo",
+  "homeWorkSubtitle": "Tu rutina diaria",
+  "homeHomeCta": "Ir a casa",
+  "homeHomeSubtitle": "Volver al hogar",
+  "homeFavoriteCta": "Mi favorito",
+  "homeFavoriteSubtitle": "Tus lugares especiales",
+  "homeRequestNow": "Pedir ahora",
+  "homeSlotWorkLabel": "Trabajo",
+  "homeSlotHomeLabel": "Casa",
+  "homeSlotFavoriteLabel": "Favorito",
+  "homeQuickPlacePickerTitleWork": "Marca tu trabajo",
+  "homeQuickPlacePickerTitleHome": "Marca tu casa",
+  "homeQuickPlacePickerTitleFavorite": "Marca tu favorito",
+  "homeQuickPlacePickerHint": "Mueve el mapa y deja el pin en el destino.",
+  "homeQuickPlaceSave": "Guardar",
+  "homeQuickPlaceSaved": "Ubicación guardada. Ya puedes pedir este viaje.",
+  "homeWhereToToday": "¿A dónde vamos hoy?",
   "homeChooseOriginDestination": "Elegir origen y destino",
   "homePlaceTapToRide": "Pedir viaje aquí",
   "menuHome": "Inicio",
@@ -873,6 +894,8 @@
   "passengerNotificationChannelChatDescription": "Mensajes de chat del viaje activo.",
   "passengerNotificationChannelAuthName": "Verificación de cuenta",
   "passengerNotificationChannelAuthDescription": "Avisos para completar registro o inicio de sesión. No incluye actualizaciones de viaje.",
+  "passengerNotificationChannelOpsName": "Avisos TEXIAPP",
+  "passengerNotificationChannelOpsDescription": "Novedades, beneficios y avisos de la app. Independiente de las actualizaciones de viaje.",
   "passengerNotifyWaVerifiedTitle": "Verificación recibida",
   "passengerNotifyWaVerifiedBody": "Toca para continuar en TEXIAPP.",
   "passengerLabsTitle": "Labs",
@@ -1025,6 +1048,41 @@
   "promoBenefitsEmpty": "Cuando tengas un beneficio activo de TEXIAPP, lo verás aquí.",
   "promoBenefitsHeroLead": "Códigos, apoyo de viaje y lo que TEXIAPP cubre por ti.",
   "promoBenefitsActiveTitle": "Activos ahora",
+  "promoBenefitReady": "Listo para tu próximo viaje",
+  "promoBenefitUsed": "Ya lo usaste",
+  "promoBenefitUnavailable": "Aún no aplica",
+  "promoBenefitMinFare": "En viajes de {amount} o más",
+  "@promoBenefitMinFare": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoBenefitValidDays": "Los primeros {days} días desde tu alta",
+  "@promoBenefitValidDays": {
+    "placeholders": {
+      "days": { "type": "String" }
+    }
+  },
+  "promoBenefitNoEnd": "Sin fecha límite",
+  "promoReferralTotalsTitle": "Tus invitados",
+  "promoReferralTotalInvited": "Invitados",
+  "promoReferralTotalQualified": "Ya viajaron",
+  "promoReferralTotalPending": "Pendientes",
+  "promoReferralTotalCredited": "Abonado",
+  "promoReferralTotalRemaining": "En billetera",
+  "promoBenefitsGrantedTitle": "Tus beneficios",
+  "promoBenefitAmount": "TEXIAPP cubre {amount}",
+  "@promoBenefitAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoBenefitEnds": "Hasta {date}",
+  "@promoBenefitEnds": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
   "promoCodeCardLead": "Úsalo al pedir tu próximo viaje.",
   "promoReferralCardLead": "Tus invitados viajan. Tú recibes apoyo.",
   "promoReferralCopied": "Código copiado",

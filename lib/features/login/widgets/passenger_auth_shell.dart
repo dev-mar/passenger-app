@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/app_safe_scrolling.dart';
+import '../../../core/ui/texi_brand_loader.dart';
 import 'passenger_auth_look.dart';
 
 /// Fondo + gradiente compartido del embudo login / OTP / perfil.
@@ -35,19 +36,13 @@ class PassengerAuthShell extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            AppAssets.loginBackground,
-            fit: BoxFit.cover,
-          ),
+          Image.asset(AppAssets.loginBackground, fit: BoxFit.cover),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment(0, -0.85),
                 radius: 1.15,
-                colors: [
-                  Color(0x33FFD600),
-                  Color(0x00000000),
-                ],
+                colors: [Color(0x33FFD600), Color(0x00000000)],
               ),
             ),
           ),
@@ -90,52 +85,9 @@ class PassengerAuthShell extends StatelessWidget {
             ),
           ),
           if (loading)
-            IgnorePointer(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                color: Colors.black.withValues(alpha: 0.52),
-                child: Center(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 36),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 22,
-                      vertical: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.96),
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.8,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        if (loadingMessage != null) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            loadingMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+            Positioned.fill(
+              child: AbsorbPointer(
+                child: TexiBrandLoader(message: loadingMessage),
               ),
             ),
         ],

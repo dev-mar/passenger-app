@@ -14,4 +14,10 @@ abstract final class PassengerHomeLook {
   static const Color mapCta = Color(0xFFF4F6FB);
   static const Color mapCtaFg = Color(0xFF0B1018);
   static const Color gps = Color(0xFFFFB020);
+  static const Color quickCard = Color(0xFF12243C);
+  static const Color quickCardLift = Color(0xFF173052);
+  static const Color quickBorder = Color(0xFF2A4A72);
+  static const Color recentCard = Color(0xFF101820);
+  static const Color recentCardAlt = Color(0xFF182430);
+  static const Color recentAccent = Color(0xFF3EE0C8);
 }

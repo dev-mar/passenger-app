@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,18 +14,22 @@ import '../../core/constants/app_assets.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/location/passenger_geolocation_permission_cache.dart';
 import '../../core/network/trips_api.dart';
+import '../../core/network/texi_backend_error.dart';
 import '../../core/router/app_router.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/app_safe_scrolling.dart';
-import '../../core/ui/texi_scale_press.dart';
+import '../../core/ui/passenger_success_toast.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../trip/trip_request_state.dart';
 import '../trip/widgets/passenger_fan_menu.dart';
+import 'home_quick_slots.dart';
 import 'widgets/passenger_home_banner_carousel.dart';
 import 'widgets/passenger_home_look.dart';
-import 'widgets/passenger_home_shortcut_tile.dart';
+import 'widgets/passenger_home_quick_trips_carousel.dart';
+import 'widgets/passenger_home_recent_list.dart';
+import 'widgets/passenger_home_where_to_cta.dart';
 
 /// Hub post-login: atajos, anuncios y GPS en segundo plano.
 /// No bloquea la UI si faltan permisos; el mapa de viaje sigue intacto.
@@ -155,7 +160,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (api == null) return;
     try {
       final saved = await api.getPassengerSavedPlaces(limit: 5);
-      final recent = await api.getPassengerRecentPlaces(limit: 8);
+      final recent = await api.getPassengerRecentPlaces(limit: 5);
       if (!mounted) return;
       setState(() {
         _saved = saved;
@@ -173,7 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           '${p.label.trim().toLowerCase()}|${p.lat.toStringAsFixed(4)}|${p.lng.toStringAsFixed(4)}';
       if (!seen.add(key)) continue;
       out.add(p);
-      if (out.length >= 6) break;
+      if (out.length >= 5) break;
     }
     return out;
   }
@@ -260,8 +265,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!mounted) return;
     if (airport == null) {
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.homeAirportUnavailable)),
+      PassengerSuccessToast.show(
+        context,
+        message: l10n.homeAirportUnavailable,
+        icon: Icons.flight_takeoff_rounded,
+        accent: PassengerHomeLook.sky,
       );
       return;
     }
@@ -286,11 +294,125 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _openMap(destLat: lat, destLng: lng, destLabel: label);
   }
 
+  PassengerSavedPlace? _placeForSlot(HomeQuickSlotKind kind) {
+    if (!mounted) return HomeQuickSlots.match(_saved, kind);
+    return HomeQuickSlots.match(
+      _saved,
+      kind,
+      l10n: AppLocalizations.of(context),
+    );
+  }
+
+  Future<void> _onQuickTrip(HomeQuickSlotKind kind) async {
+    if (kind == HomeQuickSlotKind.airport) {
+      await _openAirport();
+      return;
+    }
+    final place = _placeForSlot(kind);
+    if (place != null) {
+      final l10n = AppLocalizations.of(context)!;
+      await _openPlace(
+        lat: place.lat,
+        lng: place.lng,
+        label: HomeQuickSlots.tripDestLabel(
+          kind: kind,
+          l10n: l10n,
+          place: place,
+        ),
+      );
+      return;
+    }
+    await _pickAndSaveSlot(kind);
+  }
+
+  Future<void> _pickAndSaveSlot(HomeQuickSlotKind kind) async {
+    TexiUiFeedback.lightTap();
+    if (!mounted) return;
+    final origin = _position;
+    final result = await context.pushNamed(
+      AppRouter.homeQuickPlace,
+      queryParameters: {
+        'slot': kind.name,
+        if (origin != null) 'lat': origin.latitude.toStringAsFixed(6),
+        if (origin != null) 'lng': origin.longitude.toStringAsFixed(6),
+      },
+    );
+    if (!mounted || result is! HomeQuickPlaceResult) return;
+    await _persistSlot(kind, result);
+  }
+
+  Future<void> _persistSlot(
+    HomeQuickSlotKind kind,
+    HomeQuickPlaceResult point,
+  ) async {
+    final api = await _api();
+    if (api == null || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final existing = _placeForSlot(kind);
+    final label = existing?.label.trim().isNotEmpty == true
+        ? existing!.label.trim()
+        : HomeQuickSlots.storageLabel(kind, l10n);
+    final address = HomeQuickSlots.storageAddress(
+      kind: kind,
+      l10n: l10n,
+      lat: point.lat,
+      lng: point.lng,
+    );
+    try {
+      if (existing != null) {
+        await api.updatePassengerSavedPlace(
+          placeId: existing.id,
+          address: address,
+          lat: point.lat,
+          lng: point.lng,
+          isFavorite:
+              kind == HomeQuickSlotKind.favorite ? true : existing.isFavorite,
+        );
+      } else {
+        await api.savePassengerPlace(
+          label: label,
+          address: address,
+          lat: point.lat,
+          lng: point.lng,
+          isFavorite: kind == HomeQuickSlotKind.favorite,
+        );
+      }
+      await _loadPlaces();
+      if (!mounted) return;
+      PassengerSuccessToast.show(
+        context,
+        message: l10n.homeQuickPlaceSaved,
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final code = TexiBackendError.codeFromResponse(e.response?.data);
+      PassengerSuccessToast.show(
+        context,
+        message: code == 'SAVED_PLACES_LIMIT_REACHED'
+            ? l10n.tripSavedPlacesLimitReached(5)
+            : l10n.commonError,
+        icon: Icons.error_outline_rounded,
+        accent: AppColors.error,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      PassengerSuccessToast.show(
+        context,
+        message: l10n.commonError,
+        icon: Icons.error_outline_rounded,
+        accent: AppColors.error,
+      );
+    }
+  }
+
   void _showNeedLocation() {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.homeLocationNeededForTrip)),
+    PassengerSuccessToast.show(
+      context,
+      message: l10n.homeLocationNeededForTrip,
+      icon: Icons.location_off_rounded,
+      accent: PassengerHomeLook.gps,
     );
   }
 
@@ -408,6 +530,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bottom = AppSafeScrolling.systemNavBottom(context);
+    final work = _placeForSlot(HomeQuickSlotKind.work);
+    final homePlace = _placeForSlot(HomeQuickSlotKind.home);
+    final favorite = _placeForSlot(HomeQuickSlotKind.favorite);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -446,168 +571,143 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          RefreshIndicator(
-            color: PassengerHomeLook.sky,
-            backgroundColor: PassengerHomeLook.card,
-            onRefresh: () async {
-              await _probeLocation(requestIfDenied: false);
-              await Future.wait<void>([_loadPlaces(), _loadHub()]);
-            },
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.xxx,
-                        AppSpacing.md,
-                        AppSpacing.xxx,
-                        AppSpacing.lg,
-                      ),
-                      child: Center(
-                        child: Semantics(
-                          label: l10n.homeHubTitle,
-                          image: true,
-                          child: Image.asset(
-                            AppAssets.logoAmaBlanco,
-                            height: 40,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const SizedBox(height: 40),
-                          ),
-                        ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xxx,
+                    AppSpacing.md,
+                    AppSpacing.xxx,
+                    AppSpacing.lg,
+                  ),
+                  child: Center(
+                    child: Semantics(
+                      label: l10n.homeHubTitle,
+                      image: true,
+                      child: Image.asset(
+                        AppAssets.logoAmaBlanco,
+                        height: 40,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox(height: 40),
                       ),
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSpacing.xxx,
-                    0,
-                    AppSpacing.xxx,
-                    108 + bottom,
+                if (_banners.isNotEmpty || _loadingHub)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.xxx,
+                      0,
+                      AppSpacing.xxx,
+                      AppSpacing.section,
+                    ),
+                    child: _banners.isNotEmpty
+                        ? PassengerHomeBannerCarousel(
+                            banners: _banners,
+                            onTap: _openAnnouncements,
+                          )
+                        : const _BannerSkeleton(),
                   ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      if (!_locationReady) ...[
-                        _GpsBanner(
-                          message: l10n.homeLocationBanner,
-                          actionLabel: l10n.homeEnableLocation,
-                          loading: _requestingLocation,
-                          onAction: () async {
-                            TexiUiFeedback.lightTap();
-                            final ok = await _ensureGpsForTrip();
-                            if (!ok) _showNeedLocation();
-                          },
-                        ),
-                        const SizedBox(height: AppSpacing.xxxx),
-                      ],
-                      if (_banners.isNotEmpty)
-                        PassengerHomeBannerCarousel(
-                          banners: _banners,
-                          onTap: _openAnnouncements,
-                        )
-                      else if (_loadingHub)
-                        const _BannerSkeleton()
-                      else
-                        const SizedBox.shrink(),
-                      if (_banners.isNotEmpty || _loadingHub)
-                        const SizedBox(height: AppSpacing.section),
-                      _sectionLabel(context, l10n.homeShortcutsTitle),
-                      const SizedBox(height: AppSpacing.lg),
-                      PassengerHomeShortcutTile(
-                        icon: Icons.flight_takeoff_rounded,
-                        label: l10n.homeAirportCta,
-                        subtitle: _airport != null
-                            ? l10n.homeAirportSubtitle(_airport!.name)
-                            : l10n.homeAirportSubtitleFallback,
-                        featured: true,
-                        accent: PassengerHomeLook.sky,
-                        onTap: _openAirport,
+                Expanded(
+                  child: ClipRect(
+                    child: RefreshIndicator(
+                    color: PassengerHomeLook.sky,
+                    backgroundColor: PassengerHomeLook.card,
+                    onRefresh: () async {
+                      await _probeLocation(requestIfDenied: false);
+                      await Future.wait<void>([_loadPlaces(), _loadHub()]);
+                    },
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        AppSpacing.xxx,
+                        0,
+                        AppSpacing.xxx,
+                        108 + bottom,
                       ),
-                      const SizedBox(height: AppSpacing.xxxx),
-                      TexiScalePress(
-                        minScale: 0.97,
-                        child: OutlinedButton.icon(
+                      children: [
+                        if (!_locationReady) ...[
+                          _GpsBanner(
+                            message: l10n.homeLocationBanner,
+                            actionLabel: l10n.homeEnableLocation,
+                            loading: _requestingLocation,
+                            onAction: () async {
+                              TexiUiFeedback.lightTap();
+                              final ok = await _ensureGpsForTrip();
+                              if (!ok) _showNeedLocation();
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.xxxx),
+                        ],
+                        PassengerHomeWhereToCta(
+                          title: l10n.homeWhereToToday,
+                          actionLabel: l10n.homeChooseOriginDestination,
                           onPressed: _openNormalFlow,
-                          icon: const Icon(Icons.explore_rounded),
-                          label: Text(l10n.homeChooseOriginDestination),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(
-                              AppSizes.buttonHeight,
-                            ),
-                            foregroundColor: PassengerHomeLook.ink,
-                            side: const BorderSide(
-                              color: PassengerHomeLook.hairline,
-                            ),
-                            backgroundColor: PassengerHomeLook.card,
-                          ),
                         ),
-                      ),
-                      if (_saved.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.section),
-                        _sectionLabel(context, l10n.profileSavedPlaces),
-                        const SizedBox(height: AppSpacing.lg),
-                        SizedBox(
-                          height: 128,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _saved.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: AppSpacing.lg),
-                            itemBuilder: (context, i) {
-                              final p = _saved[i];
-                              return PassengerHomePlaceChip(
-                                icon: p.isFavorite
-                                    ? Icons.star_rounded
-                                    : Icons.bookmark_rounded,
-                                accent: PassengerHomeLook.violet,
-                                title: p.label,
-                                subtitle: p.address.isNotEmpty
-                                    ? p.address
-                                    : l10n.homePlaceTapToRide,
-                                onTap: () => _openPlace(
-                                  lat: p.lat,
-                                  lng: p.lng,
-                                  label: p.label,
-                                ),
-                              );
-                            },
-                          ),
+                        _sectionLabel(context, l10n.homeShortcutsTitle),
+                        const SizedBox(height: AppSpacing.xs),
+                        PassengerHomeQuickTripsCarousel(
+                          cards: [
+                            PassengerHomeQuickTripCardData(
+                              kind: HomeQuickSlotKind.airport,
+                              title: l10n.homeAirportCta,
+                              subtitle: _airport != null
+                                  ? l10n.homeAirportSubtitle(_airport!.name)
+                                  : l10n.homeAirportCardSubtitle,
+                              configured: true,
+                              onTap: () => unawaited(
+                                _onQuickTrip(HomeQuickSlotKind.airport),
+                              ),
+                            ),
+                            PassengerHomeQuickTripCardData(
+                              kind: HomeQuickSlotKind.work,
+                              title: l10n.homeWorkCta,
+                              subtitle: l10n.homeWorkSubtitle,
+                              configured: work != null,
+                              onTap: () => unawaited(
+                                _onQuickTrip(HomeQuickSlotKind.work),
+                              ),
+                            ),
+                            PassengerHomeQuickTripCardData(
+                              kind: HomeQuickSlotKind.home,
+                              title: l10n.homeHomeCta,
+                              subtitle: l10n.homeHomeSubtitle,
+                              configured: homePlace != null,
+                              onTap: () => unawaited(
+                                _onQuickTrip(HomeQuickSlotKind.home),
+                              ),
+                            ),
+                            PassengerHomeQuickTripCardData(
+                              kind: HomeQuickSlotKind.favorite,
+                              title: l10n.homeFavoriteCta,
+                              subtitle: l10n.homeFavoriteSubtitle,
+                              configured: favorite != null,
+                              onTap: () => unawaited(
+                                _onQuickTrip(HomeQuickSlotKind.favorite),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                      if (_recent.isNotEmpty) ...[
-                        const SizedBox(height: AppSpacing.section),
-                        _sectionLabel(context, l10n.profileRecentPlaces),
-                        const SizedBox(height: AppSpacing.lg),
-                        SizedBox(
-                          height: 128,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _recent.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: AppSpacing.lg),
-                            itemBuilder: (context, i) {
-                              final p = _recent[i];
-                              return PassengerHomePlaceChip(
-                                icon: Icons.history_rounded,
-                                accent: PassengerHomeLook.teal,
-                                title: p.label,
-                                subtitle:
-                                    p.subtitle ?? l10n.homePlaceTapToRide,
-                                onTap: () => _openPlace(
-                                  lat: p.lat,
-                                  lng: p.lng,
-                                  label: p.label,
-                                ),
-                              );
-                            },
+                        if (_recent.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.section),
+                          _sectionLabel(context, l10n.profileRecentPlaces),
+                          const SizedBox(height: AppSpacing.lg),
+                          PassengerHomeRecentList(
+                            places: _recent,
+                            onTap: (p) => _openPlace(
+                              lat: p.lat,
+                              lng: p.lng,
+                              label: p.label,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ]),
+                    ),
+                  ),
                   ),
                 ),
               ],
@@ -702,7 +802,7 @@ class _BannerSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 168,
+      height: 176,
       decoration: BoxDecoration(
         color: PassengerHomeLook.card,
         borderRadius: BorderRadius.circular(AppRadii.lg + 4),

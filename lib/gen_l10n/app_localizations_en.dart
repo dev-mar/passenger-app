@@ -15,6 +15,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get splashGettingLocation => 'Getting your location...';
 
   @override
+  String get texiBrandLoaderA11y => 'Loading TEXIAPP';
+
+  @override
+  String get texiBrandLoaderDriverPin => 'Available driver';
+
+  @override
+  String get texiBrandLoaderPassengerPin => 'Passenger';
+
+  @override
   String get loginWelcome => 'Welcome';
 
   @override
@@ -302,7 +311,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeLocationBanner =>
-      'Turn on location to request a ride with one tap. You can still browse ads and shortcuts.';
+      'Turn on location to start your trip with one tap.';
 
   @override
   String get homeEnableLocation => 'Enable';
@@ -328,6 +337,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAirportUnavailable => 'No nearby airport is configured.';
+
+  @override
+  String get homeAirportCardSubtitle => 'Ideal for trips and flights';
+
+  @override
+  String get homeWorkCta => 'Go to work';
+
+  @override
+  String get homeWorkSubtitle => 'Your daily routine';
+
+  @override
+  String get homeHomeCta => 'Go home';
+
+  @override
+  String get homeHomeSubtitle => 'Back to your place';
+
+  @override
+  String get homeFavoriteCta => 'My favorite';
+
+  @override
+  String get homeFavoriteSubtitle => 'Your special places';
+
+  @override
+  String get homeRequestNow => 'Request now';
+
+  @override
+  String get homeSlotWorkLabel => 'Work';
+
+  @override
+  String get homeSlotHomeLabel => 'Home';
+
+  @override
+  String get homeSlotFavoriteLabel => 'Favorite';
+
+  @override
+  String get homeQuickPlacePickerTitleWork => 'Mark your work';
+
+  @override
+  String get homeQuickPlacePickerTitleHome => 'Mark your home';
+
+  @override
+  String get homeQuickPlacePickerTitleFavorite => 'Mark your favorite';
+
+  @override
+  String get homeQuickPlacePickerHint =>
+      'Move the map and leave the pin on the destination.';
+
+  @override
+  String get homeQuickPlaceSave => 'Save';
+
+  @override
+  String get homeQuickPlaceSaved =>
+      'Location saved. You can request this trip now.';
+
+  @override
+  String get homeWhereToToday => 'Where to today?';
 
   @override
   String get homeChooseOriginDestination => 'Choose pickup and destination';
@@ -2225,6 +2290,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Alerts to finish sign-in or registration. Does not include trip updates.';
 
   @override
+  String get passengerNotificationChannelOpsName => 'TEXIAPP notices';
+
+  @override
+  String get passengerNotificationChannelOpsDescription =>
+      'News, benefits and app notices. Separate from trip updates.';
+
+  @override
   String get passengerNotifyWaVerifiedTitle => 'Verification received';
 
   @override
@@ -2618,6 +2690,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get promoBenefitsActiveTitle => 'Active now';
+
+  @override
+  String get promoBenefitReady => 'Ready for your next trip';
+
+  @override
+  String get promoBenefitUsed => 'Already used';
+
+  @override
+  String get promoBenefitUnavailable => 'Not available yet';
+
+  @override
+  String promoBenefitMinFare(String amount) {
+    return 'On trips of $amount or more';
+  }
+
+  @override
+  String promoBenefitValidDays(String days) {
+    return 'The first $days days after you join';
+  }
+
+  @override
+  String get promoBenefitNoEnd => 'No end date';
+
+  @override
+  String get promoReferralTotalsTitle => 'Your guests';
+
+  @override
+  String get promoReferralTotalInvited => 'Invited';
+
+  @override
+  String get promoReferralTotalQualified => 'Completed a trip';
+
+  @override
+  String get promoReferralTotalPending => 'Pending';
+
+  @override
+  String get promoReferralTotalCredited => 'Credited';
+
+  @override
+  String get promoReferralTotalRemaining => 'In wallet';
+
+  @override
+  String get promoBenefitsGrantedTitle => 'Your benefits';
+
+  @override
+  String promoBenefitAmount(String amount) {
+    return 'TEXIAPP covers $amount';
+  }
+
+  @override
+  String promoBenefitEnds(String date) {
+    return 'Until $date';
+  }
 
   @override
   String get promoCodeCardLead => 'Use it when you request your next trip.';

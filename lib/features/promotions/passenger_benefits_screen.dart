@@ -7,13 +7,14 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/config/app_config.dart';
 import '../../core/device/passenger_device_identity.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../core/ui/app_safe_scrolling.dart';
 import '../../core/ui/texi_motion.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../home/widgets/passenger_home_look.dart';
 import 'passenger_promotions_repository.dart';
+import 'widgets/passenger_benefits_icons.dart';
 import 'widgets/passenger_benefits_ui.dart';
 
 /// Beneficios TEXIAPP: listado, código y referido. Vacío si el motor está apagado.
@@ -149,6 +150,10 @@ class _PassengerBenefitsScreenState
     return '$d/$m/${local.year}';
   }
 
+  String _money(double value) {
+    return formatMoney(value, currencyCode: 'BOB', decimals: 1);
+  }
+
   String _inviteeLabel(AppLocalizations l10n, String status) {
     switch (status) {
       case 'granted':
@@ -160,21 +165,67 @@ class _PassengerBenefitsScreenState
     }
   }
 
+  String _statusLabel(AppLocalizations l10n, PassengerPromotionItem item) {
+    if (item.isUsed) return l10n.promoBenefitUsed;
+    if (item.isEligible) return l10n.promoBenefitReady;
+    return l10n.promoBenefitUnavailable;
+  }
+
+  BenefitsIconKind _kindFor(PassengerPromotionItem item) {
+    if (item.isUsed) return BenefitsIconKind.check;
+    switch (item.audience) {
+      case 'new_registrations':
+        return BenefitsIconKind.gift;
+      case 'assigned':
+        return BenefitsIconKind.ticket;
+      default:
+        return BenefitsIconKind.spark;
+    }
+  }
+
+  String _titleFor(AppLocalizations l10n, PassengerPromotionItem item) {
+    final title = item.title?.trim();
+    if (title != null && title.isNotEmpty) return title;
+    if (item.audience == 'new_registrations') {
+      return l10n.promoBenefitsGrantedTitle;
+    }
+    return item.rulesText.trim().isNotEmpty
+        ? item.rulesText
+        : l10n.promoBenefitsGrantedTitle;
+  }
+
+  List<String> _chipsFor(AppLocalizations l10n, PassengerPromotionItem item) {
+    final chips = <String>[];
+    if (item.minFare != null && item.minFare! > 0) {
+      chips.add(l10n.promoBenefitMinFare(_money(item.minFare!)));
+    }
+    if (item.validDays != null && item.validDays! > 0) {
+      chips.add(l10n.promoBenefitValidDays('${item.validDays}'));
+    }
+    if (item.endsAt != null) {
+      chips.add(l10n.promoBenefitEnds(_formatDate(item.endsAt!)));
+    } else {
+      chips.add(l10n.promoBenefitNoEnd);
+    }
+    return chips;
+  }
+
   InputDecoration _fieldDecoration({
     required String hint,
     required IconData icon,
-    Color accent = AppColors.primary,
+    Color accent = PassengerHomeLook.sky,
   }) {
     final radius = BorderRadius.circular(AppRadii.md);
     return InputDecoration(
       hintText: hint,
+      hintStyle: const TextStyle(color: PassengerHomeLook.muted),
       prefixIcon: Icon(icon, color: accent, size: 20),
       filled: true,
-      fillColor: BenefitsVisual.cardHi,
+      fillColor: PassengerHomeLook.cardLift,
       counterText: '',
       enabledBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        borderSide: const BorderSide(color: PassengerHomeLook.hairline),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
@@ -198,11 +249,17 @@ class _PassengerBenefitsScreenState
     final showClaim = !claimed && !graceClosed;
     final wallet = _snap?.wallet;
     final invitees = _snap?.invitees ?? const <PassengerReferralInvitee>[];
+    final totals = _snap?.totals ?? const PassengerReferralTotals();
     final hasWallet = wallet != null && wallet.balance > 0;
+    final readyCount = items.where((e) => e.isEligible).length;
+    final showReferralTotals =
+        totals.invitedCount > 0 ||
+        totals.creditedAmount > 0 ||
+        invitees.isNotEmpty;
     var stagger = 0;
 
     return Scaffold(
-      backgroundColor: BenefitsVisual.canvas,
+      backgroundColor: PassengerHomeLook.canvas,
       body: Stack(
         children: [
           const BenefitsGlowBackdrop(),
@@ -224,7 +281,7 @@ class _PassengerBenefitsScreenState
                           }
                         },
                         icon: const Icon(Icons.arrow_back_rounded),
-                        color: AppColors.primary,
+                        color: PassengerHomeLook.ink,
                         tooltip: MaterialLocalizations.of(
                           context,
                         ).backButtonTooltip,
@@ -236,7 +293,7 @@ class _PassengerBenefitsScreenState
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
+                                color: PassengerHomeLook.ink,
                                 letterSpacing: -0.3,
                               ),
                         ),
@@ -253,7 +310,7 @@ class _PassengerBenefitsScreenState
                             height: 40,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              color: AppColors.primary,
+                              color: PassengerHomeLook.sky,
                             ),
                           ),
                         )
@@ -275,11 +332,7 @@ class _PassengerBenefitsScreenState
                                     ? l10n.promoReferralWalletLabel
                                     : null,
                                 walletAmount: hasWallet
-                                    ? formatMoney(
-                                        wallet.balance,
-                                        currencyCode: 'BOB',
-                                        decimals: 1,
-                                      )
+                                    ? _money(wallet.balance)
                                     : null,
                                 walletMeta: [
                                   if (hasWallet && wallet.expiresAt != null)
@@ -290,11 +343,7 @@ class _PassengerBenefitsScreenState
                                       wallet.maxPerTrip != null &&
                                       wallet.maxPerTrip! > 0)
                                     l10n.promoReferralMaxPerTrip(
-                                      formatMoney(
-                                        wallet.maxPerTrip!,
-                                        currencyCode: 'BOB',
-                                        decimals: 1,
-                                      ),
+                                      _money(wallet.maxPerTrip!),
                                     ),
                                 ],
                                 emptyMessage: items.isEmpty
@@ -304,11 +353,24 @@ class _PassengerBenefitsScreenState
                                     ? l10n.promoBenefitsActiveTitle
                                     : null,
                                 activeCount: items.isNotEmpty
-                                    ? items.length
+                                    ? readyCount
                                     : null,
                               ),
                             ),
                             if (items.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.section),
+                              BenefitsStagger(
+                                animation: _enter,
+                                index: stagger++,
+                                child: Text(
+                                  l10n.promoBenefitsGrantedTitle,
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
+                                        color: PassengerHomeLook.ink,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
                               const SizedBox(height: AppSpacing.xl),
                               ...items.map(
                                 (item) => Padding(
@@ -318,8 +380,19 @@ class _PassengerBenefitsScreenState
                                   child: BenefitsStagger(
                                     animation: _enter,
                                     index: stagger++,
-                                    child: BenefitsRuleCard(
-                                      text: item.rulesText,
+                                    child: BenefitsGrantCard(
+                                      title: _titleFor(l10n, item),
+                                      statusLabel: _statusLabel(l10n, item),
+                                      used: item.isUsed,
+                                      ready: item.isEligible,
+                                      kind: _kindFor(item),
+                                      amountLabel: item.discountAmount != null
+                                          ? l10n.promoBenefitAmount(
+                                              _money(item.discountAmount!),
+                                            )
+                                          : null,
+                                      chips: _chipsFor(l10n, item),
+                                      rulesText: item.rulesText,
                                     ),
                                   ),
                                 ),
@@ -331,9 +404,13 @@ class _PassengerBenefitsScreenState
                               index: stagger++,
                               child: BenefitsPanel(
                                 icon: Icons.confirmation_number_outlined,
-                                accent: AppColors.primary,
+                                accent: PassengerHomeLook.sky,
                                 title: l10n.promoCodeLabel,
                                 subtitle: l10n.promoCodeCardLead,
+                                leading: const BenefitsCanvasOrb(
+                                  kind: BenefitsIconKind.ticket,
+                                  accent: PassengerHomeLook.sky,
+                                ),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
@@ -342,6 +419,9 @@ class _PassengerBenefitsScreenState
                                       controller: _codeCtrl,
                                       textCapitalization:
                                           TextCapitalization.characters,
+                                      style: const TextStyle(
+                                        color: PassengerHomeLook.ink,
+                                      ),
                                       decoration: _fieldDecoration(
                                         hint: l10n.promoCodeHint,
                                         icon: Icons.vpn_key_rounded,
@@ -363,9 +443,13 @@ class _PassengerBenefitsScreenState
                               index: stagger++,
                               child: BenefitsPanel(
                                 icon: Icons.handshake_outlined,
-                                accent: BenefitsVisual.teal,
+                                accent: PassengerHomeLook.teal,
                                 title: l10n.promoReferralTitle,
                                 subtitle: l10n.promoReferralCardLead,
+                                leading: const BenefitsCanvasOrb(
+                                  kind: BenefitsIconKind.people,
+                                  accent: PassengerHomeLook.teal,
+                                ),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
@@ -378,7 +462,7 @@ class _PassengerBenefitsScreenState
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                              color: AppColors.textSecondary,
+                                              color: PassengerHomeLook.muted,
                                               fontWeight: FontWeight.w600,
                                             ),
                                       ),
@@ -395,7 +479,7 @@ class _PassengerBenefitsScreenState
                                       const SizedBox(height: AppSpacing.xl),
                                       BenefitsStatusNote(
                                         icon: Icons.verified_rounded,
-                                        color: BenefitsVisual.teal,
+                                        color: PassengerHomeLook.teal,
                                         text: l10n.promoReferralClaimed,
                                       ),
                                     ],
@@ -403,7 +487,7 @@ class _PassengerBenefitsScreenState
                                       const SizedBox(height: AppSpacing.xl),
                                       BenefitsStatusNote(
                                         icon: Icons.schedule_rounded,
-                                        color: AppColors.textSecondary,
+                                        color: PassengerHomeLook.muted,
                                         text: l10n.promoReferralGraceClosed,
                                       ),
                                     ],
@@ -415,7 +499,7 @@ class _PassengerBenefitsScreenState
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                              color: AppColors.textSecondary,
+                                              color: PassengerHomeLook.muted,
                                               fontWeight: FontWeight.w600,
                                             ),
                                       ),
@@ -425,10 +509,13 @@ class _PassengerBenefitsScreenState
                                         textCapitalization:
                                             TextCapitalization.characters,
                                         maxLength: 16,
+                                        style: const TextStyle(
+                                          color: PassengerHomeLook.ink,
+                                        ),
                                         decoration: _fieldDecoration(
                                           hint: l10n.promoReferralClaimLabel,
                                           icon: Icons.person_add_alt_1_rounded,
-                                          accent: BenefitsVisual.violet,
+                                          accent: PassengerHomeLook.violet,
                                         ),
                                       ),
                                       const SizedBox(height: AppSpacing.xl),
@@ -443,15 +530,63 @@ class _PassengerBenefitsScreenState
                                 ),
                               ),
                             ),
-                            if (invitees.isNotEmpty) ...[
+                            if (showReferralTotals) ...[
                               const SizedBox(height: AppSpacing.section),
                               BenefitsStagger(
                                 animation: _enter,
                                 index: stagger++,
                                 child: BenefitsPanel(
                                   icon: Icons.groups_rounded,
-                                  accent: BenefitsVisual.sky,
+                                  accent: PassengerHomeLook.violet,
+                                  title: l10n.promoReferralTotalsTitle,
+                                  leading: const BenefitsCanvasOrb(
+                                    kind: BenefitsIconKind.people,
+                                    accent: PassengerHomeLook.violet,
+                                  ),
+                                  child: BenefitsTotalsGrid(
+                                    tiles: [
+                                      BenefitsTotalTile(
+                                        label: l10n.promoReferralTotalInvited,
+                                        value: '${totals.invitedCount}',
+                                        kind: BenefitsIconKind.people,
+                                        accent: PassengerHomeLook.sky,
+                                      ),
+                                      BenefitsTotalTile(
+                                        label: l10n.promoReferralTotalQualified,
+                                        value: '${totals.qualifiedCount}',
+                                        kind: BenefitsIconKind.check,
+                                        accent: PassengerHomeLook.teal,
+                                      ),
+                                      BenefitsTotalTile(
+                                        label: l10n.promoReferralTotalPending,
+                                        value: '${totals.pendingCount}',
+                                        kind: BenefitsIconKind.clock,
+                                        accent: PassengerHomeLook.violet,
+                                      ),
+                                      BenefitsTotalTile(
+                                        label: l10n.promoReferralTotalCredited,
+                                        value: _money(totals.creditedAmount),
+                                        kind: BenefitsIconKind.wallet,
+                                        accent: PassengerHomeLook.teal,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (invitees.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xl),
+                              BenefitsStagger(
+                                animation: _enter,
+                                index: stagger++,
+                                child: BenefitsPanel(
+                                  icon: Icons.groups_rounded,
+                                  accent: PassengerHomeLook.sky,
                                   title: l10n.promoReferralInviteesTitle,
+                                  leading: const BenefitsCanvasOrb(
+                                    kind: BenefitsIconKind.clock,
+                                    accent: PassengerHomeLook.sky,
+                                  ),
                                   child: Column(
                                     children: [
                                       for (

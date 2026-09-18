@@ -14,10 +14,27 @@ class PassengerPromotionItem {
   const PassengerPromotionItem({
     required this.campaignId,
     required this.rulesText,
+    this.title,
+    this.audience,
+    this.status = 'eligible',
+    this.discountAmount,
+    this.minFare,
+    this.validDays,
+    this.endsAt,
   });
 
   final String campaignId;
   final String rulesText;
+  final String? title;
+  final String? audience;
+  final String status;
+  final double? discountAmount;
+  final double? minFare;
+  final int? validDays;
+  final DateTime? endsAt;
+
+  bool get isUsed => status == 'used';
+  bool get isEligible => status == 'eligible';
 }
 
 class PassengerReferralWallet {
@@ -38,6 +55,22 @@ class PassengerReferralInvitee {
   final String status;
 }
 
+class PassengerReferralTotals {
+  const PassengerReferralTotals({
+    this.invitedCount = 0,
+    this.qualifiedCount = 0,
+    this.pendingCount = 0,
+    this.creditedAmount = 0,
+    this.remainingAmount = 0,
+  });
+
+  final int invitedCount;
+  final int qualifiedCount;
+  final int pendingCount;
+  final double creditedAmount;
+  final double remainingAmount;
+}
+
 class PassengerPromotionsSnapshot {
   const PassengerPromotionsSnapshot({
     required this.items,
@@ -46,6 +79,7 @@ class PassengerPromotionsSnapshot {
     this.claimGraceEndsAt,
     this.wallet,
     this.invitees = const [],
+    this.totals = const PassengerReferralTotals(),
   });
 
   final List<PassengerPromotionItem> items;
@@ -54,6 +88,7 @@ class PassengerPromotionsSnapshot {
   final DateTime? claimGraceEndsAt;
   final PassengerReferralWallet? wallet;
   final List<PassengerReferralInvitee> invitees;
+  final PassengerReferralTotals totals;
 }
 
 class PassengerPromotionsRepository {
@@ -127,6 +162,9 @@ class PassengerPromotionsRepository {
       claimGraceEndsAt: parsed.claimGraceEndsAt ?? base.claimGraceEndsAt,
       wallet: parsed.wallet ?? base.wallet,
       invitees: parsed.invitees.isNotEmpty ? parsed.invitees : base.invitees,
+      totals: parsed.totals.invitedCount > 0 || parsed.totals.creditedAmount > 0
+          ? parsed.totals
+          : base.totals,
     );
   }
 
@@ -140,10 +178,24 @@ class PassengerPromotionsRepository {
       for (final raw in itemsRaw) {
         if (raw is! Map) continue;
         final rules = _rulesFromCopy(raw['displayCopy'], languageCode);
+        DateTime? ends;
+        final rawEnds = raw['endsAt'] ?? raw['ends_at'];
+        if (rawEnds is String && rawEnds.trim().isNotEmpty) {
+          ends = DateTime.tryParse(rawEnds);
+        }
         items.add(
           PassengerPromotionItem(
             campaignId: raw['campaignId']?.toString() ?? '',
             rulesText: rules,
+            title: _titleFromCopy(raw['displayCopy'], languageCode) ??
+                raw['name']?.toString(),
+            audience: raw['audience']?.toString(),
+            status: raw['status']?.toString() ??
+                (raw['eligible'] == true ? 'eligible' : 'unavailable'),
+            discountAmount: _asDouble(raw['discountAmount'] ?? raw['discount_amount']),
+            minFare: _asDouble(raw['minFare'] ?? raw['min_fare']),
+            validDays: _asInt(raw['validDays'] ?? raw['valid_days']),
+            endsAt: ends,
           ),
         );
       }
@@ -159,6 +211,7 @@ class PassengerPromotionsRepository {
       claimGraceEndsAt: fromReferral.claimGraceEndsAt,
       wallet: fromReferral.wallet,
       invitees: fromReferral.invitees,
+      totals: fromReferral.totals,
     );
   }
 
@@ -208,7 +261,64 @@ class PassengerPromotionsRepository {
       claimGraceEndsAt: grace,
       wallet: wallet,
       invitees: invitees,
+      totals: _parseTotals(data['totals'], invitees, wallet),
     );
+  }
+
+  static PassengerReferralTotals _parseTotals(
+    dynamic raw,
+    List<PassengerReferralInvitee> invitees,
+    PassengerReferralWallet? wallet,
+  ) {
+    if (raw is Map) {
+      final map = Map<String, dynamic>.from(raw);
+      return PassengerReferralTotals(
+        invitedCount: _asInt(map['invitedCount'] ?? map['invited_count']) ?? invitees.length,
+        qualifiedCount: _asInt(map['qualifiedCount'] ?? map['qualified_count']) ??
+            invitees.where((e) => e.status == 'granted').length,
+        pendingCount: _asInt(map['pendingCount'] ?? map['pending_count']) ??
+            invitees.where((e) => e.status != 'granted' && e.status != 'rejected').length,
+        creditedAmount: _asDouble(map['creditedAmount'] ?? map['credited_amount']) ?? 0,
+        remainingAmount: _asDouble(map['remainingAmount'] ?? map['remaining_amount']) ??
+            (wallet?.balance ?? 0),
+      );
+    }
+    return PassengerReferralTotals(
+      invitedCount: invitees.length,
+      qualifiedCount: invitees.where((e) => e.status == 'granted').length,
+      pendingCount: invitees.where((e) => e.status != 'granted' && e.status != 'rejected').length,
+      remainingAmount: wallet?.balance ?? 0,
+    );
+  }
+
+  static double? _asDouble(dynamic raw) {
+    if (raw is num) return raw.toDouble();
+    if (raw is String) return double.tryParse(raw);
+    return null;
+  }
+
+  static int? _asInt(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.round();
+    if (raw is String) return int.tryParse(raw);
+    return null;
+  }
+
+  static String? _titleFromCopy(dynamic copy, String? languageCode) {
+    if (copy is! Map) return null;
+    final map = Map<String, dynamic>.from(copy);
+    String pick(String loc) {
+      final v = map[loc];
+      if (v is String && v.trim().isNotEmpty) return v.trim();
+      if (v is Map) return v['title']?.toString().trim() ?? '';
+      return '';
+    }
+    if (languageCode == 'en') {
+      final en = pick('en');
+      if (en.isNotEmpty) return en;
+    }
+    final es = pick('es');
+    return es.isNotEmpty ? es : null;
   }
 
   static String _rulesFromCopy(dynamic copy, String? languageCode) {

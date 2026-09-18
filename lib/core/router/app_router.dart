@@ -13,6 +13,8 @@ import '../../features/login/verify_code_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
 import '../../features/login/passenger_phone_link_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/home/home_quick_place_picker_screen.dart';
+import '../../features/home/home_quick_slots.dart';
 import '../../features/profile/passenger_profile_preview_screen.dart';
 import '../../features/promotions/passenger_benefits_screen.dart';
 import '../../features/support/passenger_support_help_screen.dart';
@@ -39,6 +41,7 @@ class AppRouter {
   static const String profileSetup = 'profile_setup';
   static const String phoneLink = 'phone_link';
   static const String home = 'home';
+  static const String homeQuickPlace = 'home_quick_place';
   static const String passengerProfile = 'passenger_profile';
   static const String benefits = 'passenger_benefits';
   static const String supportHelp = 'support_help';
@@ -69,6 +72,7 @@ class AppRouter {
   static bool _isProtectedPath(String location) {
     if (_publicPaths.contains(location)) return false;
     if (location == '/home' ||
+        location.startsWith('/home/') ||
         location == '/profile' ||
         location == '/benefits' ||
         location == '/support' ||
@@ -236,6 +240,21 @@ class AppRouter {
         path: '/home',
         name: home,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/home/quick-place',
+        name: homeQuickPlace,
+        builder: (context, state) {
+          final q = state.uri.queryParameters;
+          final slot = HomeQuickSlots.parse(q['slot']) ?? HomeQuickSlotKind.home;
+          final lat = q['lat'] != null ? double.tryParse(q['lat']!) : null;
+          final lng = q['lng'] != null ? double.tryParse(q['lng']!) : null;
+          return HomeQuickPlacePickerScreen(
+            slot: slot,
+            initialLat: lat,
+            initialLng: lng,
+          );
+        },
       ),
       GoRoute(
         path: '/profile',

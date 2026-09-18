@@ -19,6 +19,7 @@ class PassengerNotificationService {
 
   static const String _channelId = 'texi_passenger_trip_updates';
   static const String _authChannelId = 'texi_passenger_auth_verification';
+  static const String _opsChannelId = 'texi_passenger_ops_notices';
   static const int _waInboundVerifiedNotificationId = 900001;
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -64,12 +65,21 @@ class PassengerNotificationService {
       playSound: true,
       enableVibration: true,
     );
+    final opsChannel = AndroidNotificationChannel(
+      _opsChannelId,
+      l10n.passengerNotificationChannelOpsName,
+      description: l10n.passengerNotificationChannelOpsDescription,
+      importance: Importance.defaultImportance,
+      playSound: true,
+      enableVibration: true,
+    );
     final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidPlugin?.createNotificationChannel(tripChannel);
     await androidPlugin?.createNotificationChannel(authChannel);
+    await androidPlugin?.createNotificationChannel(opsChannel);
     _initialized = true;
   }
 
@@ -115,13 +125,18 @@ class PassengerNotificationService {
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
       return;
     }
+    final isOps = message.data['event']?.toString() == 'ops_notice';
     final tripId =
         message.data['tripId']?.toString() ??
         message.data['trip_id']?.toString();
+    final campaignId = message.data['campaignId']?.toString();
     await inst._showRaw(
       title: title?.isNotEmpty == true ? title! : 'TEXIAPP',
       body: body ?? '',
-      payload: tripId,
+      payload: isOps
+          ? 'ops:${campaignId ?? ''}'
+          : tripId,
+      opsNotice: isOps,
     );
   }
 
@@ -141,10 +156,17 @@ class PassengerNotificationService {
         (n?.body?.trim().isNotEmpty == true
             ? n!.body!.trim()
             : (message.data['body']?.toString() ?? ''));
+    final isOps = message.data['event']?.toString() == 'ops_notice';
     final tripId =
         message.data['tripId']?.toString() ??
         message.data['trip_id']?.toString();
-    await _showRaw(title: title, body: body, payload: tripId);
+    final campaignId = message.data['campaignId']?.toString();
+    await _showRaw(
+      title: title,
+      body: body,
+      payload: isOps ? 'ops:${campaignId ?? ''}' : tripId,
+      opsNotice: isOps,
+    );
   }
 
   ({String title, String body})? _copyForPickupGraceFcm(
@@ -189,16 +211,21 @@ class PassengerNotificationService {
     required String title,
     required String body,
     String? payload,
+    bool opsNotice = false,
   }) async {
     if (!_initialized) await initialize();
     final l10n = _l10nForCurrentLocale();
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        _channelId,
-        l10n.passengerNotificationChannelName,
-        channelDescription: l10n.passengerNotificationChannelFcmDescription,
-        importance: Importance.high,
-        priority: Priority.high,
+        opsNotice ? _opsChannelId : _channelId,
+        opsNotice
+            ? l10n.passengerNotificationChannelOpsName
+            : l10n.passengerNotificationChannelName,
+        channelDescription: opsNotice
+            ? l10n.passengerNotificationChannelOpsDescription
+            : l10n.passengerNotificationChannelFcmDescription,
+        importance: opsNotice ? Importance.defaultImportance : Importance.high,
+        priority: opsNotice ? Priority.defaultPriority : Priority.high,
         playSound: true,
         enableVibration: true,
       ),

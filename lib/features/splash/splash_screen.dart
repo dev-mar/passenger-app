@@ -2,12 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/storage/passenger_auth_lockout_storage.dart';
 import '../../core/storage/trip_session_storage.dart';
-import '../../core/widgets/app_logo.dart';
-import '../../gen_l10n/app_localizations.dart';
+import '../../core/ui/texi_brand_loader.dart';
 import '../login/utils/passenger_play_review_credentials.dart';
 import '../../core/version/app_version_gate.dart';
 import '../trip/trip_request_state.dart';
@@ -20,37 +18,18 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _intro;
-  late Animation<double> _opacity;
-  late Animation<double> _scale;
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
-    _intro = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _opacity = CurvedAnimation(parent: _intro, curve: Curves.easeOutCubic);
-    _scale = Tween<double>(begin: 0.88, end: 1.0).animate(
-      CurvedAnimation(parent: _intro, curve: Curves.easeOutBack),
-    );
-    _intro.forward();
     // ignore: discarded_futures
     _navigateAfterDelay();
   }
 
-  @override
-  void dispose() {
-    _intro.dispose();
-    super.dispose();
-  }
-
-  /// Mínimo amortiguador para que la animación de marca no parpadee.
-  static const Duration _minBrandDwell = Duration(milliseconds: 400);
+  /// Tiempo mínimo para que radar + logo se perciban al abrir la app.
+  static const Duration _minBrandDwell = Duration(milliseconds: 2000);
 
   /// Tope duro del splash: nunca quedarse pegado en release.
   static const Duration _bootHardDeadline = Duration(seconds: 6);
@@ -99,10 +78,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _navigated = true;
     context.goNamed(
       'auth_lockout',
-      queryParameters: {
-        'cc': countryCode,
-        'phone': phoneNumber,
-      },
+      queryParameters: {'cc': countryCode, 'phone': phoneNumber},
     );
   }
 
@@ -183,51 +159,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topCenter,
-            radius: 1.15,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.08),
-              AppColors.background,
-              AppColors.background,
-            ],
-            stops: const [0.0, 0.45, 1.0],
-          ),
-        ),
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _intro,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _opacity,
-                child: ScaleTransition(
-                  scale: _scale,
-                  child: child,
-                ),
-              );
-            },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const AppLogo(width: 120, height: 120),
-                const SizedBox(height: 24),
-                Text(
-                  AppLocalizations.of(context)?.appName ?? 'TEXIAPP',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.4,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return const Scaffold(
+      backgroundColor: Color(0xFF050505),
+      body: TexiBrandLoader(),
     );
   }
 }

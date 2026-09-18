@@ -110,6 +110,24 @@ abstract class AppLocalizations {
   /// **'Getting your location...'**
   String get splashGettingLocation;
 
+  /// No description provided for @texiBrandLoaderA11y.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading TEXIAPP'**
+  String get texiBrandLoaderA11y;
+
+  /// No description provided for @texiBrandLoaderDriverPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Available driver'**
+  String get texiBrandLoaderDriverPin;
+
+  /// No description provided for @texiBrandLoaderPassengerPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Passenger'**
+  String get texiBrandLoaderPassengerPin;
+
   /// No description provided for @loginWelcome.
   ///
   /// In en, this message translates to:
@@ -617,7 +635,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeLocationBanner.
   ///
   /// In en, this message translates to:
-  /// **'Turn on location to request a ride with one tap. You can still browse ads and shortcuts.'**
+  /// **'Turn on location to start your trip with one tap.'**
   String get homeLocationBanner;
 
   /// No description provided for @homeEnableLocation.
@@ -661,6 +679,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No nearby airport is configured.'**
   String get homeAirportUnavailable;
+
+  /// No description provided for @homeAirportCardSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ideal for trips and flights'**
+  String get homeAirportCardSubtitle;
+
+  /// No description provided for @homeWorkCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to work'**
+  String get homeWorkCta;
+
+  /// No description provided for @homeWorkSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily routine'**
+  String get homeWorkSubtitle;
+
+  /// No description provided for @homeHomeCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Go home'**
+  String get homeHomeCta;
+
+  /// No description provided for @homeHomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to your place'**
+  String get homeHomeSubtitle;
+
+  /// No description provided for @homeFavoriteCta.
+  ///
+  /// In en, this message translates to:
+  /// **'My favorite'**
+  String get homeFavoriteCta;
+
+  /// No description provided for @homeFavoriteSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your special places'**
+  String get homeFavoriteSubtitle;
+
+  /// No description provided for @homeRequestNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Request now'**
+  String get homeRequestNow;
+
+  /// No description provided for @homeSlotWorkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get homeSlotWorkLabel;
+
+  /// No description provided for @homeSlotHomeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeSlotHomeLabel;
+
+  /// No description provided for @homeSlotFavoriteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get homeSlotFavoriteLabel;
+
+  /// No description provided for @homeQuickPlacePickerTitleWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark your work'**
+  String get homeQuickPlacePickerTitleWork;
+
+  /// No description provided for @homeQuickPlacePickerTitleHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark your home'**
+  String get homeQuickPlacePickerTitleHome;
+
+  /// No description provided for @homeQuickPlacePickerTitleFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark your favorite'**
+  String get homeQuickPlacePickerTitleFavorite;
+
+  /// No description provided for @homeQuickPlacePickerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Move the map and leave the pin on the destination.'**
+  String get homeQuickPlacePickerHint;
+
+  /// No description provided for @homeQuickPlaceSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get homeQuickPlaceSave;
+
+  /// No description provided for @homeQuickPlaceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Location saved. You can request this trip now.'**
+  String get homeQuickPlaceSaved;
+
+  /// No description provided for @homeWhereToToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Where to today?'**
+  String get homeWhereToToday;
 
   /// No description provided for @homeChooseOriginDestination.
   ///
@@ -4046,6 +4172,18 @@ abstract class AppLocalizations {
   /// **'Alerts to finish sign-in or registration. Does not include trip updates.'**
   String get passengerNotificationChannelAuthDescription;
 
+  /// No description provided for @passengerNotificationChannelOpsName.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP notices'**
+  String get passengerNotificationChannelOpsName;
+
+  /// No description provided for @passengerNotificationChannelOpsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'News, benefits and app notices. Separate from trip updates.'**
+  String get passengerNotificationChannelOpsDescription;
+
   /// No description provided for @passengerNotifyWaVerifiedTitle.
   ///
   /// In en, this message translates to:
@@ -4726,6 +4864,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Active now'**
   String get promoBenefitsActiveTitle;
+
+  /// No description provided for @promoBenefitReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for your next trip'**
+  String get promoBenefitReady;
+
+  /// No description provided for @promoBenefitUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Already used'**
+  String get promoBenefitUsed;
+
+  /// No description provided for @promoBenefitUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available yet'**
+  String get promoBenefitUnavailable;
+
+  /// No description provided for @promoBenefitMinFare.
+  ///
+  /// In en, this message translates to:
+  /// **'On trips of {amount} or more'**
+  String promoBenefitMinFare(String amount);
+
+  /// No description provided for @promoBenefitValidDays.
+  ///
+  /// In en, this message translates to:
+  /// **'The first {days} days after you join'**
+  String promoBenefitValidDays(String days);
+
+  /// No description provided for @promoBenefitNoEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'No end date'**
+  String get promoBenefitNoEnd;
+
+  /// No description provided for @promoReferralTotalsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your guests'**
+  String get promoReferralTotalsTitle;
+
+  /// No description provided for @promoReferralTotalInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited'**
+  String get promoReferralTotalInvited;
+
+  /// No description provided for @promoReferralTotalQualified.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed a trip'**
+  String get promoReferralTotalQualified;
+
+  /// No description provided for @promoReferralTotalPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get promoReferralTotalPending;
+
+  /// No description provided for @promoReferralTotalCredited.
+  ///
+  /// In en, this message translates to:
+  /// **'Credited'**
+  String get promoReferralTotalCredited;
+
+  /// No description provided for @promoReferralTotalRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'In wallet'**
+  String get promoReferralTotalRemaining;
+
+  /// No description provided for @promoBenefitsGrantedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your benefits'**
+  String get promoBenefitsGrantedTitle;
+
+  /// No description provided for @promoBenefitAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP covers {amount}'**
+  String promoBenefitAmount(String amount);
+
+  /// No description provided for @promoBenefitEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String promoBenefitEnds(String date);
 
   /// No description provided for @promoCodeCardLead.
   ///

@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/network/trips_api.dart';
 import 'passenger_home_look.dart';
 
-/// Carrusel de imágenes (estilo Yape): swipe + auto-avance. Solo imagen.
+/// Carrusel de anuncios con transición vertical.
+/// Automático: de abajo hacia arriba. Con el dedo: ambos sentidos.
 class PassengerHomeBannerCarousel extends StatefulWidget {
   const PassengerHomeBannerCarousel({
     super.key,
@@ -33,7 +35,7 @@ class _PassengerHomeBannerCarouselState
   @override
   void initState() {
     super.initState();
-    _page = PageController(viewportFraction: 0.92);
+    _page = PageController();
     _restartTimer();
   }
 
@@ -61,8 +63,8 @@ class _PassengerHomeBannerCarouselState
       final next = (_index + 1) % widget.banners.length;
       _page.animateToPage(
         next,
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 520),
+        curve: AppMotion.standard,
       );
     });
   }
@@ -72,33 +74,39 @@ class _PassengerHomeBannerCarouselState
     final banners = widget.banners;
     if (banners.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 168,
-          child: PageView.builder(
-            controller: _page,
-            itemCount: banners.length,
-            onPageChanged: (i) {
-              setState(() => _index = i);
-              _restartTimer();
-            },
-            itemBuilder: (context, i) {
-              final banner = banners[i];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: widget.onTap,
-                    borderRadius: BorderRadius.circular(AppRadii.lg + 4),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadii.lg + 4),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: PassengerHomeLook.card,
-                          border: Border.all(color: PassengerHomeLook.hairline),
-                        ),
+    return SizedBox(
+      height: 176,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: PassengerHomeLook.card,
+            border: Border.all(color: PassengerHomeLook.hairline),
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  return notification.metrics.axis == Axis.vertical;
+                },
+                child: PageView.builder(
+                  controller: _page,
+                  scrollDirection: Axis.vertical,
+                  physics: const PageScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  itemCount: banners.length,
+                  onPageChanged: (i) {
+                    setState(() => _index = i);
+                    _restartTimer();
+                  },
+                  itemBuilder: (context, i) {
+                    final banner = banners[i];
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: widget.onTap,
                         child: Image.network(
                           banner.imageUrl,
                           fit: BoxFit.cover,
@@ -117,35 +125,40 @@ class _PassengerHomeBannerCarouselState
                           },
                         ),
                       ),
+                    );
+                  },
+                ),
+              ),
+              if (banners.length > 1)
+                Positioned(
+                  right: 10,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(banners.length, (i) {
+                        final active = i == _index;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          margin: const EdgeInsets.symmetric(vertical: 3),
+                          width: 7,
+                          height: active ? 16 : 7,
+                          decoration: BoxDecoration(
+                            color: active
+                                ? AppColors.primary
+                                : Colors.white.withValues(alpha: 0.42),
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                          ),
+                        );
+                      }),
                     ),
                   ),
                 ),
-              );
-            },
+            ],
           ),
         ),
-        if (banners.length > 1) ...[
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(banners.length, (i) {
-              final active = i == _index;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: active ? 16 : 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: active
-                      ? AppColors.primary
-                      : PassengerHomeLook.muted.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                ),
-              );
-            }),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

@@ -15,6 +15,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get splashGettingLocation => 'Obteniendo tu ubicación...';
 
   @override
+  String get texiBrandLoaderA11y => 'Cargando TEXIAPP';
+
+  @override
+  String get texiBrandLoaderDriverPin => 'Conductor disponible';
+
+  @override
+  String get texiBrandLoaderPassengerPin => 'Pasajero';
+
+  @override
   String get loginWelcome => 'Bienvenido';
 
   @override
@@ -304,7 +313,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeLocationBanner =>
-      'Activa la ubicación para pedir un viaje con un toque. Mientras tanto puedes ver anuncios y atajos.';
+      'Activa tu ubicación para iniciar tu viaje con un toque.';
 
   @override
   String get homeEnableLocation => 'Activar';
@@ -331,6 +340,62 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get homeAirportUnavailable =>
       'No hay un aeropuerto cercano configurado.';
+
+  @override
+  String get homeAirportCardSubtitle => 'Ideal para viajes y vuelos';
+
+  @override
+  String get homeWorkCta => 'Ir al trabajo';
+
+  @override
+  String get homeWorkSubtitle => 'Tu rutina diaria';
+
+  @override
+  String get homeHomeCta => 'Ir a casa';
+
+  @override
+  String get homeHomeSubtitle => 'Volver al hogar';
+
+  @override
+  String get homeFavoriteCta => 'Mi favorito';
+
+  @override
+  String get homeFavoriteSubtitle => 'Tus lugares especiales';
+
+  @override
+  String get homeRequestNow => 'Pedir ahora';
+
+  @override
+  String get homeSlotWorkLabel => 'Trabajo';
+
+  @override
+  String get homeSlotHomeLabel => 'Casa';
+
+  @override
+  String get homeSlotFavoriteLabel => 'Favorito';
+
+  @override
+  String get homeQuickPlacePickerTitleWork => 'Marca tu trabajo';
+
+  @override
+  String get homeQuickPlacePickerTitleHome => 'Marca tu casa';
+
+  @override
+  String get homeQuickPlacePickerTitleFavorite => 'Marca tu favorito';
+
+  @override
+  String get homeQuickPlacePickerHint =>
+      'Mueve el mapa y deja el pin en el destino.';
+
+  @override
+  String get homeQuickPlaceSave => 'Guardar';
+
+  @override
+  String get homeQuickPlaceSaved =>
+      'Ubicación guardada. Ya puedes pedir este viaje.';
+
+  @override
+  String get homeWhereToToday => '¿A dónde vamos hoy?';
 
   @override
   String get homeChooseOriginDestination => 'Elegir origen y destino';
@@ -2232,6 +2297,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Avisos para completar registro o inicio de sesión. No incluye actualizaciones de viaje.';
 
   @override
+  String get passengerNotificationChannelOpsName => 'Avisos TEXIAPP';
+
+  @override
+  String get passengerNotificationChannelOpsDescription =>
+      'Novedades, beneficios y avisos de la app. Independiente de las actualizaciones de viaje.';
+
+  @override
   String get passengerNotifyWaVerifiedTitle => 'Verificación recibida';
 
   @override
@@ -2627,6 +2699,59 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get promoBenefitsActiveTitle => 'Activos ahora';
+
+  @override
+  String get promoBenefitReady => 'Listo para tu próximo viaje';
+
+  @override
+  String get promoBenefitUsed => 'Ya lo usaste';
+
+  @override
+  String get promoBenefitUnavailable => 'Aún no aplica';
+
+  @override
+  String promoBenefitMinFare(String amount) {
+    return 'En viajes de $amount o más';
+  }
+
+  @override
+  String promoBenefitValidDays(String days) {
+    return 'Los primeros $days días desde tu alta';
+  }
+
+  @override
+  String get promoBenefitNoEnd => 'Sin fecha límite';
+
+  @override
+  String get promoReferralTotalsTitle => 'Tus invitados';
+
+  @override
+  String get promoReferralTotalInvited => 'Invitados';
+
+  @override
+  String get promoReferralTotalQualified => 'Ya viajaron';
+
+  @override
+  String get promoReferralTotalPending => 'Pendientes';
+
+  @override
+  String get promoReferralTotalCredited => 'Abonado';
+
+  @override
+  String get promoReferralTotalRemaining => 'En billetera';
+
+  @override
+  String get promoBenefitsGrantedTitle => 'Tus beneficios';
+
+  @override
+  String promoBenefitAmount(String amount) {
+    return 'TEXIAPP cubre $amount';
+  }
+
+  @override
+  String promoBenefitEnds(String date) {
+    return 'Hasta $date';
+  }
 
   @override
   String get promoCodeCardLead => 'Úsalo al pedir tu próximo viaje.';

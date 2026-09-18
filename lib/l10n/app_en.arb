@@ -2,6 +2,9 @@
   "@@locale": "en",
   "appName": "TEXIAPP",
   "splashGettingLocation": "Getting your location...",
+  "texiBrandLoaderA11y": "Loading TEXIAPP",
+  "texiBrandLoaderDriverPin": "Available driver",
+  "texiBrandLoaderPassengerPin": "Passenger",
   "loginWelcome": "Welcome",
   "loginSubtitle": "Enter your number to sign in or create your account.",
   "loginMethodChoiceTitle": "Your ride starts here",
@@ -96,7 +99,7 @@
   "loginPhoneInvalidBolivia": "Enter your number. E.g.: 70000000",
   "homeRequestRide": "Request ride",
   "homeHubTitle": "Home",
-  "homeLocationBanner": "Turn on location to request a ride with one tap. You can still browse ads and shortcuts.",
+  "homeLocationBanner": "Turn on location to start your trip with one tap.",
   "homeEnableLocation": "Enable",
   "homeLocationNeededForTrip": "We need GPS to build the trip. Enable it and try again.",
   "homeShortcutsTitle": "Quick trips",
@@ -109,6 +112,24 @@
   },
   "homeAirportSubtitleFallback": "To the nearest airport from your location",
   "homeAirportUnavailable": "No nearby airport is configured.",
+  "homeAirportCardSubtitle": "Ideal for trips and flights",
+  "homeWorkCta": "Go to work",
+  "homeWorkSubtitle": "Your daily routine",
+  "homeHomeCta": "Go home",
+  "homeHomeSubtitle": "Back to your place",
+  "homeFavoriteCta": "My favorite",
+  "homeFavoriteSubtitle": "Your special places",
+  "homeRequestNow": "Request now",
+  "homeSlotWorkLabel": "Work",
+  "homeSlotHomeLabel": "Home",
+  "homeSlotFavoriteLabel": "Favorite",
+  "homeQuickPlacePickerTitleWork": "Mark your work",
+  "homeQuickPlacePickerTitleHome": "Mark your home",
+  "homeQuickPlacePickerTitleFavorite": "Mark your favorite",
+  "homeQuickPlacePickerHint": "Move the map and leave the pin on the destination.",
+  "homeQuickPlaceSave": "Save",
+  "homeQuickPlaceSaved": "Location saved. You can request this trip now.",
+  "homeWhereToToday": "Where to today?",
   "homeChooseOriginDestination": "Choose pickup and destination",
   "homePlaceTapToRide": "Request a ride here",
   "menuHome": "Home",
@@ -864,6 +885,8 @@
   "passengerNotificationChannelChatDescription": "Messages from the active trip chat.",
   "passengerNotificationChannelAuthName": "Account verification",
   "passengerNotificationChannelAuthDescription": "Alerts to finish sign-in or registration. Does not include trip updates.",
+  "passengerNotificationChannelOpsName": "TEXIAPP notices",
+  "passengerNotificationChannelOpsDescription": "News, benefits and app notices. Separate from trip updates.",
   "passengerNotifyWaVerifiedTitle": "Verification received",
   "passengerNotifyWaVerifiedBody": "Tap to continue in TEXIAPP.",
   "passengerLabsTitle": "Labs",
@@ -1016,6 +1039,41 @@
   "promoBenefitsEmpty": "When you have an active TEXIAPP benefit, it will show up here.",
   "promoBenefitsHeroLead": "Codes, trip support, and what TEXIAPP covers for you.",
   "promoBenefitsActiveTitle": "Active now",
+  "promoBenefitReady": "Ready for your next trip",
+  "promoBenefitUsed": "Already used",
+  "promoBenefitUnavailable": "Not available yet",
+  "promoBenefitMinFare": "On trips of {amount} or more",
+  "@promoBenefitMinFare": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoBenefitValidDays": "The first {days} days after you join",
+  "@promoBenefitValidDays": {
+    "placeholders": {
+      "days": { "type": "String" }
+    }
+  },
+  "promoBenefitNoEnd": "No end date",
+  "promoReferralTotalsTitle": "Your guests",
+  "promoReferralTotalInvited": "Invited",
+  "promoReferralTotalQualified": "Completed a trip",
+  "promoReferralTotalPending": "Pending",
+  "promoReferralTotalCredited": "Credited",
+  "promoReferralTotalRemaining": "In wallet",
+  "promoBenefitsGrantedTitle": "Your benefits",
+  "promoBenefitAmount": "TEXIAPP covers {amount}",
+  "@promoBenefitAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "promoBenefitEnds": "Until {date}",
+  "@promoBenefitEnds": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
   "promoCodeCardLead": "Use it when you request your next trip.",
   "promoReferralCardLead": "Your guests ride. You get trip support.",
   "promoReferralCopied": "Code copied",

@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/ui/texi_motion.dart';
 import '../../../core/ui/texi_scale_press.dart';
+import '../../home/widgets/passenger_home_look.dart';
+import 'passenger_benefits_icons.dart';
 
-/// Paleta local de la pantalla de beneficios (marca TEXI + acentos tech).
+/// Paleta local alineada al hub de inicio.
 abstract final class BenefitsVisual {
   BenefitsVisual._();
 
-  static const Color canvas = Color(0xFF050505);
-  static const Color card = Color(0xFF14110C);
-  static const Color cardHi = Color(0xFF1C1810);
-  static const Color line = Color(0x33FFD600);
-  static const Color teal = Color(0xFF3DDC97);
-  static const Color sky = Color(0xFF6EC8FF);
-  static const Color violet = Color(0xFFB8A4FF);
+  static const Color canvas = PassengerHomeLook.canvas;
+  static const Color card = PassengerHomeLook.card;
+  static const Color cardHi = PassengerHomeLook.cardLift;
+  static const Color line = PassengerHomeLook.hairline;
+  static const Color teal = PassengerHomeLook.teal;
+  static const Color sky = PassengerHomeLook.sky;
+  static const Color violet = PassengerHomeLook.violet;
 }
 
 class BenefitsGlowBackdrop extends StatelessWidget {
@@ -35,15 +38,23 @@ class BenefitsGlowBackdrop extends StatelessWidget {
             left: -40,
             child: _Blob(
               size: 280,
-              color: AppColors.primary.withValues(alpha: 0.16),
+              color: PassengerHomeLook.sky.withValues(alpha: 0.18),
             ),
           ),
           Positioned(
-            top: 120,
+            top: 140,
             right: -90,
             child: _Blob(
-              size: 220,
-              color: BenefitsVisual.sky.withValues(alpha: 0.08),
+              size: 240,
+              color: PassengerHomeLook.violet.withValues(alpha: 0.12),
+            ),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -60,
+            child: _Blob(
+              size: 200,
+              color: PassengerHomeLook.teal.withValues(alpha: 0.08),
             ),
           ),
         ],
@@ -107,6 +118,35 @@ class BenefitsStagger extends StatelessWidget {
   }
 }
 
+class BenefitsCanvasOrb extends StatelessWidget {
+  const BenefitsCanvasOrb({
+    super.key,
+    required this.kind,
+    required this.accent,
+    this.size = 44,
+  });
+
+  final BenefitsIconKind kind;
+  final Color accent;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        border: Border.all(color: accent.withValues(alpha: 0.32)),
+      ),
+      child: Center(
+        child: BenefitsCanvasIcon(kind: kind, color: accent, size: size * 0.58),
+      ),
+    );
+  }
+}
+
 class BenefitsPanel extends StatelessWidget {
   const BenefitsPanel({
     super.key,
@@ -115,6 +155,7 @@ class BenefitsPanel extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.child,
+    this.leading,
   });
 
   final IconData icon;
@@ -122,6 +163,7 @@ class BenefitsPanel extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget child;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -130,22 +172,15 @@ class BenefitsPanel extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.xxx),
       decoration: BoxDecoration(
         color: BenefitsVisual.card,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: Border.all(color: accent.withValues(alpha: 0.28)),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.08),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+        border: Border.all(color: PassengerHomeLook.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              BenefitsIconOrb(icon: icon, accent: accent),
+              leading ?? BenefitsIconOrb(icon: icon, accent: accent),
               const SizedBox(width: AppSpacing.xl),
               Expanded(
                 child: Column(
@@ -243,17 +278,21 @@ class BenefitsHeroCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF2A2414), Color(0xFF12100C), Color(0xFF0B0B0B)],
+              colors: [
+                PassengerHomeLook.cardLift,
+                PassengerHomeLook.card,
+                PassengerHomeLook.canvas,
+              ],
             ),
             border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.38),
+              color: PassengerHomeLook.sky.withValues(alpha: 0.28),
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: glow),
+                color: PassengerHomeLook.sky.withValues(alpha: glow),
                 blurRadius: 28,
                 offset: const Offset(0, 12),
               ),
@@ -630,4 +669,258 @@ class BenefitsGhostButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class BenefitsGrantCard extends StatefulWidget {
+  const BenefitsGrantCard({
+    super.key,
+    required this.title,
+    required this.statusLabel,
+    required this.used,
+    required this.ready,
+    required this.chips,
+    required this.rulesText,
+    this.amountLabel,
+    this.kind = BenefitsIconKind.spark,
+  });
+
+  final String title;
+  final String statusLabel;
+  final bool used;
+  final bool ready;
+  final List<String> chips;
+  final String rulesText;
+  final String? amountLabel;
+  final BenefitsIconKind kind;
+
+  @override
+  State<BenefitsGrantCard> createState() => _BenefitsGrantCardState();
+}
+
+class _BenefitsGrantCardState extends State<BenefitsGrantCard> {
+  bool _open = false;
+
+  Color get _accent {
+    if (widget.used) return PassengerHomeLook.muted;
+    if (widget.ready) return PassengerHomeLook.teal;
+    return PassengerHomeLook.violet;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _accent;
+    return TexiScalePress(
+      minScale: 0.98,
+      child: Material(
+        color: PassengerHomeLook.card,
+        borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            setState(() => _open = !_open);
+          },
+          borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadii.lg + 4),
+              border: Border.all(
+                color: widget.ready
+                    ? accent.withValues(alpha: 0.38)
+                    : PassengerHomeLook.hairline,
+              ),
+              gradient: widget.ready
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accent.withValues(alpha: 0.16),
+                        PassengerHomeLook.card,
+                      ],
+                    )
+                  : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xxx),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      BenefitsCanvasOrb(
+                        kind: widget.used ? BenefitsIconKind.check : widget.kind,
+                        accent: accent,
+                      ),
+                      const SizedBox(width: AppSpacing.xl),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: PassengerHomeLook.ink,
+                                    letterSpacing: -0.2,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              widget.statusLabel,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: accent,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        _open
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: PassengerHomeLook.muted,
+                      ),
+                    ],
+                  ),
+                  if (widget.amountLabel != null && widget.amountLabel!.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      widget.amountLabel!,
+                      style: TextStyle(
+                        color: widget.used
+                            ? PassengerHomeLook.muted
+                            : PassengerHomeLook.ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                  ],
+                  if (widget.chips.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
+                      children: [
+                        for (final chip in widget.chips)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: PassengerHomeLook.cardLift,
+                              borderRadius: BorderRadius.circular(AppRadii.pill),
+                              border: Border.all(color: PassengerHomeLook.hairline),
+                            ),
+                            child: Text(
+                              chip,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: PassengerHomeLook.muted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (_open && widget.rulesText.trim().isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    Text(
+                      widget.rulesText,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: PassengerHomeLook.muted,
+                            height: 1.4,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BenefitsTotalsGrid extends StatelessWidget {
+  const BenefitsTotalsGrid({
+    super.key,
+    required this.tiles,
+  });
+
+  final List<BenefitsTotalTile> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: AppSpacing.xl,
+      crossAxisSpacing: AppSpacing.xl,
+      childAspectRatio: 1.55,
+      children: tiles
+          .map(
+            (tile) => Container(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              decoration: BoxDecoration(
+                color: PassengerHomeLook.cardLift,
+                borderRadius: BorderRadius.circular(AppRadii.lg),
+                border: Border.all(color: PassengerHomeLook.hairline),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BenefitsCanvasIcon(
+                    kind: tile.kind,
+                    color: tile.accent,
+                    size: 22,
+                  ),
+                  const Spacer(),
+                  Text(
+                    tile.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: PassengerHomeLook.ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tile.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: PassengerHomeLook.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
+
+class BenefitsTotalTile {
+  const BenefitsTotalTile({
+    required this.label,
+    required this.value,
+    required this.kind,
+    required this.accent,
+  });
+
+  final String label;
+  final String value;
+  final BenefitsIconKind kind;
+  final Color accent;
 }
