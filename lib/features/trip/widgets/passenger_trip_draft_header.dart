@@ -13,7 +13,7 @@ enum PassengerDraftSearchRole { origin, destination }
 /// Forzar búsqueda / GPS / guardados hacia origen o destino al editar con ambos puntos ya definidos.
 enum PassengerDraftEditTarget { none, origin, destination }
 
-/// Cabecera del borrador: primero solo origen; tras [originConfirmed], origen fijo + búsqueda de destino.
+/// Cabecera del borrador: el origen sigue al pin; el destino se activa al pulsar su bloque.
 /// Iconos GPS y guardados van junto al campo de búsqueda (sin fila inferior de acciones rápidas).
 class PassengerTripDraftHeader extends StatelessWidget {
   const PassengerTripDraftHeader({
@@ -40,12 +40,16 @@ class PassengerTripDraftHeader extends StatelessWidget {
     required this.showLocationSearchChrome,
     required this.highlightOrigin,
     required this.highlightDestination,
+    this.attractDestinationTap = false,
+    this.settledCompact = false,
     required this.searchPriorityMode,
     required this.searchRole,
     this.searchCollapseToken = 0,
     this.searchExpandToken = 0,
     this.onOpenSearchOrigin,
     this.onOpenSearchDestination,
+    this.onSearchOnMap,
+    this.searchOnMapLabel = '',
     this.onEditOrigin,
     this.onEditDestination,
     required this.editStopLabel,
@@ -83,16 +87,28 @@ class PassengerTripDraftHeader extends StatelessWidget {
   final bool showLocationSearchChrome;
   final bool highlightOrigin;
   final bool highlightDestination;
+
+  /// Pulso visual en el bloque de destino hasta que el pasajero lo pulse.
+  final bool attractDestinationTap;
+
+  /// Origen y destino ya listos, con la cotización a la vista: filas chicas.
+  final bool settledCompact;
   final bool searchPriorityMode;
+
   /// Cambia origen↔destino: la lupa vuelve a modo compacto.
   final PassengerDraftSearchRole searchRole;
+
   /// Incrementar al mover el mapa / refrescar UI para colapsar la caja de búsqueda.
   final int searchCollapseToken;
+
   /// Incrementar para expandir/enfocar la lupa (tap en fila de dirección).
   final int searchExpandToken;
+
   /// Tap en el texto de origen/destino → misma lupa, target según fila.
   final VoidCallback? onOpenSearchOrigin;
   final VoidCallback? onOpenSearchDestination;
+  final VoidCallback? onSearchOnMap;
+  final String searchOnMapLabel;
   final VoidCallback? onEditOrigin;
   final VoidCallback? onEditDestination;
   final String editStopLabel;
@@ -113,90 +129,86 @@ class PassengerTripDraftHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!searchPriorityMode) ...[
-            // Bloque visual unificado: SIEMPRE mostramos `_PinnedRow` para origen
-            // y la tarjeta para destino, también mientras se está apuntando con el
-            // pin (la dirección apuntada llega como `originDisplayLine` /
-            // `destinationDisplayLine`). Al confirmar no hay cambio de layout.
-            _PinnedRow(
-              label: l10n.tripOrigin,
-              value: originDisplayLine,
-              icon: Icons.place_rounded,
-              dotColor: const Color(0xFFF9AB00),
-              highlighted: highlightOrigin,
-              // Solo permitimos guardar/editar tras confirmar el origen.
-              onSaveToFavorites: originConfirmed
-                  ? onSaveOriginToFavorites
-                  : null,
-              saveToFavoritesTooltip: saveOriginFavoritesTooltip,
-              onOpenSearch: onOpenSearchOrigin,
-              openSearchTooltip: searchFieldHint,
-              onEdit: originConfirmed ? onEditOrigin : null,
-              editTooltip: editStopLabel,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            AnimatedContainer(
-              duration: AppMotion.draftSearchChromeReveal,
-              curve: AppMotion.standard,
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSpacing.md),
+            if (settledCompact)
+              _SettledStopsCard(
+                originLabel: l10n.tripOrigin,
+                originValue: originDisplayLine,
+                destinationLabel: l10n.tripDestination,
+                destinationValue: destinationDisplayLine,
+                onOpenSearchOrigin: onOpenSearchOrigin,
+                onOpenSearchDestination: onOpenSearchDestination,
+                openSearchTooltip: searchFieldHint,
+                onEditOrigin: onEditOrigin,
+                onEditDestination: onEditDestination,
+                editTooltip: editStopLabel,
+                onSaveOrigin: onSaveOriginToFavorites,
+                onSaveDestination: onSaveDestinationToFavorites,
+                saveOriginTooltip: saveOriginFavoritesTooltip,
+                saveDestinationTooltip: saveDestinationFavoritesTooltip,
+              )
+            else
+            DecoratedBox(
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.72),
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                border: Border.all(
-                  color: highlightDestination
-                      ? AppColors.primary.withValues(alpha: 0.8)
-                      : AppColors.primary.withValues(alpha: 0.14),
-                  width: highlightDestination ? 1.6 : 1,
-                ),
-                boxShadow: highlightDestination
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          blurRadius: 16,
-                          spreadRadius: 1,
-                        ),
-                      ]
-                    : const [],
+                color: const Color(0xFF2C2C2E).withValues(alpha: 0.86),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF111111).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadii.sm),
-                    ),
-                    child: const Icon(
-                      Icons.location_on_rounded,
-                      color: Color(0xFF111111),
-                      size: 18,
-                    ),
+                  _PinnedRow(
+                    label: l10n.tripOrigin,
+                    value: originDisplayLine,
+                    icon: Icons.place_rounded,
+                    dotColor: AppColors.primary,
+                    highlighted: highlightOrigin,
+                    onSaveToFavorites: originConfirmed
+                        ? onSaveOriginToFavorites
+                        : null,
+                    saveToFavoritesTooltip: saveOriginFavoritesTooltip,
+                    onOpenSearch: onOpenSearchOrigin,
+                    openSearchTooltip: searchFieldHint,
+                    onEdit: originConfirmed ? onEditOrigin : null,
+                    editTooltip: editStopLabel,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: onOpenSearchDestination,
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                        splashColor: AppColors.primary.withValues(alpha: 0.10),
-                        highlightColor:
-                            AppColors.primary.withValues(alpha: 0.05),
-                        child: Tooltip(
-                          message: onOpenSearchDestination != null
-                              ? searchFieldHint
-                              : '',
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.xxs,
-                            ),
+                  _DestinationSectionCard(
+                    attract: attractDestinationTap,
+                    highlighted: highlightDestination,
+                    onTap: onOpenSearchDestination,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFF1A1A1A),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.lg),
+                        Expanded(
+                          child: Tooltip(
+                            message: onOpenSearchDestination != null
+                                ? searchFieldHint
+                                : '',
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _PhaseLabel(
-                                  text: l10n.tripWhereTo.toUpperCase(),
+                                Text(
+                                  l10n.tripWhereTo,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1A1A1A),
+                                    height: 1.05,
+                                  ),
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
@@ -210,202 +222,221 @@ class PassengerTripDraftHeader extends StatelessWidget {
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.start,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    fontSize: 12,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontSize: 14,
                                     fontWeight: hasDestinationSet
                                         ? FontWeight.w600
                                         : FontWeight.w500,
                                     color: hasDestinationSet
-                                        ? AppColors.textPrimary
-                                        : AppColors.textSecondary,
-                                    height: 1.18,
+                                        ? const Color(0xFF1A1A1A)
+                                        : const Color(0xFF6A6A6A),
+                                    height: 1.2,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      ),
+                        if (hasDestinationSet &&
+                            onSaveDestinationToFavorites != null)
+                          IconButton(
+                            tooltip: saveDestinationFavoritesTooltip ?? '',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            icon: const Icon(
+                              Icons.bookmark_add_outlined,
+                              size: 22,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                            onPressed: onSaveDestinationToFavorites,
+                          ),
+                        if (onEditDestination != null &&
+                            (hasDestinationSet || !showLocationSearchChrome))
+                          IconButton(
+                            tooltip: editStopLabel,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 40,
+                            ),
+                            icon: const Icon(
+                              Icons.edit_outlined,
+                              size: 22,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                            onPressed: onEditDestination,
+                          ),
+                        if (!(hasDestinationSet &&
+                                onSaveDestinationToFavorites != null) &&
+                            !(onEditDestination != null &&
+                                (hasDestinationSet ||
+                                    !showLocationSearchChrome)))
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Color(0xFF8A8A8A),
+                            size: 26,
+                          ),
+                      ],
                     ),
                   ),
-                  if (hasDestinationSet && onSaveDestinationToFavorites != null)
-                    IconButton(
-                      tooltip: saveDestinationFavoritesTooltip ?? '',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                      icon: Icon(
-                        // bookmark_add_outlined: contorno con "+" para "guardar a favoritos".
-                        // Antes: add_location_alt_rounded (pin de localización; se confundía con el marcador).
-                        Icons.bookmark_add_outlined,
-                        size: 22,
-                        color: AppColors.primary.withValues(alpha: 0.95),
-                      ),
-                      onPressed: onSaveDestinationToFavorites,
-                    ),
-                  if (onEditDestination != null &&
-                      (hasDestinationSet || !showLocationSearchChrome))
-                    IconButton(
-                      tooltip: editStopLabel,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                      icon: Icon(
-                        Icons.edit_outlined,
-                        size: 22,
-                        color: AppColors.primary.withValues(alpha: 0.95),
-                      ),
-                      onPressed: onEditDestination,
-                    ),
                 ],
               ),
             ),
           ],
-          _DraftSearchChromeSlot(
-            visible: showLocationSearchChrome,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: AppSpacing.sm),
-                _CollapsibleDraftSearchRow(
-                  searchRole: searchRole,
-                  searchCollapseToken: searchCollapseToken,
-                  searchExpandToken: searchExpandToken,
-                  searchController: searchController,
-                  searchFocusNode: searchFocusNode,
-                  onSearchChanged: onSearchChanged,
-                  searchFieldHint: searchFieldHint,
-                  onMyLocationIconTap: onMyLocationIconTap,
-                  onSavedIconTap: onSavedIconTap,
-                  myLocationTooltip: myLocationTooltip,
-                  savedPlacesTooltip: savedPlacesTooltip,
-                ),
-                if (showSuggestionsPanel) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: _DraftSearchChromeSlot(
+              visible: showLocationSearchChrome,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   const SizedBox(height: AppSpacing.sm),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 220),
-                    child: Material(
-                      // Por encima del pin/aguja del mapa (overlay hermano en el Stack).
-                      elevation: 12,
-                      shadowColor: Colors.black.withValues(alpha: 0.28),
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      color: AppColors.surface,
-                      clipBehavior: Clip.antiAlias,
-                      child: loadingSuggestions
-                          ? const Center(
-                              child: SizedBox(
-                                width: AppSizes.progressSm,
-                                height: AppSizes.progressSm,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.primary,
+                  _CollapsibleDraftSearchRow(
+                    searchRole: searchRole,
+                    searchCollapseToken: searchCollapseToken,
+                    searchExpandToken: searchExpandToken,
+                    searchController: searchController,
+                    searchFocusNode: searchFocusNode,
+                    onSearchChanged: onSearchChanged,
+                    searchFieldHint: searchFieldHint,
+                    onMyLocationIconTap: onMyLocationIconTap,
+                    onSavedIconTap: onSavedIconTap,
+                    myLocationTooltip: myLocationTooltip,
+                    savedPlacesTooltip: savedPlacesTooltip,
+                    onSearchOnMap: onSearchOnMap,
+                    searchOnMapLabel: searchOnMapLabel,
+                  ),
+                  if (showSuggestionsPanel) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: Material(
+                        // Por encima del pin/aguja del mapa (overlay hermano en el Stack).
+                        elevation: 12,
+                        shadowColor: Colors.black.withValues(alpha: 0.28),
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                        color: AppColors.surface,
+                        clipBehavior: Clip.antiAlias,
+                        child: loadingSuggestions
+                            ? const Center(
+                                child: SizedBox(
+                                  width: AppSizes.progressSm,
+                                  height: AppSizes.progressSm,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : suggestions.isNotEmpty
-                          ? ListView.separated(
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.xs,
-                              ),
-                              itemCount: suggestions.length,
-                              separatorBuilder: (_, _) => Divider(
-                                height: 1,
-                                color: AppColors.border.withValues(alpha: 0.25),
-                              ),
-                              itemBuilder: (context, i) {
-                                final s = suggestions[i];
-                                return ListTile(
-                                  dense: true,
-                                  leading: Icon(
-                                    Icons.place_outlined,
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.85,
-                                    ),
-                                    size: AppIconSizes.lg,
+                              )
+                            : suggestions.isNotEmpty
+                            ? ListView.separated(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.xs,
+                                ),
+                                itemCount: suggestions.length,
+                                separatorBuilder: (_, _) => Divider(
+                                  height: 1,
+                                  color: AppColors.border.withValues(
+                                    alpha: 0.25,
                                   ),
-                                  title: Text(
-                                    s.mainText,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                                ),
+                                itemBuilder: (context, i) {
+                                  final s = suggestions[i];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: Icon(
+                                      Icons.place_outlined,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      size: AppIconSizes.lg,
                                     ),
+                                    title: Text(
+                                      s.mainText,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    subtitle: s.secondaryText.isEmpty
+                                        ? null
+                                        : Text(
+                                            s.secondaryText,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                    onTap: () => onPickSuggestion(s),
+                                  );
+                                },
+                              )
+                            : ListView(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.lg,
+                                  AppSpacing.sm,
+                                  AppSpacing.lg,
+                                  AppSpacing.md,
+                                ),
+                                children: [
+                                  Text(
+                                    recentSectionTitle,
+                                    style: theme.textTheme.labelMedium
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.2,
+                                        ),
                                   ),
-                                  subtitle: s.secondaryText.isEmpty
-                                      ? null
-                                      : Text(
-                                          s.secondaryText,
+                                  const SizedBox(height: AppSpacing.sm),
+                                  if (recentPlaces.isEmpty)
+                                    Text(
+                                      l10n.tripDraftNoRecentPlaces,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                    )
+                                  else
+                                    ...recentPlaces.map(
+                                      (p) => ListTile(
+                                        dense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: const Icon(
+                                          Icons.history_rounded,
+                                          size: AppIconSizes.lg,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        title: Text(
+                                          p.label,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                  onTap: () => onPickSuggestion(s),
-                                );
-                              },
-                            )
-                          : ListView(
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.fromLTRB(
-                                AppSpacing.lg,
-                                AppSpacing.sm,
-                                AppSpacing.lg,
-                                AppSpacing.md,
+                                        subtitle:
+                                            p.subtitle == null ||
+                                                p.subtitle!.isEmpty
+                                            ? null
+                                            : Text(
+                                                p.subtitle!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                        onTap: () => onPickRecent(p),
+                                      ),
+                                    ),
+                                ],
                               ),
-                              children: [
-                                Text(
-                                  recentSectionTitle,
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.sm),
-                                if (recentPlaces.isEmpty)
-                                  Text(
-                                    l10n.tripDraftNoRecentPlaces,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  )
-                                else
-                                  ...recentPlaces.map(
-                                    (p) => ListTile(
-                                      dense: true,
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: const Icon(
-                                        Icons.history_rounded,
-                                        size: AppIconSizes.lg,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      title: Text(
-                                        p.label,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      subtitle:
-                                          p.subtitle == null ||
-                                              p.subtitle!.isEmpty
-                                          ? null
-                                          : Text(
-                                              p.subtitle!,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                      onTap: () => onPickRecent(p),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -430,6 +461,8 @@ class _CollapsibleDraftSearchRow extends StatefulWidget {
     required this.onSavedIconTap,
     required this.myLocationTooltip,
     required this.savedPlacesTooltip,
+    this.onSearchOnMap,
+    this.searchOnMapLabel = '',
   });
 
   final PassengerDraftSearchRole searchRole;
@@ -443,6 +476,8 @@ class _CollapsibleDraftSearchRow extends StatefulWidget {
   final VoidCallback onSavedIconTap;
   final String myLocationTooltip;
   final String savedPlacesTooltip;
+  final VoidCallback? onSearchOnMap;
+  final String searchOnMapLabel;
 
   @override
   State<_CollapsibleDraftSearchRow> createState() =>
@@ -452,6 +487,7 @@ class _CollapsibleDraftSearchRow extends StatefulWidget {
 class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
     with SingleTickerProviderStateMixin {
   bool _expanded = false;
+  bool _awaitingFocus = false;
   late final AnimationController _appearController;
   late final CurvedAnimation _appearCurved;
 
@@ -468,6 +504,16 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
       curve: AppMotion.standard,
       reverseCurve: Curves.easeInCubic,
     );
+    if (widget.searchExpandToken > 0) {
+      _expanded = true;
+      _appearController.value = 1;
+      _awaitingFocus = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_expanded) return;
+        widget.searchFocusNode.requestFocus();
+        _awaitingFocus = false;
+      });
+    }
   }
 
   @override
@@ -480,15 +526,10 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
     final expandRequested =
         oldWidget.searchExpandToken != widget.searchExpandToken;
     if (expandRequested) {
-      // Prioridad: abrir lupa desde fila origen/destino (aunque cambie el rol).
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _expand();
-      });
+      _expand();
       return;
     }
-    if (oldWidget.searchRole != widget.searchRole ||
-        oldWidget.searchCollapseToken != widget.searchCollapseToken) {
+    if (oldWidget.searchCollapseToken != widget.searchCollapseToken) {
       _collapse(clearText: true, unfocus: true);
     }
   }
@@ -502,7 +543,7 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
   }
 
   void _onFocusChanged() {
-    if (!mounted) return;
+    if (!mounted || _awaitingFocus) return;
     if (!widget.searchFocusNode.hasFocus && _expanded) {
       _collapse(clearText: true, unfocus: false);
     }
@@ -528,15 +569,18 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
   }
 
   void _expand() {
-    if (_expanded && _appearController.value >= 1) {
-      widget.searchFocusNode.requestFocus();
-      return;
-    }
-    setState(() => _expanded = true);
-    _appearController.forward(from: _appearController.value);
+    final alreadyVisible = _expanded && _appearController.value >= 1;
+    _awaitingFocus = true;
+    // didUpdateWidget corre dentro del build del padre: no hay setState.
+    // El build que sigue lee `_expanded` y pinta el campo en el mismo frame.
+    _expanded = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_expanded) return;
+      if (!alreadyVisible && _appearController.value < 1) {
+        _appearController.value = 1;
+      }
       widget.searchFocusNode.requestFocus();
+      _awaitingFocus = false;
     });
   }
 
@@ -558,11 +602,7 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
           child: SizedBox(
             width: 42,
             height: 42,
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-              size: 20,
-            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
           ),
         ),
       ),
@@ -626,8 +666,7 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
                       color: AppColors.textSecondary,
                       size: AppIconSizes.md,
                     ),
-                    onPressed: () =>
-                        _collapse(clearText: true, unfocus: true),
+                    onPressed: () => _collapse(clearText: true, unfocus: true),
                   ),
             contentPadding: const EdgeInsets.fromLTRB(
               6,
@@ -668,47 +707,116 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
       animation: _appearController,
       builder: (context, _) {
         final showFieldNow = _expanded || _appearController.value > 0;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        final reveal = _expanded && _appearController.value == 0
+            ? const AlwaysStoppedAnimation<double>(1)
+            : _appearCurved;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: showFieldNow
-                  ? FadeTransition(
-                      opacity: _appearCurved,
+            if (!showFieldNow)
+              Align(
+                alignment: Alignment.centerRight,
+                child: _circleAction(
+                  tooltip: widget.myLocationTooltip,
+                  icon: Icons.my_location_rounded,
+                  onTap: widget.onMyLocationIconTap,
+                ),
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: reveal,
                       child: SlideTransition(
                         position: Tween<Offset>(
                           begin: const Offset(0.06, 0),
                           end: Offset.zero,
-                        ).animate(_appearCurved),
+                        ).animate(reveal),
                         child: Padding(
                           padding: const EdgeInsets.only(right: AppSpacing.xs),
                           child: _buildSearchField(theme),
                         ),
                       ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            if (!showFieldNow)
-              _circleAction(
-                tooltip: widget.searchFieldHint,
-                icon: Icons.search_rounded,
-                onTap: _expand,
+                    ),
+                  ),
+                  _circleAction(
+                    tooltip: widget.myLocationTooltip,
+                    icon: Icons.my_location_rounded,
+                    onTap: widget.onMyLocationIconTap,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  _circleAction(
+                    tooltip: widget.savedPlacesTooltip,
+                    icon: Icons.bookmark_rounded,
+                    onTap: widget.onSavedIconTap,
+                  ),
+                ],
               ),
-            if (!showFieldNow) const SizedBox(width: AppSpacing.xs),
-            _circleAction(
-              tooltip: widget.myLocationTooltip,
-              icon: Icons.my_location_rounded,
-              onTap: widget.onMyLocationIconTap,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            _circleAction(
-              tooltip: widget.savedPlacesTooltip,
-              icon: Icons.bookmark_rounded,
-              onTap: widget.onSavedIconTap,
-            ),
+            if (showFieldNow && widget.onSearchOnMap != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              _SearchOnMapAction(
+                label: widget.searchOnMapLabel,
+                onTap: widget.onSearchOnMap!,
+              ),
+            ],
           ],
         );
       },
+    );
+  }
+}
+
+/// Acceso dentro del buscador de destino para pasar al pin del mapa.
+class _SearchOnMapAction extends StatelessWidget {
+  const _SearchOnMapAction({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.map_outlined, color: AppColors.primary, size: 20),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -784,19 +892,320 @@ class _DraftSearchChromeSlotState extends State<_DraftSearchChromeSlot>
   }
 }
 
-class _PhaseLabel extends StatelessWidget {
-  const _PhaseLabel({required this.text});
+/// Bloque de destino con el mismo tamaño de siempre. Antes de pulsarlo, un brillo
+/// recorre el borde para que se note que ahí se define el destino.
+class _DestinationSectionCard extends StatefulWidget {
+  const _DestinationSectionCard({
+    required this.attract,
+    required this.highlighted,
+    required this.onTap,
+    required this.child,
+  });
 
-  final String text;
+  final bool attract;
+  final bool highlighted;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  State<_DestinationSectionCard> createState() =>
+      _DestinationSectionCardState();
+}
+
+class _DestinationSectionCardState extends State<_DestinationSectionCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (widget.attract) {
+      _pulse.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DestinationSectionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.attract == oldWidget.attract) return;
+    if (widget.attract) {
+      _pulse.repeat(reverse: true);
+    } else {
+      _pulse.stop();
+      _pulse.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: AppColors.textSecondary,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.6,
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final t = widget.attract
+            ? Curves.easeInOut.transform(_pulse.value)
+            : 0.0;
+        final borderColor = widget.attract
+            ? Color.lerp(const Color(0xFFE2B100), const Color(0xFFFFE14A), t)!
+            : widget.highlighted
+            ? const Color(0xFFE2B100)
+            : const Color(0xFFF0D56A);
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.zero,
+            splashColor: const Color(0xFFFFD600).withValues(alpha: 0.18),
+            highlightColor: const Color(0xFFFFD600).withValues(alpha: 0.08),
+            child: Ink(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3C4).withValues(alpha: 0.9),
+                borderRadius: BorderRadius.zero,
+                border: Border.all(
+                  color: borderColor,
+                  width: widget.highlighted && !widget.attract ? 1.6 : 1.4,
+                ),
+                boxShadow: widget.attract
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(
+                            alpha: 0.12 + (0.28 * t),
+                          ),
+                          blurRadius: 12 + (10 * t),
+                          spreadRadius: 0.4,
+                        ),
+                      ]
+                    : widget.highlighted
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          blurRadius: 16,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 16, 12, 16),
+                    child: child,
+                  ),
+                  if (widget.attract)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment(-1.4 + (2.6 * t), -0.2),
+                              end: Alignment(-0.2 + (2.6 * t), 0.2),
+                              colors: [
+                                const Color(0x00F9AB00),
+                                AppColors.primary.withValues(alpha: 0.16),
+                                const Color(0x00F9AB00),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class _SettledStopsCard extends StatelessWidget {
+  const _SettledStopsCard({
+    required this.originLabel,
+    required this.originValue,
+    required this.destinationLabel,
+    required this.destinationValue,
+    required this.openSearchTooltip,
+    required this.editTooltip,
+    this.onOpenSearchOrigin,
+    this.onOpenSearchDestination,
+    this.onEditOrigin,
+    this.onEditDestination,
+    this.onSaveOrigin,
+    this.onSaveDestination,
+    this.saveOriginTooltip,
+    this.saveDestinationTooltip,
+  });
+
+  final String originLabel;
+  final String originValue;
+  final String destinationLabel;
+  final String destinationValue;
+  final String openSearchTooltip;
+  final String editTooltip;
+  final VoidCallback? onOpenSearchOrigin;
+  final VoidCallback? onOpenSearchDestination;
+  final VoidCallback? onEditOrigin;
+  final VoidCallback? onEditDestination;
+  final VoidCallback? onSaveOrigin;
+  final VoidCallback? onSaveDestination;
+  final String? saveOriginTooltip;
+  final String? saveDestinationTooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFF2C2C2E).withValues(alpha: 0.84),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _CompactStopRow(
+              label: originLabel,
+              value: originValue,
+              dotColor: AppColors.primary,
+              openSearchTooltip: openSearchTooltip,
+              onOpenSearch: onOpenSearchOrigin,
+              onSave: onSaveOrigin,
+              saveTooltip: saveOriginTooltip,
+              onEdit: onEditOrigin,
+              editTooltip: editTooltip,
+            ),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.white.withValues(alpha: 0.12),
+            ),
+            _CompactStopRow(
+              label: destinationLabel,
+              value: destinationValue,
+              dotColor: const Color(0xFFFFE14A),
+              openSearchTooltip: openSearchTooltip,
+              onOpenSearch: onOpenSearchDestination,
+              onSave: onSaveDestination,
+              saveTooltip: saveDestinationTooltip,
+              onEdit: onEditDestination,
+              editTooltip: editTooltip,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactStopRow extends StatelessWidget {
+  const _CompactStopRow({
+    required this.label,
+    required this.value,
+    required this.dotColor,
+    required this.openSearchTooltip,
+    required this.editTooltip,
+    this.onOpenSearch,
+    this.onSave,
+    this.saveTooltip,
+    this.onEdit,
+  });
+
+  final String label;
+  final String value;
+  final Color dotColor;
+  final String openSearchTooltip;
+  final String editTooltip;
+  final VoidCallback? onOpenSearch;
+  final VoidCallback? onSave;
+  final String? saveTooltip;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+      child: Row(
+        children: [
+          Icon(Icons.place_rounded, color: dotColor, size: 18),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: InkWell(
+              onTap: onOpenSearch,
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+              child: Tooltip(
+                message: openSearchTooltip,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: dotColor,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4,
+                          fontSize: 10,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (onSave != null)
+            IconButton(
+              tooltip: saveTooltip ?? '',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon: Icon(
+                Icons.bookmark_add_outlined,
+                size: 20,
+                color: AppColors.primary.withValues(alpha: 0.95),
+              ),
+              onPressed: onSave,
+            ),
+          if (onEdit != null)
+            IconButton(
+              tooltip: editTooltip,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon: Icon(
+                Icons.edit_outlined,
+                size: 20,
+                color: AppColors.primary.withValues(alpha: 0.95),
+              ),
+              onPressed: onEdit,
+            ),
+        ],
       ),
     );
   }
@@ -832,22 +1241,16 @@ class _PinnedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showChevron = onSaveToFavorites == null && onEdit == null;
     return AnimatedContainer(
       duration: AppMotion.draftSearchChromeReveal,
       curve: AppMotion.standard,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
       decoration: BoxDecoration(
-        color: AppColors.background.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(
-          color: highlighted
-              ? dotColor.withValues(alpha: 0.9)
-              : AppColors.border.withValues(alpha: 0.35),
-          width: highlighted ? 1.6 : 1,
-        ),
+        color: Colors.transparent,
+        border: highlighted
+            ? Border.all(color: dotColor.withValues(alpha: 0.9), width: 1.6)
+            : null,
         boxShadow: highlighted
             ? [
                 BoxShadow(
@@ -860,16 +1263,8 @@ class _PinnedRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: dotColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadii.sm),
-            ),
-            child: Icon(icon, color: dotColor, size: 18),
-          ),
-          const SizedBox(width: AppSpacing.sm),
+          Icon(icon, color: dotColor, size: 26),
+          const SizedBox(width: AppSpacing.lg),
           Expanded(
             child: Material(
               color: Colors.transparent,
@@ -890,21 +1285,23 @@ class _PinnedRow extends StatelessWidget {
                         Text(
                           label.toUpperCase(),
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: dotColor,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.6,
+                            fontSize: 11,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           value,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.start,
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 12,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                            height: 1.18,
+                            color: Colors.white,
+                            height: 1.2,
                           ),
                         ),
                       ],
@@ -942,6 +1339,12 @@ class _PinnedRow extends StatelessWidget {
               onPressed: onEdit,
             ),
           ],
+          if (showChevron)
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFBDBDBD),
+              size: 26,
+            ),
         ],
       ),
     );

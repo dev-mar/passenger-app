@@ -14,14 +14,19 @@ class PassengerHomeWhereToCta extends StatefulWidget {
     required this.title,
     required this.actionLabel,
     required this.onPressed,
+    this.greeting,
   });
 
   final String title;
   final String actionLabel;
   final VoidCallback onPressed;
 
+  /// Saludo con el primer nombre. Si no hay nombre, no se muestra.
+  final String? greeting;
+
   @override
-  State<PassengerHomeWhereToCta> createState() => _PassengerHomeWhereToCtaState();
+  State<PassengerHomeWhereToCta> createState() =>
+      _PassengerHomeWhereToCtaState();
 }
 
 class _PassengerHomeWhereToCtaState extends State<PassengerHomeWhereToCta>
@@ -32,10 +37,8 @@ class _PassengerHomeWhereToCtaState extends State<PassengerHomeWhereToCta>
   @override
   void initState() {
     super.initState();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: TexiMotion.pulseLoop,
-    )..repeat(reverse: true);
+    _pulse = AnimationController(vsync: this, duration: TexiMotion.pulseLoop)
+      ..repeat(reverse: true);
     _glow = CurvedAnimation(parent: _pulse, curve: TexiMotion.pulseCurve);
   }
 
@@ -50,15 +53,32 @@ class _PassengerHomeWhereToCtaState extends State<PassengerHomeWhereToCta>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.greeting != null && widget.greeting!.trim().isNotEmpty) ...[
+          Text(
+            widget.greeting!.trim(),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: PassengerHomeLook.ink,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
         Text(
           widget.title,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: PassengerHomeLook.ink,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
-                height: 1.15,
-              ),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: widget.greeting == null
+                ? PassengerHomeLook.ink
+                : PassengerHomeLook.muted,
+            fontWeight: widget.greeting == null
+                ? FontWeight.w800
+                : FontWeight.w600,
+            letterSpacing: -0.2,
+            height: 1.2,
+          ),
         ),
         const SizedBox(height: AppSpacing.xxxx),
         AnimatedBuilder(
@@ -106,10 +126,7 @@ class _PassengerHomeWhereToCtaState extends State<PassengerHomeWhereToCta>
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF2A2410),
-                        Color(0xFF16130A),
-                      ],
+                      colors: [Color(0xFF2A2410), Color(0xFF16130A)],
                     ),
                     border: Border.all(
                       color: AppColors.primary.withValues(alpha: 0.72),

@@ -25,6 +25,8 @@ class TripSearchingDriverOverlay extends StatefulWidget {
     this.onContinue,
     this.onStage3Reached,
     this.initialStage = 1,
+    this.above,
+    this.offerRaise,
   });
 
   static const Duration stage2At = Duration(seconds: 30);
@@ -37,6 +39,12 @@ class TripSearchingDriverOverlay extends StatefulWidget {
   final AppLocalizations l10n;
   final VoidCallback? onContinue;
   final VoidCallback? onStage3Reached;
+
+  /// Contenido encima de la tarjeta (p. ej. propuestas de conductores).
+  final Widget? above;
+
+  /// Subir la oferta y reenviar. Solo en modo ofertable.
+  final Widget? offerRaise;
 
   /// Si ya estamos en hold (solicitud cancelada), arranca en etapa 3 sin reiniciar.
   final int initialStage;
@@ -184,9 +192,18 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
 
     return Padding(
       padding: EdgeInsets.fromLTRB(14, 0, 14, mathMax(bottomPad, 8)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+        ),
+        child: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (widget.above != null) ...[
+            widget.above!,
+            const SizedBox(height: 8),
+          ],
           if (_offline || !_locationOk) ...[
             _StatusBanner(
               icon: _offline
@@ -311,6 +328,10 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
                         fontSize: 12,
                       ),
                     ),
+                    if (widget.offerRaise != null) ...[
+                      const SizedBox(height: 12),
+                      widget.offerRaise!,
+                    ],
                     const SizedBox(height: 12),
                     if (_stage >= 3) ...[
                       SizedBox(
@@ -360,6 +381,8 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

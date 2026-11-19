@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/auth/auth_service.dart';
 import '../../../core/network/passenger_api_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
@@ -13,12 +14,16 @@ import '../passenger_phone_link_navigation.dart';
 /// Sesión limitada (p. ej. solo email/Google) sin teléfono verificado.
 Future<bool> isPassengerEmailOnlyLimitedSession(WidgetRef ref) async {
   try {
+    final loginPhone = await AuthService.readLoginPhoneE164Digits();
+    if (loginPhone != null && loginPhone.length >= 8) return false;
     final me = await ref.read(passengerMeProfileServiceProvider).fetchData();
     if (me['phone_verified'] == true) return false;
+    final phone = me['primary_phone']?.toString().trim() ?? '';
+    if (phone.isNotEmpty) return false;
     final authLevel = me['auth_level']?.toString().trim() ?? 'limited';
     return authLevel == 'limited';
   } catch (_) {
-    return true;
+    return false;
   }
 }
 

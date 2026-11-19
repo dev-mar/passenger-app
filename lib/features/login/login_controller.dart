@@ -160,6 +160,7 @@ class LoginController extends StateNotifier<LoginState> {
     bool cancelPendingDeletion = false,
     String? otpChannel,
     String? entryCaptchaToken,
+    bool deferPhoneVerification = false,
   }) async {
     state = LoginState(
       entryCaptchaToken: entryCaptchaToken,
@@ -185,10 +186,12 @@ class LoginController extends StateNotifier<LoginState> {
       } catch (_) {}
 
       // Flavor/dev: siempre `code` (alta de pasajero nuevo incluida).
-      // Prod (`TEXI_APP_ENV=prod`): canal pedido o WA inbound — sin cambios.
+      // Prod: el número entra con captcha; el celular se prueba al pedir el viaje.
       final resolvedChannel = PassengerAppEnvironment.usesClassicPhoneOtp
           ? 'code'
-          : (otpChannel ?? 'whatsapp_inbound');
+          : deferPhoneVerification
+              ? 'deferred'
+              : (otpChannel ?? 'whatsapp_inbound');
 
       final response = await _api.postPublic<Map<String, dynamic>>(
         path: AppConfig.loginPath,
@@ -199,6 +202,7 @@ class LoginController extends StateNotifier<LoginState> {
           'country_code': countryCode,
           'phone_number': phoneNumber.replaceAll(RegExp(r'[^\d]'), ''),
           'otp_channel': resolvedChannel,
+          if (deferPhoneVerification) 'defer_phone_verification': true,
           'push_token': ?pushToken,
           if (cancelPendingDeletion) 'cancel_pending_deletion': true,
           // Reservado contrato Fase 6 — backend ignorará hasta implementación.
@@ -240,6 +244,12 @@ class LoginController extends StateNotifier<LoginState> {
       final data = envelope['data'];
       if (data is! Map) {
         return _fail(code: 'CLIENT_EMPTY_DATA');
+      }
+
+      final businessCode = envelope['code']?.toString();
+      if (businessCode == 'PASS_AUTH_PROFILE_REQUIRED') {
+        await AuthService.persistLoginPhoneE164(fullPhone);
+        return LoginNextStep.profileRequired;
       }
 
       final token = data['token']?.toString();
@@ -737,6 +747,25 @@ class LoginController extends StateNotifier<LoginState> {
           message: body is Map<String, dynamic> ? body['message']?.toString() : null,
         );
         return false;
+      }
+      final data = body['data'];
+      if (data is Map) {
+        final token = data['token']?.toString();
+        if (token != null && token.isNotEmpty) {
+          final refreshToken = data['refresh_token']?.toString();
+          final expiresIn = data['expires_in'];
+          int? expiresInSec;
+          if (expiresIn is int) {
+            expiresInSec = expiresIn;
+          } else if (expiresIn is num) {
+            expiresInSec = expiresIn.toInt();
+          }
+          await AuthService.saveSession(
+            token: token,
+            refreshToken: refreshToken,
+            expiresInSeconds: expiresInSec,
+          );
+        }
       }
       return body['code']?.toString() == 'PASS_AUTH_PHONE_LINKED';
     } on DioException catch (e) {

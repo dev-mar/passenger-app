@@ -39,6 +39,7 @@ import '../../core/notifications/passenger_fcm_navigation.dart'
         passengerTripChatOpenBump,
         takePendingPassengerChatTripIdFromNotification;
 import '../../core/notifications/passenger_notification_service.dart';
+import '../home/home_quick_slots.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../core/compliance/passenger_play_permission_disclosures.dart';
@@ -70,6 +71,8 @@ import 'trip_payment_method.dart';
 import 'widgets/passenger_trip_draft_header.dart';
 import 'widgets/trip_request_shell_widgets.dart';
 import 'widgets/trip_tracking_widgets.dart';
+import 'widgets/passenger_offerable_bids_panel.dart';
+import 'widgets/passenger_search_fare_bump.dart';
 import 'widgets/passenger_searching_map_radar.dart';
 import 'widgets/passenger_map_picking_needle.dart';
 import 'widgets/passenger_trip_recovery_panel.dart';
@@ -96,6 +99,7 @@ class TripRequestScreen extends ConsumerStatefulWidget {
     this.destLat,
     this.destLng,
     this.destLabel,
+    this.destStreet,
   });
 
   final double? originLat;
@@ -104,11 +108,19 @@ class TripRequestScreen extends ConsumerStatefulWidget {
   final double? destLng;
   final String? destLabel;
 
+  /// Calle que ve el conductor cuando el destino es un lugar guardado.
+  /// El pasajero sigue viendo [destLabel], que incluye el nombre de referencia.
+  final String? destStreet;
+
   @override
   ConsumerState<TripRequestScreen> createState() => _TripRequestScreenState();
 }
 
 enum ActiveStop { none, origin, destination }
+
+/// El pin de origen ya elegido (búsqueda, GPS o POI) no se pisa con la calle
+/// cercana si el mapa no se movió de verdad.
+const double _kLiveOriginHoldMeters = 18;
 
 class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
     with
@@ -143,9 +155,21 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _mapMyLocationDotEnabled = true;
   bool _originConfirmed = false;
   bool _pickingOrigin = false;
+
+  /// Punto al pulsar Editar en un origen ya fijado. Si el pin se aleja, al soltar se guarda solo.
+  LatLng? _originEditAnchor;
+
+  /// El pasajero movió el pin de origen: el ajuste fino de GPS ya no debe pisarlo.
+  bool _originPinAdjusted = false;
   bool _pickingDestination = false;
+
+  /// El pin de destino solo se mueve después de «Buscar en el mapa».
+  bool _destinationMapPickArmed = false;
   LatLng? _destination;
   String? _destinationDisplayLabel; // null = coordenadas o placeholder
+  /// Calle sin nombre de referencia. Solo lugares guardados. El aeropuerto no la usa.
+  String? _destinationDriverAddress;
+  String? _originDriverAddress;
   /// Nombre de POI (aeropuerto, Places, guardados). No lo pisa el reverse-geocode de calle al snap de ruta.
   bool _destinationPoiLabelLocked = false;
   LatLng? _mapCenter;
@@ -187,9 +211,6 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   List<TripRecentPlaceItem> _recentOriginPlaces = const <TripRecentPlaceItem>[];
   List<TripRecentPlaceItem> _recentDestinationPlaces =
       const <TripRecentPlaceItem>[];
-  List<TripSavedPlaceItem> _savedOriginPlaces = const <TripSavedPlaceItem>[];
-  List<TripSavedPlaceItem> _savedDestinationPlaces =
-      const <TripSavedPlaceItem>[];
   List<LatLng>? _routePoints;
 
   /// Misma polyline codificada que Directions (se envÃ­a al crear viaje para el mapa del conductor).
@@ -273,6 +294,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _radarAnchorInFlight = false;
   bool _tripSheetFullyExpanded = false;
   LatLng? _animatedDriverLatLng;
+  /// GPS del pasajero solo mientras el viaje ya va en camino (`started`/`in_trip`).
+  LatLng? _passengerAboardLatLng;
+  double _passengerAboardBearing = 0;
+  StreamSubscription<Position>? _passengerAboardGpsSub;
+  bool _passengerAboardGpsStarting = false;
+  bool _passengerAboardGpsAttempted = false;
   double? _lastDriverRawLat;
   double? _lastDriverRawLng;
   bool _appInForeground = true;

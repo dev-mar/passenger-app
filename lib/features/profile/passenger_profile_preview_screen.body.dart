@@ -127,6 +127,9 @@ class _ProfileBody extends StatelessWidget {
     required this.onSupport,
     required this.onLanguage,
     required this.onBenefits,
+    required this.onNotices,
+    required this.onVerifyPhone,
+    this.noticesUnread = 0,
   });
 
   final PassengerProfileVm profile;
@@ -136,6 +139,9 @@ class _ProfileBody extends StatelessWidget {
   final VoidCallback onSupport;
   final VoidCallback onLanguage;
   final VoidCallback onBenefits;
+  final VoidCallback onNotices;
+  final VoidCallback onVerifyPhone;
+  final int noticesUnread;
 
   @override
   Widget build(BuildContext context) {
@@ -327,6 +333,33 @@ class _ProfileBody extends StatelessWidget {
                                   ),
                                 ],
                               ),
+                              if (!profile.phoneVerified) ...[
+                                const SizedBox(height: 10),
+                                Text(
+                                  l10n.profileVerifyPhoneHint,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        color: AppColors.textSecondary,
+                                        height: 1.35,
+                                      ),
+                                ),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextButton(
+                                    onPressed: onVerifyPhone,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(48, 40),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(l10n.profileVerifyPhoneAction),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -516,6 +549,70 @@ class _ProfileBody extends StatelessWidget {
                                     ),
                               ),
                             ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Material(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
+                    child: InkWell(
+                      onTap: () {
+                        TexiUiFeedback.lightTap();
+                        onNotices();
+                      },
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xxx,
+                          vertical: AppSpacing.sheetH,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.notifications_none_rounded,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: AppSpacing.xl),
+                            Expanded(
+                              child: Text(
+                                l10n.noticesInboxEntry,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary,
+                                    ),
+                              ),
+                            ),
+                            if (noticesUnread > 0) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(99),
+                                ),
+                                child: Text(
+                                  noticesUnread > 99 ? '99+' : '$noticesUnread',
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                            ],
                             const Icon(
                               Icons.chevron_right_rounded,
                               color: AppColors.textSecondary,

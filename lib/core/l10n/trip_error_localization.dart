@@ -42,6 +42,10 @@ String localizedTripApiError (
       return l10n.tripCancelCapExceeded;
     case 'NO_DRIVERS_AVAILABLE':
       return l10n.tripNoDriversAvailable;
+    case 'OFFER_ABOVE_CAP':
+      return l10n.offerableOfferAboveCap;
+    case 'OFFER_BELOW_REFERENCE':
+      return l10n.offerableOfferBelowReference;
     case 'SESSION_SUPERSEDED':
       return l10n.loginErrorSessionSuperseded;
     case 'PASS_AUTH_PHONE_REQUIRED':

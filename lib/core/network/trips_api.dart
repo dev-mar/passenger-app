@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'dart:math';
+import '../analytics/passenger_marketing_analytics.dart';
 import 'passenger_http_resilience.dart' as passenger_http;
 import 'passenger_resilience_telemetry_service.dart';
 import '../../data/models/nearby_driver.dart';
@@ -183,6 +184,7 @@ class TripsApi {
     List<String> tripSpecials = const [],
     String? deviceId,
     String? promoCode,
+    double? passengerOfferAmount,
   }) async {
     final payload = {
       'origin': {'lat': originLat, 'lng': originLng},
@@ -204,11 +206,46 @@ class TripsApi {
         'deviceId': deviceId.trim(),
       if (promoCode != null && promoCode.trim().isNotEmpty)
         'promoCode': promoCode.trim(),
+      if (passengerOfferAmount != null) 'passengerOfferAmount': passengerOfferAmount,
     };
     final response = await _dio.post('/passengers/trips', data: payload);
     final body = response.data ?? const <String, dynamic>{};
     final data = body['data'] as Map<String, dynamic>? ?? const {};
-    return CreateTripResponse.fromJson(data);
+    final created = CreateTripResponse.fromJson(data);
+    if (created.tripId.trim().isNotEmpty) {
+      PassengerMarketingAnalytics.logRideRequest();
+    }
+    return created;
+  }
+
+  Future<Map<String, dynamic>> listFareBids(String tripId) async {
+    final response = await _dio.get('/passengers/trips/$tripId/bids');
+    final body = response.data ?? const <String, dynamic>{};
+    final data = body['data'];
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return const {};
+  }
+
+  Future<void> acceptFareBid({
+    required String tripId,
+    required String negotiationId,
+  }) async {
+    await _dio.post('/passengers/trips/$tripId/bids/$negotiationId/accept');
+  }
+
+  Future<void> declineFareBid({
+    required String tripId,
+    required String negotiationId,
+  }) async {
+    await _dio.post('/passengers/trips/$tripId/bids/$negotiationId/decline');
+  }
+
+  Future<void> raiseFareOffer({
+    required String tripId,
+    required double amount,
+  }) async {
+    await _dio.post('/passengers/trips/$tripId/offer', data: {'amount': amount});
   }
 
   /// GET /passengers/trips/:tripId — rehidratar estado aunque falten eventos WS.
@@ -245,6 +282,7 @@ class TripsApi {
       '/passengers/trips/$tripId/cancel',
       data: data,
     );
+    PassengerMarketingAnalytics.logRideCancelled(tripId);
   }
 
   /// GET /passengers/trips/:tripId/cancel-reasons — labels del servidor (fase 2).

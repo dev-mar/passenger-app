@@ -12,6 +12,7 @@ import '../../login/passenger_phone_link_navigation.dart';
 import '../trip_request_state.dart';
 import '../trip_service_addon_policy.dart';
 import 'quote_bottom_sheet_widgets.dart';
+import 'passenger_offerable_fare_editor.dart';
 
 /// Bottom sheet: opciones de precio y envío directo de la solicitud.
 class PassengerTripQuoteBottomSheet extends ConsumerStatefulWidget {
@@ -215,6 +216,7 @@ class _PassengerTripQuoteBottomSheetState
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      const PassengerOfferableFareEditor(),
                       TripQuoteConfirmButton(
                         enabled: _selected != null && !_requesting,
                         loading: _requesting,

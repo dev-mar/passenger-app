@@ -35,12 +35,24 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         !_m._pickingDestination;
     final needsDestinationConfirm =
         _m._originConfirmed &&
+        _m._destinationMapPickArmed &&
         _m._destination == null &&
         !_m._pickingOrigin &&
         !_m._pickingDestination;
     final needsAnyMapConfirm = needsOriginConfirm || needsDestinationConfirm;
+    final editingSettledDraft = passengerDraftEditHidesTripOptions(
+      originConfirmed: _m._originConfirmed,
+      hasDestination: _m._destination != null,
+      pickingOrigin: _m._pickingOrigin,
+      pickingDestination: _m._pickingDestination,
+      searchTargetActive:
+          _m._draftEditTarget != PassengerDraftEditTarget.none,
+    );
     return _m._activeStop == ActiveStop.none &&
-        (_m._pickingOrigin || _m._pickingDestination || needsAnyMapConfirm);
+        (_m._pickingOrigin ||
+            _m._pickingDestination ||
+            needsAnyMapConfirm ||
+            editingSettledDraft);
   }
 
   void _onCameraIdleForMapConfirm() {
@@ -57,8 +69,66 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       setState(() {
         _m._mapConfirmInstructionHiddenWhileDragging = false;
       });
-      unawaited(_refreshNeedlePreviewFromMapCenter());
+      unawaited(_onDraftMapPinSettled());
     });
+  }
+
+  /// Al soltar el mapa: la calle del pin pasa al origen mientras siga en vivo,
+  /// o cierra la edición de un origen ya fijado si el pin se movió.
+  Future<void> _onDraftMapPinSettled() async {
+    await _refreshNeedlePreviewFromMapCenter();
+    if (!mounted || !_computeIsDraftMapConfirmMode()) return;
+    if (_m._pickingOrigin && _m._originConfirmed) {
+      // Con destino ya puesto, el costo espera a «Confirmar origen».
+      if (_m._destination != null) return;
+      await _commitEditedOriginIfPinMoved();
+      return;
+    }
+    await _syncLiveOriginFromPin();
+  }
+
+  Future<void> _commitEditedOriginIfPinMoved() async {
+    final anchor = _m._originEditAnchor ?? _m._origin;
+    final center = _m._mapCenter;
+    if (anchor == null || center == null) return;
+    final movedM = Geolocator.distanceBetween(
+      anchor.latitude,
+      anchor.longitude,
+      center.latitude,
+      center.longitude,
+    );
+    if (movedM < 8) return;
+    await _setOriginFromNeedle();
+  }
+
+  /// El origen confirmado es el pin actual. No abre el paso de destino.
+  Future<void> _syncLiveOriginFromPin() async {
+    if (!mounted) return;
+    if (_m._originConfirmed || _m._destination != null) return;
+    if (ref.read(tripRequestProvider).tripId != null) return;
+    final center = _m._mapCenter;
+    if (center == null) return;
+    final prev = _m._origin;
+    final movedM = prev == null
+        ? _kLiveOriginHoldMeters
+        : Geolocator.distanceBetween(
+            prev.latitude,
+            prev.longitude,
+            center.latitude,
+            center.longitude,
+          );
+    final preview = _m._mapNeedleAddressPreview?.trim();
+    final existing = _m._originDisplayLabel?.trim();
+    final keepLabel =
+        existing != null && existing.isNotEmpty && movedM < _kLiveOriginHoldMeters;
+    if (movedM < 3 && keepLabel) return;
+    setState(() {
+      _m._origin = center;
+      if (!keepLabel && preview != null && preview.isNotEmpty) {
+        _m._originDisplayLabel = preview;
+      }
+    });
+    ref.read(tripRequestProvider.notifier).setOrigin(center.latitude, center.longitude);
   }
 
   Future<void> _refreshNeedlePreviewFromMapCenter() async {
@@ -248,7 +318,12 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   Future<void> _refinePassengerOriginOnce(int generation) async {
     await Future<void>.delayed(const Duration(seconds: 4));
     if (!mounted || generation != _m._originResolveGeneration) return;
-    if (_m._originConfirmed || !_m._pickingOrigin || _m._destination != null) return;
+    if (_m._originConfirmed ||
+        !_m._pickingOrigin ||
+        _m._destination != null ||
+        _m._originPinAdjusted) {
+      return;
+    }
     final prev = _m._origin;
     if (prev == null) return;
     try {
@@ -256,7 +331,9 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         locationSettings: _passengerPickupLocationSettings(),
       ).timeout(const Duration(seconds: 12));
       if (!mounted || generation != _m._originResolveGeneration) return;
-      if (_m._originConfirmed || !_m._pickingOrigin) return;
+      if (_m._originConfirmed || !_m._pickingOrigin || _m._originPinAdjusted) {
+        return;
+      }
       final latLng = LatLng(pos.latitude, pos.longitude);
       final movedM = Geolocator.distanceBetween(
         prev.latitude,
@@ -571,13 +648,154 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _animateDriverMarkerTo(target);
-      if (passengerTripIsTrackingDriver(status)) {
+      if (passengerTripIsTrackingDriver(status) &&
+          !passengerTripIsEnRouteToDestination(status)) {
         _centerCameraOnDriverPin(target);
       }
     });
   }
 
-  /// Viaje activo: el pin del vehículo es el ancla visual del mapa.
+  /// En camino el mapa sigue el auto del pasajero, no el GPS del conductor.
+  void _centerCameraOnPassengerAboardPin(LatLng passenger) {
+    final c = _m._controller;
+    if (c == null || !_m._appInForeground) return;
+    final now = DateTime.now();
+    if (_m._lastPassengerEnRouteCameraFitAt != null &&
+        now.difference(_m._lastPassengerEnRouteCameraFitAt!) <
+            TripRouteTrackingPolicy.navigationCameraMinGap) {
+      return;
+    }
+    _m._lastPassengerEnRouteCameraFitAt = now;
+    unawaited(
+      c.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: passenger, zoom: 15.8),
+        ),
+      ),
+    );
+  }
+
+  LocationSettings _passengerAboardLocationSettings() {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      );
+    }
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5,
+    );
+  }
+
+  /// Sustituye el punto azul por el auto en la posición del pasajero.
+  /// No altera el trazado: la ruta sigue calculándose con el GPS del conductor.
+  Future<void> _startPassengerAboardGps() async {
+    if (_m._passengerAboardGpsSub != null || _m._passengerAboardGpsStarting) {
+      return;
+    }
+    _m._passengerAboardGpsStarting = true;
+    try {
+      final permission =
+          await PassengerGeolocationPermissionCache.ensureLocationPermission(
+        requestIfDenied: false,
+      );
+      if (!mounted) return;
+      final status = ref.read(passengerRealtimeProvider).status;
+      if (!passengerTripIsEnRouteToDestination(status)) return;
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final last = await Geolocator.getLastKnownPosition();
+      if (!mounted) return;
+      if (!passengerTripIsEnRouteToDestination(
+        ref.read(passengerRealtimeProvider).status,
+      )) {
+        return;
+      }
+      if (last != null && _m._passengerAboardLatLng == null) {
+        final latLng = LatLng(last.latitude, last.longitude);
+        setState(() {
+          _m._passengerAboardLatLng = latLng;
+          if (last.heading >= 0) {
+            _m._passengerAboardBearing = last.heading;
+          }
+        });
+        _centerCameraOnPassengerAboardPin(latLng);
+      }
+      if (_m._passengerAboardGpsSub != null) return;
+
+      _m._passengerAboardGpsSub = Geolocator.getPositionStream(
+        locationSettings: _passengerAboardLocationSettings(),
+      ).listen((position) {
+        if (!mounted) return;
+        if (!passengerTripIsEnRouteToDestination(
+          ref.read(passengerRealtimeProvider).status,
+        )) {
+          return;
+        }
+        final next = LatLng(position.latitude, position.longitude);
+        final prev = _m._passengerAboardLatLng;
+        if (prev != null) {
+          final moved = Geolocator.distanceBetween(
+            prev.latitude,
+            prev.longitude,
+            next.latitude,
+            next.longitude,
+          );
+          if (moved < 4) return;
+        }
+        final bearing = position.heading >= 0
+            ? position.heading
+            : _m._passengerAboardBearing;
+        setState(() {
+          _m._passengerAboardLatLng = next;
+          _m._passengerAboardBearing = bearing;
+        });
+        _centerCameraOnPassengerAboardPin(next);
+      });
+    } catch (_) {
+      // Sin GPS del pasajero se mantiene el punto azul nativo.
+    } finally {
+      _m._passengerAboardGpsStarting = false;
+    }
+  }
+
+  void _stopPassengerAboardGps({bool notify = true}) {
+    final sub = _m._passengerAboardGpsSub;
+    _m._passengerAboardGpsSub = null;
+    _m._passengerAboardGpsStarting = false;
+    _m._passengerAboardGpsAttempted = false;
+    sub?.cancel();
+    if (!notify || !mounted) return;
+    if (_m._passengerAboardLatLng == null && _m._passengerAboardBearing == 0) {
+      return;
+    }
+    setState(() {
+      _m._passengerAboardLatLng = null;
+      _m._passengerAboardBearing = 0;
+    });
+  }
+
+  void _syncPassengerAboardCarPin(String? status) {
+    if (passengerTripIsEnRouteToDestination(status)) {
+      if (_m._passengerAboardGpsAttempted || _m._passengerAboardGpsStarting) {
+        return;
+      }
+      _m._passengerAboardGpsAttempted = true;
+      unawaited(_startPassengerAboardGps());
+      return;
+    }
+    if (_m._passengerAboardGpsSub != null ||
+        _m._passengerAboardLatLng != null ||
+        _m._passengerAboardGpsAttempted) {
+      _stopPassengerAboardGps();
+    }
+  }
+
+  /// Viaje activo antes de iniciar: el pin del vehículo del conductor es el ancla.
   void _centerCameraOnDriverPin(LatLng driver) {
     final c = _m._controller;
     if (c == null || !_m._appInForeground) return;
@@ -707,6 +925,22 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
 
   void _onCameraMove(CameraPosition position) {
     _m._mapCenter = position.target;
+    final liveOrigin = _m._origin;
+    if (!_m._originConfirmed &&
+        _m._destination == null &&
+        liveOrigin != null &&
+        !_m._originPinAdjusted) {
+      final movedM = Geolocator.distanceBetween(
+        liveOrigin.latitude,
+        liveOrigin.longitude,
+        position.target.latitude,
+        position.target.longitude,
+      );
+      if (movedM >= _kLiveOriginHoldMeters) {
+        _m._originPinAdjusted = true;
+        _m._originResolveGeneration++;
+      }
+    }
     final st = ref.read(passengerRealtimeProvider).status;
     if (_m._searchingHoldUi ||
         _m._matchingSubmitUi ||
@@ -758,6 +992,10 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   }
 
   Future<void> _updateOriginStreetLabel(LatLng p) async {
+    if (_m._originDriverAddress != null &&
+        _m._originDriverAddress!.trim().isNotEmpty) {
+      return;
+    }
     final label = await _m._geocoding.reverseGeocodeStreet(
       lat: p.latitude,
       lng: p.longitude,
@@ -808,27 +1046,59 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
   }
 
   Future<void> _setOriginFromNeedle() async {
-    final p = await _getLatLngFromNeedle();
+    _lockOriginAtPin(openDestinationSearch: false);
+  }
+
+  /// Fija el origen en el pin actual. Si [openDestinationSearch], en el mismo
+  /// frame abre el buscador de destino (un solo toque en «¿A dónde vas?»).
+  void _lockOriginAtPin({required bool openDestinationSearch}) {
+    final p = _m._mapCenter ?? _m._origin;
+    if (p == null) return;
     final preview = _m._mapNeedleAddressPreview?.trim();
+    final prev = _m._origin;
+    final movedM = prev == null
+        ? _kLiveOriginHoldMeters
+        : Geolocator.distanceBetween(
+            prev.latitude,
+            prev.longitude,
+            p.latitude,
+            p.longitude,
+          );
+    final existing = _m._originDisplayLabel?.trim();
+    final keepExisting =
+        existing != null &&
+        existing.isNotEmpty &&
+        movedM < _kLiveOriginHoldMeters;
+    final resolvedLabel = keepExisting
+        ? existing
+        : (preview != null && preview.isNotEmpty
+              ? preview
+              : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}');
     _m._mapConfirmIdleTimer?.cancel();
     setState(() {
       _m._origin = p;
-      _m._originDisplayLabel = preview != null && preview.isNotEmpty
-          ? preview
-          : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+      _m._originDisplayLabel = resolvedLabel;
+      _m._originDriverAddress = null;
       _m._originConfirmed = true;
       _m._pickingOrigin = false;
       _m._pickingDestination = false;
       _m._activeStop = ActiveStop.none;
+      _m._originEditAnchor = null;
+      _m._destinationMapPickArmed = false;
       _m._routePoints = null;
       _m._mapNeedleAddressPreview = null;
       _m._mapConfirmInstructionHiddenWhileDragging = false;
-      _m._draftEditTarget = PassengerDraftEditTarget.none;
+      if (openDestinationSearch) {
+        _m._draftEditTarget = PassengerDraftEditTarget.destination;
+        _m._draftSearchExpandToken++;
+      } else {
+        _m._draftEditTarget = PassengerDraftEditTarget.none;
+      }
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     if (_m._destination != null) _m._fetchRoute();
-    _updateOriginStreetLabel(p);
-    if (_m._destination != null) {
+    unawaited(_updateOriginStreetLabel(p));
+    if (_m._destination != null && !openDestinationSearch) {
       _m._notifyDraftSearchCollapsedAfterBothStops();
     }
   }
@@ -842,8 +1112,10 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       _m._destinationDisplayLabel = preview != null && preview.isNotEmpty
           ? preview
           : '${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)}';
+      _m._destinationDriverAddress = null;
       _m._destinationPoiLabelLocked = false;
       _m._pickingDestination = false;
+      _m._destinationMapPickArmed = false;
       _m._routePoints = null;
       _m._mapNeedleAddressPreview = null;
       _m._mapConfirmInstructionHiddenWhileDragging = false;

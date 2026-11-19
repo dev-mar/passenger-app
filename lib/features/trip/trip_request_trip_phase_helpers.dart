@@ -61,6 +61,34 @@ bool passengerTripIsEnRouteToDestination(String? status) {
   return s == 'started' || s == 'in_trip';
 }
 
+/// En accepted/arrived se ve el auto del conductor. En camino ya no:
+/// el GPS del teléfono del conductor puede quedar fijo.
+bool passengerShouldDrawDriverVehiclePin({
+  required bool hasTrip,
+  required bool hasDriverPosition,
+  required String? status,
+}) {
+  return hasTrip &&
+      hasDriverPosition &&
+      !passengerTripIsEnRouteToDestination(status);
+}
+
+/// El auto del mapa, una vez iniciado el viaje, va en el GPS del pasajero.
+bool passengerShouldDrawAboardCarPin({
+  required String? status,
+  required bool hasPassengerPosition,
+}) {
+  return passengerTripIsEnRouteToDestination(status) && hasPassengerPosition;
+}
+
+/// El punto azul nativo cede el lugar al auto cuando ya hay posición del pasajero.
+bool passengerShouldDrawNativeLocationDot({
+  required bool gpsDotEnabled,
+  required bool aboardCarVisible,
+}) {
+  return gpsDotEnabled && !aboardCarVisible;
+}
+
 /// Compartir seguimiento: solo con el viaje ya iniciado (no en accepted/arrived).
 bool passengerTripCanShareLive(String? status) {
   return passengerTripIsEnRouteToDestination(status);
@@ -115,4 +143,17 @@ double tripRequestEstimateZoomForDistanceKm(double distanceKm) {
   if (distanceKm < 3.0) return 14.5;
   if (distanceKm < 8.0) return 13.5;
   return 12.8;
+}
+
+/// Con origen y destino ya puestos, editar en el mapa o abrir el buscador
+/// mantiene «Confirmar origen/destino». Las opciones del viaje esperan a confirmar.
+bool passengerDraftEditHidesTripOptions({
+  required bool originConfirmed,
+  required bool hasDestination,
+  required bool pickingOrigin,
+  required bool pickingDestination,
+  required bool searchTargetActive,
+}) {
+  if (!originConfirmed || !hasDestination) return false;
+  return pickingOrigin || pickingDestination || searchTargetActive;
 }

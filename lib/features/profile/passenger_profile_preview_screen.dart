@@ -12,6 +12,8 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../login/passenger_phone_link_navigation.dart';
+import '../notices/passenger_notices_repository.dart';
 import 'passenger_profile_models.dart';
 import 'widgets/passenger_profile_edit_sheet.dart';
 import 'widgets/passenger_profile_legal_section.dart';
@@ -56,6 +58,14 @@ class _PassengerProfilePreviewScreenState
       profile: profile,
     );
     if (saved && mounted) await _reload();
+  }
+
+  Future<void> _openPhoneVerification() async {
+    TexiUiFeedback.lightTap();
+    navigateToPassengerPhoneLink(
+      context,
+      returnTo: AppRouter.passengerProfile,
+    );
   }
 
   Future<void> _openSupportCenter() async {
@@ -105,20 +115,20 @@ class _PassengerProfilePreviewScreenState
                 leading: const Icon(Icons.translate, color: AppColors.primary),
                 title: Text(l10n.languageSpanish),
                 onTap: () {
-                  ProviderScope.containerOf(
-                    ctx,
-                    listen: false,
-                  ).read(localeProvider.notifier).state = const Locale('es');
+                  applyPassengerLocale(
+                    ProviderScope.containerOf(ctx, listen: false),
+                    const Locale('es'),
+                  );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.translate, color: AppColors.primary),
                 title: Text(l10n.languageEnglish),
                 onTap: () {
-                  ProviderScope.containerOf(
-                    ctx,
-                    listen: false,
-                  ).read(localeProvider.notifier).state = const Locale('en');
+                  applyPassengerLocale(
+                    ProviderScope.containerOf(ctx, listen: false),
+                    const Locale('en'),
+                  );
                 },
               ),
               const Divider(height: 24),
@@ -232,6 +242,10 @@ class _PassengerProfilePreviewScreenState
             onSupport: _openSupportCenter,
             onLanguage: _openSettingsSheet,
             onBenefits: () => context.pushNamed(AppRouter.benefits),
+            onNotices: () => context.pushNamed(AppRouter.notices),
+            onVerifyPhone: _openPhoneVerification,
+            noticesUnread:
+                ref.watch(passengerNoticesUnreadProvider).asData?.value ?? 0,
           );
         },
       ),

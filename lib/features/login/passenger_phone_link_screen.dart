@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_service.dart';
 import '../../core/config/passenger_app_environment.dart';
 import '../../core/feedback/texi_ui_feedback.dart';
 import '../../core/phone/bolivia_local_phone.dart';
@@ -9,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'login_controller.dart';
 import 'utils/login_country_flag.dart';
+import 'widgets/login_country_picker_sheet.dart';
 import 'widgets/login_auth_action_row.dart';
 import 'widgets/login_phone_entry_panel.dart';
 import 'widgets/login_phone_verification_method_panel.dart';
@@ -34,6 +36,53 @@ class _PassengerPhoneLinkScreenState
   final _phoneController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _prefillPendingPhone();
+  }
+
+  Future<void> _prefillPendingPhone() async {
+    final digits = await AuthService.readLoginPhoneE164Digits();
+    if (!mounted || digits == null || digits.length < 8) return;
+    if (_phoneController.text.trim().isNotEmpty) return;
+    final match = loginCountryMatchingDigits(digits);
+    if (match != null && digits.length > match.dialDigits.length) {
+      final local = digits.substring(match.dialDigits.length);
+      setState(() {
+        _countryCodeController.text = match.dialCode;
+        _phoneController.text = sanitizePassengerLocalPhone(
+          dialCode: match.dialCode,
+          raw: local,
+        );
+      });
+      return;
+    }
+    setState(() {
+      _phoneController.text = sanitizePassengerLocalPhone(
+        dialCode: _countryCodeController.text,
+        raw: digits,
+      );
+    });
+  }
+
+  Future<void> _pickCountry() async {
+    final picked = await showLoginCountryPicker(
+      context: context,
+      selected: _country,
+    );
+    if (picked == null || !mounted || picked.dialCode == _country.dialCode) {
+      return;
+    }
+    setState(() {
+      _countryCodeController.text = picked.dialCode;
+      _phoneController.text = sanitizePassengerLocalPhone(
+        dialCode: picked.dialCode,
+        raw: _phoneController.text,
+      );
+    });
+  }
+
   LoginCountryDial get _country =>
       loginCountryFromDialCode(_countryCodeController.text);
 
@@ -56,10 +105,7 @@ class _PassengerPhoneLinkScreenState
   String _phoneInvalidMessage(AppLocalizations l10n) {
     final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) return l10n.loginPhoneRequired;
-    if (isBoliviaDialCode(_country.dialCode)) {
-      return l10n.loginPhoneInvalidBolivia;
-    }
-    return l10n.loginPhoneRequired;
+    return l10n.loginPhoneInvalidExample(_country.example);
   }
 
   Future<void> _startLinkChallenge(PhoneVerificationMethod method) async {
@@ -156,6 +202,7 @@ class _PassengerPhoneLinkScreenState
               phoneController: _phoneController,
               isLoading: _isLoading,
               showHeadline: false,
+              onCountryTap: _pickCountry,
             ),
             const SizedBox(height: 20),
             Text(

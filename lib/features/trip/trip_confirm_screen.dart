@@ -143,6 +143,9 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
             deviceId: promo.deviceId,
             promoCode: promo.promoCode,
+            passengerOfferAmount: quote.isOfferable
+                ? ref.read(tripRequestProvider).passengerOfferAmount
+                : null,
           );
           break;
         } on DioException catch (e) {

@@ -100,6 +100,19 @@
   "serviceTypeNamePremium": "Premium",
   "loginPhoneRequired": "Ingresa tu número.",
   "loginPhoneInvalidBolivia": "Ingresa tu número. Ej.: 70000000",
+  "loginPhoneExampleHint": "Ej.: {example}",
+  "@loginPhoneExampleHint": {
+    "placeholders": {
+      "example": {"type": "String"}
+    }
+  },
+  "loginPhoneInvalidExample": "Ingresa tu número. Ej.: {example}",
+  "@loginPhoneInvalidExample": {
+    "placeholders": {
+      "example": {"type": "String"}
+    }
+  },
+  "loginCountryPickerTitle": "País del número",
   "homeRequestRide": "Solicitar viaje",
   "homeHubTitle": "Inicio",
   "homeLocationBanner": "Activa tu ubicación para iniciar tu viaje con un toque.",
@@ -120,8 +133,18 @@
   "homeWorkSubtitle": "Tu rutina diaria",
   "homeHomeCta": "Ir a casa",
   "homeHomeSubtitle": "Volver al hogar",
-  "homeFavoriteCta": "Mi favorito",
+  "homeFavoriteCta": "Mis favoritos",
   "homeFavoriteSubtitle": "Tus lugares especiales",
+  "savedPlacesAdd": "Agregar lugar",
+  "savedPlacesNameTitle": "Nombre de referencia",
+  "savedPlacesNameHint": "Ej.: Mamá, Gym",
+  "savedPlacesDeleteTitle": "¿Eliminar este lugar?",
+  "savedPlacesDeleted": "Lugar eliminado",
+  "savedPlacesPickHint": "Toca un lugar para usarlo aquí.",
+  "savedPlacesRideHint": "Toca un lugar para pedir el viaje.",
+  "savedPlacesReservedName": "Ese nombre es de Casa, Trabajo o Aeropuerto.",
+  "savedPlacesNeedStreet": "No pudimos leer la calle. Búscala con la lupa.",
+  "savedPlacesPickerTitle": "Nueva ubicación",
   "homeRequestNow": "Pedir ahora",
   "homeSlotWorkLabel": "Trabajo",
   "homeSlotHomeLabel": "Casa",
@@ -132,8 +155,15 @@
   "homeQuickPlacePickerHint": "Mueve el mapa y deja el pin en el destino.",
   "homeQuickPlaceSave": "Guardar",
   "homeQuickPlaceSaved": "Ubicación guardada. Ya puedes pedir este viaje.",
+  "homeQuickPlaceEdit": "Editar ubicación",
   "homeWhereToToday": "¿A dónde vamos hoy?",
-  "homeChooseOriginDestination": "Elegir origen y destino",
+  "homeHelloName": "¡Hola, {name}!",
+  "@homeHelloName": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "homeChooseOriginDestination": "Elige tu destino",
   "homePlaceTapToRide": "Pedir viaje aquí",
   "menuHome": "Inicio",
   "homeProfileQuickAccess": "Mi perfil",
@@ -161,11 +191,12 @@
   "tripUseMyLocation": "Usar mi ubicación actual",
   "tripSearchAddress": "Buscar dirección",
   "tripChooseOnMap": "Elegir en el mapa",
+  "tripSearchOnMap": "Buscar en el mapa",
   "tripUseAsPickup": "Usar como punto de recojo",
   "tripUseAsDestination": "Usar como destino",
   "tripMoveMapSetPickup": "Mueve el mapa y toca el botón para fijar dónde te recogerán.",
   "tripMoveMapSetDestination": "Mueve el mapa y toca el botón para fijar el destino.",
-  "tripTapMapDestination": "Toca el mapa o elige una opción abajo",
+  "tripTapMapDestination": "Toca aquí para elegir tu destino",
   "tripSeePrices": "Ver precios",
   "tripCancelQuoteDraft": "Cancelar la solicitud",
   "@tripCancelQuoteDraft": {
@@ -231,6 +262,32 @@
   "quoteTitle": "Elige tu viaje",
   "quoteSubtitle": "Selecciona un tipo de servicio",
   "quotePerTrip": "por viaje",
+  "offerableFareTitle": "Tu oferta",
+  "offerableFareHint": "La tarifa calculada es el mínimo. Puedes subirla.",
+  "offerableBidsTitle": "Pueden atender tu viaje",
+  "offerableBidsBody": "Son propuestas, no un precio fijo. Si no te convencen, TEXIAPP te ayuda a seguir buscando para que viajes a gusto.",
+  "offerableBidAccept": "Aceptar",
+  "offerableBidDecline": "Seguir buscando",
+  "offerableBidEta": "{minutes} min",
+  "@offerableBidEta": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "offerableBidEmpty": "Si un conductor acepta tu monto, el viaje se asigna. Aquí aparecen las propuestas.",
+  "offerableSearchRaiseTitle": "Sube tu oferta",
+  "offerableSearchRaiseHint": "Una oferta más alta ayuda a que un conductor acepte tu viaje más rápido.",
+  "offerableSearchRaiseCta": "Buscar con este monto",
+  "offerableSearchRaiseNeedMore": "Cambia el monto para buscar de nuevo",
+  "offerableSearchRaiseEdit": "Editar monto",
+  "offerableSearchRaiseBelowFloor": "El costo del viaje debe ser igual a {amount} o superior.",
+  "@offerableSearchRaiseBelowFloor": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "offerableOfferAboveCap": "Ese monto supera el tope. Bájalo un poco e intenta de nuevo.",
+  "offerableOfferBelowReference": "La oferta no puede ser menor que la tarifa calculada.",
   "quoteConfirm": "Confirmar",
   "confirmTitle": "Confirma tu viaje",
   "confirmFrom": "Desde",
@@ -362,7 +419,7 @@
   "tripRbacTechnical": "No pudimos completar esta acción. Intenta de nuevo en unos segundos.",
   "tripPhoneRequired": "Verifica tu número de celular para solicitar un viaje.",
   "tripPhoneGateTitle": "Confirma tu número",
-  "tripPhoneGateBody": "Ingresaste con correo electrónico. Para pedir un viaje necesitas verificar tu celular una sola vez.",
+  "tripPhoneGateBody": "Para pedir un viaje necesitas verificar tu celular una sola vez.",
   "tripPhoneGatePrimaryAction": "Ver formas de verificación",
   "tripPhoneGateDismiss": "Ahora no",
   "phoneLinkTitle": "Verifica tu celular",
@@ -531,8 +588,8 @@
   "profileSetupNameRequired": "Ingresa tu nombre.",
   "profileSetupNameTooShort": "El nombre es muy corto.",
   "profileSetupContinue": "Continuar",
-  "profileSetupReferralLabel": "Código de quien te refirió (opcional)",
-  "profileSetupReferralHint": "Código de quien te refirió",
+  "profileSetupReferralLabel": "Código de quien te refirió",
+  "profileSetupReferralHint": "opcional",
   "commonCancel": "Cancelar",
   "commonLoading": "Cargando...",
   "commonError": "Algo salió mal",
@@ -715,6 +772,7 @@
   "verifyCodeRetryHint": "Si no recibiste el código, revisa el número y vuelve a intentar en unos minutos.",
   "verifyCodeOutboundHelpLink": "¿No llegó el código?",
   "verifyCodeOutboundHelpSubtitle": "Prueba otra forma de verificar tu número.",
+  "verifyCodeBackToMap": "Volver al mapa",
   "verifyCodeOutboundResend": "Reenviar código por WhatsApp",
   "verifyCodeOutboundResent": "Te enviamos un código nuevo por WhatsApp.",
   "verifyCodePlayReviewSubtitle": "Cuenta de prueba Play Store: ingresa el código indicado en las instrucciones de acceso (no necesitas WhatsApp ni SMS).",
@@ -1035,6 +1093,8 @@
   "profileCompletenessDone": "Tu perfil está completo",
   "profileCompleteInfoCta": "COMPLETAR INFORMACIÓN",
   "profileVerifiedUserLabel": "Usuario verificado",
+  "profileVerifyPhoneAction": "Verificar celular",
+  "profileVerifyPhoneHint": "Los beneficios se activan cuando confirmas tu número.",
   "profileBrandTitle": "TEXIAPP",
   "appUpdateRequiredTitle": "Actualización requerida",
   "appUpdateRequiredMessage": "Hay una nueva versión de TEXIAPP disponible. Actualiza la app para continuar.",
@@ -1146,5 +1206,81 @@
   "promoReferralInviteeRejected": "No válido",
   "promoReferralGraceClosed": "La ventana para agregar un código ya pasó.",
   "tripSupportConfirmHint": "El precio del viaje no cambia. Nuestro equipo cubre parte con apoyo TEXIAPP.",
-  "promoBenefitsEntry": "Beneficios TEXIAPP"
+  "promoBenefitsEntry": "Beneficios TEXIAPP",
+  "noticesInboxTitle": "Avisos",
+  "noticesInboxSubtitle": "Novedades y beneficios que te enviamos. Las alertas de viaje siguen en su propio canal.",
+  "noticesInboxEntry": "Avisos TEXIAPP",
+  "noticesMarkAll": "Leídos",
+  "noticesEmpty": "Aún no hay avisos. Cuando enviemos una novedad, aparecerá aquí.",
+  "homeTexiRutaEntry": "TEXI Ruta",
+  "homeTexiRutaHint": "Reserva un asiento con horario. No es una solicitud de viaje.",
+  "texiRutaTitle": "TEXI Ruta",
+  "texiRutaFrom": "Desde",
+  "texiRutaTo": "Hasta",
+  "texiRutaDate": "Fecha",
+  "texiRutaSearch": "Buscar salidas",
+  "texiRutaSeats": "Asientos",
+  "texiRutaBook": "Reservar",
+  "texiRutaMine": "Tus reservas",
+  "texiRutaCancel": "Cancelar reserva",
+  "texiRutaEmpty": "No hay salidas abiertas para ese tramo y esa fecha.",
+  "texiRutaFull": "Sin asientos",
+  "texiRutaCash": "El pago es en efectivo al subir.",
+  "texiRutaOff": "TEXI Ruta no está disponible por ahora.",
+  "texiRutaGenericError": "No se pudo completar. Intenta de nuevo.",
+  "texiRutaLeaveFrom": "Sales desde",
+  "texiRutaPickCity": "Elige la ciudad de salida",
+  "texiRutaUseLocation": "Usar mi ubicación",
+  "texiRutaCityFar": "No hay una ciudad de salida cerca. Elige una de la lista.",
+  "texiRutaSearchPlace": "Busca una ciudad o un destino",
+  "texiRutaDestinations": "A dónde puedes ir",
+  "texiRutaOtherCity": "Otra ciudad",
+  "texiRutaAllLocalities": "Todas las localidades",
+  "texiRutaSchedules": "Horarios",
+  "texiRutaNoDestinations": "Todavía no hay recorridos activos desde esta ciudad.",
+  "texiRutaToday": "Hoy",
+  "texiRutaFromFare": "Desde Bs {fare}",
+  "@texiRutaFromFare": {
+    "placeholders": {
+      "fare": { "type": "String" }
+    }
+  },
+  "texiRutaBackToPlaces": "Destinos",
+  "texiRutaConfirm": "Confirmar reserva",
+  "texiRutaNotOpen": "Esta salida todavía no abre reservas.",
+  "texiRutaBoardMap": "Ver punto de abordaje",
+  "texiRutaBoardPoint": "Abordaje",
+  "texiRutaYou": "Tú",
+  "texiRutaTotal": "Total Bs {fare}",
+  "@texiRutaTotal": {
+    "placeholders": {
+      "fare": { "type": "String" }
+    }
+  },
+  "texiRutaSeatsLeft": "{count} libres",
+  "@texiRutaSeatsLeft": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "texiRutaSaved": "Tu reserva quedó guardada",
+  "texiRutaCode": "Código de reserva",
+  "texiRutaCopy": "Copiar código",
+  "texiRutaCopied": "Código copiado",
+  "texiRutaAnother": "Hacer otra reserva",
+  "texiRutaSeeAll": "Ver todas",
+  "texiRutaNoBookings": "Todavía no tienes reservas.",
+  "texiRutaSeatCount": "{count, plural, =1{1 asiento} other{{count} asientos}}",
+  "@texiRutaSeatCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "texiRutaStatusPending": "Pendiente",
+  "texiRutaStatusConfirmed": "Confirmada",
+  "texiRutaStatusBoarded": "Abordada",
+  "texiRutaStatusInTrip": "En camino",
+  "texiRutaStatusCompleted": "Completada",
+  "texiRutaStatusNoShow": "No te presentaste",
+  "texiRutaStatusCancelled": "Cancelada"
 }

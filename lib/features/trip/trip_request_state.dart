@@ -24,6 +24,7 @@ class TripRequestState {
     this.paymentMethod = TripPaymentMethod.cash,
     this.extras = TripPassengerExtras.empty,
     this.specials = TripPassengerSpecials.empty,
+    this.passengerOfferAmount,
   });
 
   final TripPoint? origin;
@@ -35,6 +36,9 @@ class TripRequestState {
   final String paymentMethod;
   final TripPassengerExtras extras;
   final TripPassengerSpecials specials;
+
+  /// Monto que el pasajero quiere ofrecer. Solo se envía si la zona es ofertable.
+  final double? passengerOfferAmount;
 
   double get specialSurchargePct =>
       quote?.specialRequirementSurchargePct ?? 50;
@@ -61,6 +65,8 @@ class TripRequestState {
     String? paymentMethod,
     TripPassengerExtras? extras,
     TripPassengerSpecials? specials,
+    double? passengerOfferAmount,
+    bool resetPassengerOffer = false,
   }) {
     return TripRequestState(
       origin: origin ?? this.origin,
@@ -72,6 +78,9 @@ class TripRequestState {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       extras: extras ?? this.extras,
       specials: specials ?? this.specials,
+      passengerOfferAmount: resetPassengerOffer
+          ? null
+          : (passengerOfferAmount ?? this.passengerOfferAmount),
     );
   }
 
@@ -90,6 +99,12 @@ final tripRecoverySnackShownForTripIdProvider =
 /// Se incrementa al limpiar la sesión de viaje fuera del mapa (p. ej. notificación con viaje ya terminal).
 /// [TripRequestScreen] lo escucha para alinear pines, ruta y modo de confirmación sin recrear el widget.
 final passengerTripMapUiResetTickProvider = StateProvider<int>((ref) => 0);
+
+/// Una sola acción de búsqueda ofertable a la vez: reenviar el monto o elegir una contraoferta.
+enum PassengerSearchLock { idle, resubmit, bid }
+
+final passengerSearchLockProvider =
+    StateProvider<PassengerSearchLock>((ref) => PassengerSearchLock.idle);
 
 class TripRequestNotifier extends StateNotifier<TripRequestState> {
   TripRequestNotifier() : super(const TripRequestState());
@@ -115,7 +130,11 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
   }
 
   void setQuote(QuoteResponse quote) {
-    state = state.copyWith(quote: quote, selectedOption: null).clearError();
+    state = state.copyWith(
+      quote: quote,
+      selectedOption: null,
+      resetPassengerOffer: true,
+    ).clearError();
   }
 
   /// Limpia cotización y opción (p. ej. al recalcular ruta en el borrador).
@@ -154,11 +173,16 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
       paymentMethod: state.paymentMethod,
       extras: state.extras,
       specials: state.specials,
+      passengerOfferAmount: state.passengerOfferAmount,
     );
   }
 
   void setError(String message) {
     state = state.copyWith(error: message);
+  }
+
+  void setPassengerOffer(double? amount) {
+    state = state.copyWith(passengerOfferAmount: amount);
   }
 
   void setPaymentMethod(String method) {

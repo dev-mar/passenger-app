@@ -58,11 +58,12 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     }
     _d._lastPassengerEnRouteCameraFitAt = now;
 
-    // Prioridad visual: pin del vehículo al centro (la ruta se mantiene dibujada).
+    // La ruta no cambia. Si el pasajero ya va a bordo, la cámara sigue su auto.
+    final cameraTarget = _d._passengerAboardLatLng ?? from;
     unawaited(
       c.animateCamera(
         CameraUpdate.newCameraPosition(
-          CameraPosition(target: from, zoom: 15.6),
+          CameraPosition(target: cameraTarget, zoom: 15.6),
         ),
       ),
     );

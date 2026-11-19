@@ -33,7 +33,6 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
       unawaited(_probeGoogleMapsRestHealth());
       _onPassengerTripChatOpenBump();
       unawaited(_loadRecentPlaces());
-      unawaited(_loadSavedPlaces());
       unawaited(_refreshBatteryLevel());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -238,6 +237,11 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
             _d._destinationDisplayLabel = widget.destLabel!.trim();
             _d._destinationPoiLabelLocked = true;
           }
+          final driverStreet = widget.destStreet?.trim();
+          _d._destinationDriverAddress =
+              (driverStreet != null && driverStreet.isNotEmpty)
+              ? driverStreet
+              : null;
           _d._mapCenter = _d._destination;
           _fetchRoute();
           if (_d._destinationPoiLabelLocked) {
@@ -270,6 +274,11 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
               (widget.destLabel != null && widget.destLabel!.trim().isNotEmpty)
                   ? widget.destLabel!.trim()
                   : _d._destinationDisplayLabel;
+          final driverStreet = widget.destStreet?.trim();
+          _d._destinationDriverAddress =
+              (driverStreet != null && driverStreet.isNotEmpty)
+              ? driverStreet
+              : null;
           _d._destinationPoiLabelLocked =
               widget.destLabel != null && widget.destLabel!.trim().isNotEmpty;
           _d._mapCenter = _d._destination;
@@ -312,6 +321,7 @@ mixin _TripRequestScreenBootstrapMixin on _TripRequestScreenSyncMixin {
   }
 
   void disposeTripRequestScreen() {
+    _stopPassengerAboardGps(notify: false);
     _d._passengerEnRouteRouteDebounce?.cancel();
     _d._driverMotionTimer?.cancel();
     _d._searchingNearbyTimer?.cancel();

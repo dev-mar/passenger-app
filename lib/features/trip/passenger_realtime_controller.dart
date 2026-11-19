@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import '../../core/analytics/passenger_marketing_analytics.dart';
 import '../../core/auth/passenger_session_expulsion.dart';
 import '../../core/app_lifecycle/passenger_app_visibility.dart';
 import '../../core/auth/auth_service.dart';

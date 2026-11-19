@@ -711,6 +711,9 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
           cancelledBy: rtState.cancelledBy,
         );
         if (keepDraft) return;
+        if (ref.read(passengerSearchLockProvider) == PassengerSearchLock.resubmit) {
+          return;
+        }
         unawaited(_o._resetTripSessionToDraftHome(tripIdForGuard: tripId));
       });
     }

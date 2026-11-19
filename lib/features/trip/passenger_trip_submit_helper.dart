@@ -8,7 +8,6 @@ import '../../core/auth/auth_service.dart';
 import '../../core/l10n/trip_error_localization.dart';
 import '../../core/network/texi_backend_error.dart';
 import '../../core/network/trips_api.dart';
-import '../../core/network/passenger_api_providers.dart';
 import '../../core/storage/trip_session_storage.dart';
 import '../../data/models/quote_response.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -48,7 +47,6 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   required String? destinationAddress,
   required String? routeOverviewEncoded,
   required Future<bool> Function() ensureDeviceGpsForNewTrip,
-  bool skipPhoneProfileCheck = false,
 }) async {
   final l10n = AppLocalizations.of(context);
   if (l10n == null) {
@@ -73,22 +71,6 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
       PassengerTripSubmitResultKind.error,
       message: l10n.tripRbacSession,
     );
-  }
-
-  if (!skipPhoneProfileCheck) {
-    try {
-      final meData = await ref
-          .read(passengerMeProfileServiceProvider)
-          .fetchData();
-      if (meData['phone_verified'] != true) {
-        return PassengerTripSubmitResult(
-          PassengerTripSubmitResultKind.phoneRequired,
-          message: l10n.tripPhoneRequired,
-        );
-      }
-    } catch (_) {
-      // Si falla /auth/me, el gate server-side responderá 403.
-    }
   }
 
   try {
@@ -136,6 +118,9 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
           tripSpecials: ref.read(tripRequestProvider).specials.toCodes(),
           deviceId: promo.deviceId,
           promoCode: promo.promoCode,
+          passengerOfferAmount: quote.isOfferable
+              ? ref.read(tripRequestProvider).passengerOfferAmount
+              : null,
         );
         break;
       } on DioException catch (e) {

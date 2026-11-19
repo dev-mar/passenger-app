@@ -13,10 +13,13 @@ import '../../features/login/verify_code_screen.dart';
 import '../../features/login/profile_setup_screen.dart';
 import '../../features/login/passenger_phone_link_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/corridor/passenger_corridor_screen.dart';
 import '../../features/home/home_quick_place_picker_screen.dart';
 import '../../features/home/home_quick_slots.dart';
+import '../../features/home/passenger_saved_places_screen.dart';
 import '../../features/profile/passenger_profile_preview_screen.dart';
 import '../../features/promotions/passenger_benefits_screen.dart';
+import '../../features/notices/passenger_notices_screen.dart';
 import '../../features/support/passenger_support_help_screen.dart';
 import '../../features/support/passenger_operator_texi_screen.dart';
 import '../../features/support/passenger_safety_hub_screen.dart';
@@ -41,9 +44,12 @@ class AppRouter {
   static const String profileSetup = 'profile_setup';
   static const String phoneLink = 'phone_link';
   static const String home = 'home';
+  static const String texiRuta = 'texi_ruta';
   static const String homeQuickPlace = 'home_quick_place';
+  static const String savedPlaces = 'saved_places';
   static const String passengerProfile = 'passenger_profile';
   static const String benefits = 'passenger_benefits';
+  static const String notices = 'passenger_notices';
   static const String supportHelp = 'support_help';
   static const String operatorTexi = 'operator_texi';
   static const String safetyHub = 'safety_hub';
@@ -75,6 +81,8 @@ class AppRouter {
         location.startsWith('/home/') ||
         location == '/profile' ||
         location == '/benefits' ||
+        location == '/notices' ||
+        location.startsWith('/notices') ||
         location == '/support' ||
         location == '/safety' ||
         location == '/operator' ||
@@ -87,8 +95,9 @@ class AppRouter {
 
   static Future<bool> _hasStoredSession() async {
     try {
-      return await AuthService.hasStoredSession()
-          .timeout(const Duration(seconds: 3));
+      return await AuthService.hasStoredSession().timeout(
+        const Duration(seconds: 3),
+      );
     } catch (e) {
       debugPrint('[AppRouter] Error leyendo sesión: $e');
       return false;
@@ -98,8 +107,9 @@ class AppRouter {
   static Future<String?> _labsRedirectIfDenied() async {
     if (PassengerAppEnvironment.showsInternalToolsByDefault) return null;
     try {
-      final phone = await AuthService.readLoginPhoneE164Digits()
-          .timeout(const Duration(seconds: 3));
+      final phone = await AuthService.readLoginPhoneE164Digits().timeout(
+        const Duration(seconds: 3),
+      );
       if (PassengerInternalToolsGate.phoneAllowsInternalTools(phone)) {
         return null;
       }
@@ -163,10 +173,7 @@ class AppRouter {
           final phone = q['phone'] ?? '';
           final channel = q['channel'];
           if (channel == 'sms' || channel == 'sms_firebase') {
-            return LoginScreen(
-              initialCountryCode: cc,
-              initialPhone: phone,
-            );
+            return LoginScreen(initialCountryCode: cc, initialPhone: phone);
           }
           return VerifyCodeScreen(
             countryCode: cc,
@@ -242,17 +249,36 @@ class AppRouter {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
+        path: '/home/texi-ruta',
+        name: texiRuta,
+        builder: (context, state) => const PassengerCorridorScreen(),
+      ),
+      GoRoute(
         path: '/home/quick-place',
         name: homeQuickPlace,
         builder: (context, state) {
           final q = state.uri.queryParameters;
-          final slot = HomeQuickSlots.parse(q['slot']) ?? HomeQuickSlotKind.home;
+          final slot =
+              HomeQuickSlots.parse(q['slot']) ?? HomeQuickSlotKind.home;
           final lat = q['lat'] != null ? double.tryParse(q['lat']!) : null;
           final lng = q['lng'] != null ? double.tryParse(q['lng']!) : null;
           return HomeQuickPlacePickerScreen(
             slot: slot,
             initialLat: lat,
             initialLng: lng,
+            titleOverride: q['title'],
+            captureAddress: q['capture'] == '1',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/home/saved-places',
+        name: savedPlaces,
+        builder: (context, state) {
+          return PassengerSavedPlacesScreen(
+            purpose: SavedPlacesPurpose.fromQuery(
+              state.uri.queryParameters['purpose'],
+            ),
           );
         },
       ),
@@ -265,6 +291,13 @@ class AppRouter {
         path: '/benefits',
         name: benefits,
         builder: (context, state) => const PassengerBenefitsScreen(),
+      ),
+      GoRoute(
+        path: '/notices',
+        name: notices,
+        builder: (context, state) => PassengerNoticesScreen(
+          highlightId: state.uri.queryParameters['id'],
+        ),
       ),
       GoRoute(
         path: '/support',
@@ -293,17 +326,21 @@ class AppRouter {
           final q = state.uri.queryParameters;
           final lat = q['lat'] != null ? double.tryParse(q['lat']!) : null;
           final lng = q['lng'] != null ? double.tryParse(q['lng']!) : null;
-          final destLat =
-              q['destLat'] != null ? double.tryParse(q['destLat']!) : null;
-          final destLng =
-              q['destLng'] != null ? double.tryParse(q['destLng']!) : null;
+          final destLat = q['destLat'] != null
+              ? double.tryParse(q['destLat']!)
+              : null;
+          final destLng = q['destLng'] != null
+              ? double.tryParse(q['destLng']!)
+              : null;
           final destLabel = q['destLabel'];
+          final destStreet = q['destStreet'];
           return TripRequestScreen(
             originLat: lat,
             originLng: lng,
             destLat: destLat,
             destLng: destLng,
             destLabel: destLabel,
+            destStreet: destStreet,
           );
         },
       ),

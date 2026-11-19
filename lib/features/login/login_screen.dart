@@ -15,7 +15,9 @@ import 'login_controller.dart';
 import 'utils/login_auth_rate_limit.dart';
 import 'utils/login_attempts_limit_dialog.dart';
 import 'utils/login_country_flag.dart';
+import 'widgets/login_country_picker_sheet.dart';
 import 'widgets/login_google_unified_panel.dart';
+import 'widgets/login_language_switch.dart';
 import 'widgets/login_method_choice_panel.dart';
 import 'widgets/login_phone_unified_panel.dart';
 import 'widgets/login_phone_verification_method_panel.dart';
@@ -183,10 +185,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l10n = AppLocalizations.of(context)!;
     final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) return l10n.loginPhoneRequired;
-    if (isBoliviaDialCode(_country.dialCode)) {
-      return l10n.loginPhoneInvalidBolivia;
+    return l10n.loginPhoneInvalidExample(_country.example);
+  }
+
+  Future<void> _pickCountry() async {
+    final picked = await showLoginCountryPicker(
+      context: context,
+      selected: _country,
+    );
+    if (picked == null || !mounted || picked.dialCode == _country.dialCode) {
+      return;
     }
-    return l10n.loginPhoneRequired;
+    setState(() {
+      _countryCodeController.text = picked.dialCode;
+      _phoneController.text = sanitizePassengerLocalPhone(
+        dialCode: picked.dialCode,
+        raw: _phoneController.text,
+      );
+    });
   }
 
   void _flashError(String? message) {
@@ -247,6 +263,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
     }
 
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    _handleLoginNextStep(nextStep, countryCode: countryCode, phone: phone);
+  }
+
+  Future<void> _continueWithPhoneDeferred() async {
+    if (_isLoading) return;
+    if (!_phoneValid) {
+      _flashError(_phoneInvalidMessage());
+      return;
+    }
+    if (_captchaGateRequired && !_captchaReady) return;
+    final countryCode = _countryCodeController.text.trim();
+    final phone = _phoneController.text.trim();
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+    final nextStep = await ref.read(loginControllerProvider.notifier).login(
+          countryCode: countryCode,
+          phoneNumber: phone,
+          fullPhone: _fullPhone,
+          entryCaptchaToken: _entryCaptchaToken,
+          deferPhoneVerification: true,
+        );
     if (!mounted) return;
     setState(() => _isLoading = false);
     _handleLoginNextStep(nextStep, countryCode: countryCode, phone: phone);
@@ -399,7 +440,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
         break;
       case LoginNextStep.verifyEmailCode:
+        break;
       case LoginNextStep.profileRequired:
+        context.goNamed(
+          'profile_setup',
+          queryParameters: {
+            'cc': countryCode,
+            'phone': phone,
+          },
+        );
         break;
       case LoginNextStep.stepUp:
       case LoginNextStep.attemptsLimitReached:
@@ -644,6 +693,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               tooltip: l10n.loginBackToMethods,
             )
           : null,
+      trailing: const LoginLanguageSwitch(),
       child: PassengerAuthEntrance(
         child: Form(
           key: _formKey,
@@ -725,10 +775,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           captchaReady: _captchaReady,
           onCaptchaToken: _onCaptchaToken,
           onMethodSelected: _onVerificationMethodSelected,
+          onContinue: _continueWithPhoneDeferred,
+          deferPhoneVerification: !_usesClassicPhoneOtp,
           isLoading: _isLoading,
           outboundEnabled: outboundEnabled,
           classicPhoneOtp: _usesClassicPhoneOtp,
           linkedGoogleEmail: loginState.googleEmail,
+          onCountryTap: _pickCountry,
         );
       case LoginScreenStep.googleUnified:
         return LoginGoogleUnifiedPanel(

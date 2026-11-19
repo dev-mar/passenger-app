@@ -36,33 +36,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     } catch (_) {}
   }
 
-  Future<void> _loadSavedPlaces() async {
-    final token = await AuthService.getValidToken();
-    if (token == null || token.isEmpty || !mounted) return;
-    try {
-      final api = TripsApi(token: token);
-      final rows = await api.getPassengerSavedPlaces(limit: 12);
-      if (!mounted) return;
-      final mapped = rows
-          .where((e) => e.label.trim().isNotEmpty)
-          .map(
-            (e) => TripSavedPlaceItem(
-              id: e.id,
-              label: e.label,
-              address: e.address,
-              lat: e.lat,
-              lng: e.lng,
-              isFavorite: e.isFavorite,
-            ),
-          )
-          .toList(growable: false);
-      setState(() {
-        _d._savedOriginPlaces = mapped.take(8).toList(growable: false);
-        _d._savedDestinationPlaces = mapped.take(8).toList(growable: false);
-      });
-    } catch (_) {}
-  }
-
   void _applyTripUiSnapshot(Map<String, dynamic> raw) {
     final oLat = raw['originLat'];
     final oLng = raw['originLng'];
@@ -201,12 +174,15 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     _d._tripEndResetInProgress = false;
     await _recenterMapToDeviceGpsAfterTripEnd();
     unawaited(_loadRecentPlaces());
-    unawaited(_loadSavedPlaces());
   }
 
   /// Reset tras cancelación/expiración (sin rating): vuelve al borrador limpio.
   Future<void> _resetTripSessionToDraftHome({String? tripIdForGuard}) async {
     if (!mounted) return;
+    if (_d._keepDraftAfterMatchingCancel ||
+        ref.read(passengerSearchLockProvider) == PassengerSearchLock.resubmit) {
+      return;
+    }
     if (tripIdForGuard != null) {
       final providerTripId = ref.read(tripRequestProvider).tripId;
       if (providerTripId != null && providerTripId != tripIdForGuard) return;
@@ -263,7 +239,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     _d._tripEndResetInProgress = false;
     await _recenterMapToDeviceGpsAfterTripEnd();
     unawaited(_loadRecentPlaces());
-    unawaited(_loadSavedPlaces());
   }
 
   /// Tras [clearPassengerTripSessionFromContainer] (p. ej. tap en notificaci├│n con viaje ya terminal):
@@ -302,7 +277,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     });
     unawaited(_recenterMapToDeviceGpsAfterTripEnd());
     unawaited(_loadRecentPlaces());
-    unawaited(_loadSavedPlaces());
   }
   void _collapseStops() {
     setState(() {
@@ -578,10 +552,112 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     } catch (_) {}
   }
 
-  /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
-  Future<void> _restartSearchingTripAfterTimeout() async {
+  /// Sube la oferta y pide de nuevo: anula el matching vigente y crea otra
+  /// solicitud con el mismo origen, destino y ajustes.
+  Future<void> _resubmitSearchWithHigherOffer(double amount) async {
+    if (_d._submittingTrip || _d._searchingStage3CancelInFlight) return;
+    if (ref.read(passengerSearchLockProvider) != PassengerSearchLock.idle) {
+      return;
+    }
+    ref.read(passengerSearchLockProvider.notifier).state =
+        PassengerSearchLock.resubmit;
+    try {
+      await _resubmitSearchWithHigherOfferBody(amount);
+    } finally {
+      if (ref.read(passengerSearchLockProvider) == PassengerSearchLock.resubmit) {
+        ref.read(passengerSearchLockProvider.notifier).state =
+            PassengerSearchLock.idle;
+      }
+    }
+  }
+
+  Future<void> _resubmitSearchWithHigherOfferBody(double amount) async {
+    if (_d._submittingTrip || _d._searchingStage3CancelInFlight) return;
+    final tripState = ref.read(tripRequestProvider);
+    final quote = tripState.quote;
+    final floor = tripState.previewTotalPrice;
+    if (quote == null || !quote.isOfferable) return;
+    if (floor == null || amount + 0.009 < floor) return;
+
     _captureMatchingRetryDraft();
+    if (mounted) {
+      setState(() {
+        _d._keepDraftAfterMatchingCancel = true;
+        _d._searchingHoldUi = true;
+      });
+    }
+
+    final rtStatus = ref.read(passengerRealtimeProvider).status;
+    if (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed') {
+      return;
+    }
+
+    final tripId = tripState.tripId;
+    if (tripId != null && tripId.isNotEmpty) {
+      final token = await AuthService.getValidToken();
+      if (token == null || token.isEmpty) return;
+      try {
+          final live = await TripsApi(token: token).getPassengerTripStatus(
+            tripId: tripId,
+          );
+          if (passengerTripIsTrackingDriver(live.status) ||
+              live.status == 'completed') {
+            await _exitSearchingHoldForAssignedTrip(tripId);
+            return;
+          }
+        } catch (e, st) {
+          debugPrint('[SearchRaiseStatus] $e\n$st');
+        }
+        try {
+          await TripsApi(token: token).cancelPassengerTrip(
+            tripId: tripId,
+            cancelScope: 'matching',
+          );
+        } on DioException catch (e, st) {
+          final code = TexiBackendError.codeFromResponse(e.response?.data);
+          debugPrint('[SearchRaiseCancel] code=$code $e\n$st');
+          if (code == 'TRIP_MATCHING_ALREADY_ASSIGNED') {
+            await _exitSearchingHoldForAssignedTrip(tripId);
+            return;
+          }
+          if (!mounted) return;
+          final loc = AppLocalizations.of(context);
+          if (loc != null) {
+            PassengerTripToast.show(
+              context,
+              message: loc.tripRequestNetworkError,
+              icon: Icons.error_outline_rounded,
+              accent: AppColors.error,
+            );
+          }
+          return;
+        } catch (e, st) {
+          debugPrint('[SearchRaiseCancel] $e\n$st');
+          return;
+        }
+      if (!mounted) return;
+      ref.read(passengerRealtimeProvider.notifier).disconnect();
+      ref.read(tripRequestProvider.notifier).setPassengerOffer(amount);
+      ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
+      await TripSessionStorage.clearActiveTripId();
+      PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
+    } else {
+      ref.read(tripRequestProvider.notifier).setPassengerOffer(amount);
+    }
+
+    if (!mounted) return;
+    await _restartSearchingTripAfterTimeout(offerAmount: amount);
+  }
+
+  /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
+  Future<void> _restartSearchingTripAfterTimeout({double? offerAmount}) async {
+    _captureMatchingRetryDraft();
+    final keptOffer = ref.read(tripRequestProvider).passengerOfferAmount;
     _restoreMatchingRetryDraftIfNeeded();
+    final nextOffer = offerAmount ?? keptOffer;
+    if (nextOffer != null) {
+      ref.read(tripRequestProvider.notifier).setPassengerOffer(nextOffer);
+    }
     final tripState = ref.read(tripRequestProvider);
     final q = tripState.quote ?? _d._matchingRetryQuote;
     final opt = tripState.selectedOption ?? _d._matchingRetryOption;
@@ -612,6 +688,12 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
             tripId: lingeringId,
             cancelScope: 'matching',
           );
+        } on DioException catch (e) {
+          final code = TexiBackendError.codeFromResponse(e.response?.data);
+          if (code == 'TRIP_MATCHING_ALREADY_ASSIGNED') {
+            await _exitSearchingHoldForAssignedTrip(lingeringId);
+            return;
+          }
         } catch (_) {}
       }
       ref.read(passengerRealtimeProvider.notifier).disconnect();
@@ -630,18 +712,24 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       _d._searchingOverlayGeneration += 1;
     });
     final l10n = AppLocalizations.of(context)!;
-    final originLabel = (_d._originDisplayLabel != null &&
+    final originForDriver = _d._originDriverAddress?.trim();
+    final originLabel = (originForDriver != null && originForDriver.isNotEmpty)
+        ? originForDriver
+        : ((_d._originDisplayLabel != null &&
             _d._originDisplayLabel!.trim().isNotEmpty)
         ? _d._originDisplayLabel!.trim()
         : (_d._matchingRetryOriginLabel?.trim().isNotEmpty == true
             ? _d._matchingRetryOriginLabel!.trim()
-            : '${origin.latitude.toStringAsFixed(6)},${origin.longitude.toStringAsFixed(6)}');
-    final destinationLabel = (_d._destinationDisplayLabel != null &&
+            : '${origin.latitude.toStringAsFixed(6)},${origin.longitude.toStringAsFixed(6)}'));
+    final destForDriver = _d._destinationDriverAddress?.trim();
+    final destinationLabel = (destForDriver != null && destForDriver.isNotEmpty)
+        ? destForDriver
+        : ((_d._destinationDisplayLabel != null &&
             _d._destinationDisplayLabel!.trim().isNotEmpty)
         ? _d._destinationDisplayLabel!.trim()
         : (_d._matchingRetryDestinationLabel?.trim().isNotEmpty == true
             ? _d._matchingRetryDestinationLabel!.trim()
-            : '${dest.latitude.toStringAsFixed(6)},${dest.longitude.toStringAsFixed(6)}');
+            : '${dest.latitude.toStringAsFixed(6)},${dest.longitude.toStringAsFixed(6)}'));
 
     final result = await submitPassengerTripFromQuote(
       ref: ref,
@@ -657,7 +745,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       routeOverviewEncoded:
           _d._routeOverviewEncoded ?? _d._matchingRetryRouteEncoded,
       ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
-      skipPhoneProfileCheck: true,
     );
     if (!mounted) return;
     if (await _discardSubmitIfGenerationChanged(

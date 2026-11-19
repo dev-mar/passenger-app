@@ -24,9 +24,12 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
     required this.onCaptchaToken,
     required this.onMethodSelected,
     required this.isLoading,
+    this.onContinue,
+    this.deferPhoneVerification = false,
     this.outboundEnabled = true,
     this.classicPhoneOtp = false,
     this.linkedGoogleEmail,
+    this.onCountryTap,
   });
 
   final LoginCountryDial country;
@@ -38,10 +41,14 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
   final ValueChanged<String> onCaptchaToken;
   final PhoneVerificationMethodSelected onMethodSelected;
   final bool isLoading;
+  /// Prod: un solo continuar. La prueba del número queda para el primer viaje.
+  final VoidCallback? onContinue;
+  final bool deferPhoneVerification;
   final bool outboundEnabled;
   /// Flavor/dev: un CTA a OTP `code`. Default false = UI prod (WA inbound/outbound).
   final bool classicPhoneOtp;
   final String? linkedGoogleEmail;
+  final VoidCallback? onCountryTap;
 
   bool get _captchaConfigured =>
       PassengerAppEnvironment.turnstileSiteKey.trim().isNotEmpty;
@@ -71,6 +78,7 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
                   flagEmoji: flag,
                   dialCode: country.dialCode,
                   countryLabel: country.label,
+                  onPressed: isLoading ? null : onCountryTap,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -79,7 +87,7 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
                     enabled: !isLoading,
                     textAlignVertical: TextAlignVertical.center,
                     decoration: passengerAuthInlineFieldDecoration(
-                      hint: l10n.loginPhoneHint,
+                      hint: l10n.loginPhoneExampleHint(country.example),
                     ),
                     keyboardType: TextInputType.phone,
                     autofillHints: const [AutofillHints.telephoneNumber],
@@ -127,7 +135,14 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
               : const SizedBox.shrink(),
         ),
         const SizedBox(height: 20),
-        if (classicPhoneOtp)
+        if (deferPhoneVerification)
+          PassengerAuthPrimaryButton(
+            label: l10n.loginContinue,
+            onPressed: (!isLoading && (!phoneValid || captchaReady))
+                ? onContinue
+                : null,
+          )
+        else if (classicPhoneOtp)
           PassengerAuthPrimaryButton(
             label: l10n.loginContinue,
             onPressed: (!isLoading && (!phoneValid || captchaReady))

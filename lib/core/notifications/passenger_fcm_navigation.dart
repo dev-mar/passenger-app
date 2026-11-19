@@ -108,15 +108,28 @@ void _markPendingPassengerChatOpen(String tripId) {
   passengerTripChatOpenBump.value = passengerTripChatOpenBump.value + 1;
 }
 
+void _goToPassengerNotices(String? campaignId) {
+  final id = campaignId?.trim() ?? '';
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (AppRouter.navigatorKey.currentContext == null) return;
+    AppRouter.router.go(
+      id.isEmpty ? '/notices' : '/notices?id=${Uri.encodeQueryComponent(id)}',
+    );
+  });
+}
+
+String? _opsCampaignIdFromPayload(String? raw) {
+  final payload = raw?.trim() ?? '';
+  if (!payload.startsWith('ops:')) return null;
+  final id = payload.substring(4).trim();
+  return id.isEmpty ? null : id;
+}
+
 /// FCM con `event: driver_arrived` y `tripId` (contrato backend).
 Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
   final event = message.data['event']?.toString();
   if (event == 'ops_notice') {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (AppRouter.navigatorKey.currentContext != null) {
-        AppRouter.router.goNamed(AppRouter.home);
-      }
-    });
+    _goToPassengerNotices(message.data['campaignId']?.toString());
     return;
   }
   if (event != 'driver_arrived' &&
@@ -138,11 +151,7 @@ Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
 Future<void> handlePassengerLocalNotificationTripTap(String? payload) async {
   final raw = payload?.trim() ?? '';
   if (raw.startsWith('ops:')) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (AppRouter.navigatorKey.currentContext != null) {
-        AppRouter.router.goNamed(AppRouter.home);
-      }
-    });
+    _goToPassengerNotices(_opsCampaignIdFromPayload(raw));
     return;
   }
   final parsed = _parsePassengerNotificationPayload(payload);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/auth/auth_service.dart';
 import '../../../core/input/passenger_text_limits.dart';
 import '../../../core/network/passenger_api_providers.dart';
 import '../../../core/theme/app_colors.dart';
@@ -20,7 +21,10 @@ Future<bool> showPassengerProfileEditSheet({
   final l10n = AppLocalizations.of(context)!;
   final repo = ref.read(passengerProfileRepositoryProvider);
   final nameCtrl = TextEditingController(
-    text: clampPassengerText(profile.displayName, kPassengerDisplayNameMaxLength),
+    text: clampPassengerText(
+      profile.displayName,
+      kPassengerDisplayNameMaxLength,
+    ),
   );
   final emailCtrl = TextEditingController(
     text: clampPassengerText(profile.email ?? '', kPassengerEmailMaxLength),
@@ -55,9 +59,9 @@ Future<bool> showPassengerProfileEditSheet({
               children: [
                 Text(
                   l10n.profileActionEditInfo,
-                  style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    ctx,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 12),
                 Center(
@@ -99,7 +103,9 @@ Future<bool> showPassengerProfileEditSheet({
                                   if (pick.tooLarge) {
                                     ScaffoldMessenger.of(ctx).showSnackBar(
                                       SnackBar(
-                                        content: Text(l10n.profilePhotoTooLarge),
+                                        content: Text(
+                                          l10n.profilePhotoTooLarge,
+                                        ),
                                       ),
                                     );
                                     return;
@@ -166,6 +172,7 @@ Future<bool> showPassengerProfileEditSheet({
                               email: email.isNotEmpty ? email : null,
                               profilePictureBase64: selectedPhotoB64,
                             );
+                            await AuthService.savePassengerDisplayName(name);
                             if (!ctx.mounted) return;
                             saved = true;
                             Navigator.of(ctx).pop();
@@ -177,7 +184,9 @@ Future<bool> showPassengerProfileEditSheet({
                               ),
                             );
                           } finally {
-                            if (ctx.mounted) setSheetState(() => saving = false);
+                            if (ctx.mounted) {
+                              setSheetState(() => saving = false);
+                            }
                           }
                         },
                   icon: saving

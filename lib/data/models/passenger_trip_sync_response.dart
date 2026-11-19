@@ -27,10 +27,15 @@ class PassengerTripSyncResponse {
   factory PassengerTripSyncResponse.fromJson(Map<String, dynamic> json) {
     final tripId = json['tripId']?.toString() ?? json['id']?.toString() ?? '';
     final status = json['status']?.toString() ?? '';
-    final rawPrice = json['estimatedPrice'];
-    double? estimatedPrice;
-    if (rawPrice is num) estimatedPrice = rawPrice.toDouble();
-    if (rawPrice is String) estimatedPrice = double.tryParse(rawPrice);
+    double? readPrice(dynamic raw) {
+      if (raw is num) return raw.toDouble();
+      if (raw is String) return double.tryParse(raw);
+      return null;
+    }
+
+    final agreedPrice = readPrice(json['agreedPrice'] ?? json['agreed_price']);
+    final estimatedPrice =
+        agreedPrice ?? readPrice(json['estimatedPrice'] ?? json['estimated_price']);
 
     // Algunos endpoints devuelven driver/vehicle anidado o campos planos.
     final driver = json['driver'] as Map<String, dynamic>?;

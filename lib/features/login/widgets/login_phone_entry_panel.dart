@@ -15,6 +15,7 @@ class LoginPhoneEntryPanel extends StatelessWidget {
     required this.isLoading,
     this.linkedGoogleEmail,
     this.showHeadline = true,
+    this.onCountryTap,
   });
 
   final LoginCountryDial country;
@@ -22,6 +23,7 @@ class LoginPhoneEntryPanel extends StatelessWidget {
   final bool isLoading;
   final String? linkedGoogleEmail;
   final bool showHeadline;
+  final VoidCallback? onCountryTap;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +52,7 @@ class LoginPhoneEntryPanel extends StatelessWidget {
                   flagEmoji: flag,
                   dialCode: country.dialCode,
                   countryLabel: country.label,
+                  onPressed: isLoading ? null : onCountryTap,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -58,7 +61,7 @@ class LoginPhoneEntryPanel extends StatelessWidget {
                     enabled: !isLoading,
                     textAlignVertical: TextAlignVertical.center,
                     decoration: passengerAuthInlineFieldDecoration(
-                      hint: l10n.loginPhoneHint,
+                      hint: l10n.loginPhoneExampleHint(country.example),
                     ),
                     keyboardType: TextInputType.phone,
                     autofillHints: const [AutofillHints.telephoneNumber],

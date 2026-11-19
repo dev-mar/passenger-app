@@ -139,40 +139,58 @@ class PassengerAuthDialChip extends StatelessWidget {
     required this.flagEmoji,
     required this.dialCode,
     required this.countryLabel,
+    this.onPressed,
   });
 
   final String flagEmoji;
   final String dialCode;
   final String countryLabel;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      button: onPressed != null,
       label: countryLabel,
-      child: Container(
-        height: 40,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.35),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
           borderRadius: BorderRadius.circular(AppRadii.md),
-          border: Border.all(color: PassengerAuthLook.hairline),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (flagEmoji.isNotEmpty) ...[
-              Text(flagEmoji, style: const TextStyle(fontSize: 18, height: 1)),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              dialCode,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 14.5,
-              ),
+          child: Ink(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(color: PassengerAuthLook.hairline),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (flagEmoji.isNotEmpty) ...[
+                  Text(flagEmoji, style: const TextStyle(fontSize: 18, height: 1)),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  dialCode,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                  ),
+                ),
+                if (onPressed != null) ...[
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.expand_more_rounded,
+                    size: 18,
+                    color: PassengerAuthLook.muted,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

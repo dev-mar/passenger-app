@@ -1,4 +1,4 @@
-﻿part of 'trip_request_screen.dart';
+part of 'trip_request_screen.dart';
 
 mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
   @override
@@ -178,7 +178,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       rawDriverLng: driverLng,
     );
     final animatedDriver = _d._animatedDriverLatLng;
-    final showDriverMarker = effectiveTripId != null && animatedDriver != null;
+    final showDriverMarker = passengerShouldDrawDriverVehiclePin(
+      hasTrip: effectiveTripId != null,
+      hasDriverPosition: animatedDriver != null,
+      status: rtState.status,
+    );
     final showDriverPulse = showDriverMarker && _d._appInForeground;
     _emitMapOptimizationTelemetryIfNeeded(effectiveTripId);
     final shouldPeriodicSync =
@@ -202,7 +206,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       _stopTripStatusPeriodicSync();
     }
     final hasConnectionError =
-        effectiveTripId != null && rtState.errorCode != null && !isSearchingDriver;
+        effectiveTripId != null &&
+        rtState.errorCode != null &&
+        !isSearchingDriver;
     final brightness = Theme.of(context).brightness;
     final activeRouteColor = passengerTripActiveRouteColor(rtState.status);
     final needsOriginConfirm =
@@ -214,14 +220,26 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     final needsDestinationConfirm =
         tripId == null &&
         _d._originConfirmed &&
+        _d._destinationMapPickArmed &&
         _d._destination == null &&
         !_d._pickingOrigin &&
         !_d._pickingDestination;
     final needsAnyMapConfirm = needsOriginConfirm || needsDestinationConfirm;
+    final editingSettledDraft = passengerDraftEditHidesTripOptions(
+      originConfirmed: _d._originConfirmed,
+      hasDestination: _d._destination != null,
+      pickingOrigin: _d._pickingOrigin,
+      pickingDestination: _d._pickingDestination,
+      searchTargetActive:
+          _d._draftEditTarget != PassengerDraftEditTarget.none,
+    );
     final isMapConfirmMode =
         tripId == null &&
         _d._activeStop == ActiveStop.none &&
-        (_d._pickingOrigin || _d._pickingDestination || needsAnyMapConfirm);
+        (_d._pickingOrigin ||
+            _d._pickingDestination ||
+            needsAnyMapConfirm ||
+            editingSettledDraft);
 
     /// Borrador de ruta (sin viaje creado): cabecera + barra inferior fija.
     /// El sheet deslizable del viaje activo solo aplica con [isTripActive].
@@ -231,9 +249,24 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
         !isRecoveringActiveTrip &&
         !isTripActive &&
         !hasConnectionError;
-    // Solo modo aguja / confirmación en mapa. Abrir lupa vía fila origen/destino
-    // usa `_draftEditTarget` sin activar confirmingOrigin.
-    final confirmingOrigin = _d._pickingOrigin || needsOriginConfirm;
+    // El origen sigue al pin sin botón. El destino se arma al pulsar su sección.
+    final confirmingOrigin =
+        _d._draftEditTarget == PassengerDraftEditTarget.destination
+        ? false
+        : (_d._pickingOrigin ||
+              needsOriginConfirm ||
+              (editingSettledDraft &&
+                  _d._draftEditTarget == PassengerDraftEditTarget.origin));
+    final editingSettledOrigin =
+        _d._pickingOrigin && _d._originConfirmed && _d._destination != null;
+    final originPinIsLive = isMapConfirmMode && confirmingOrigin;
+    final destinationSearchOnly =
+        _d._originConfirmed &&
+        _d._destination == null &&
+        !_d._destinationMapPickArmed &&
+        !_d._pickingDestination &&
+        !confirmingOrigin;
+    final hasDraftError = _d._error != null && _d._error!.isNotEmpty;
     final draftSearchPriorityMode =
         showDraftPlanningChrome &&
         _draftLocationSearchChromeVisible &&
@@ -295,6 +328,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       if (!keepDraft) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
+          if (ref.read(passengerSearchLockProvider) ==
+              PassengerSearchLock.resubmit) {
+            return;
+          }
           unawaited(
             _resetTripSessionToDraftHome(tripIdForGuard: effectiveTripId),
           );
@@ -304,7 +341,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
 
     // Marcadores: al confirmar, deben quedar visibles en el mapa (como antes).
     // Durante confirmaci├│n de ORIGEN, el marcador de origen sigue el centro.
-    final originMarkerPos = confirmingOrigin ? (_d._mapCenter ?? origin) : origin;
+    final originMarkerPos = confirmingOrigin
+        ? (_d._mapCenter ?? origin)
+        : origin;
     // Marcador de destino: solo cuando ya est├í confirmado (no mientras se est├í eligiendo).
     final LatLng? destMarkerPos =
         (_d._destination != null &&
@@ -316,6 +355,31 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
     final passengerEnRouteToDestination =
         effectiveTripId != null &&
         passengerTripIsEnRouteToDestination(rtState.status);
+    final passengerAboard = _d._passengerAboardLatLng;
+    final showPassengerAboardCar = passengerShouldDrawAboardCarPin(
+      status: rtState.status,
+      hasPassengerPosition: passengerAboard != null,
+    );
+    if (passengerEnRouteToDestination) {
+      if (!_d._passengerAboardGpsAttempted &&
+          !_d._passengerAboardGpsStarting) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _syncPassengerAboardCarPin(
+            ref.read(passengerRealtimeProvider).status,
+          );
+        });
+      }
+    } else if (_d._passengerAboardGpsSub != null ||
+        _d._passengerAboardLatLng != null ||
+        _d._passengerAboardGpsAttempted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _syncPassengerAboardCarPin(
+          ref.read(passengerRealtimeProvider).status,
+        );
+      });
+    }
     final List<LatLng> mapRoutePolylinePoints;
     if (_d._destination != null) {
       if (passengerEnRouteToDestination) {
@@ -356,11 +420,12 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 indoorViewEnabled: false,
                 trafficEnabled: false,
                 // Deja el pin/radar visibles sobre el card de matching.
-                padding: EdgeInsets.only(
-                  bottom: isSearchingDriver ? 168 : 0,
-                ),
+                padding: EdgeInsets.only(bottom: isSearchingDriver ? 168 : 0),
                 style: isTripActive ? _activeTripMapStyleFor(brightness) : null,
-                myLocationEnabled: _d._mapMyLocationDotEnabled,
+                myLocationEnabled: passengerShouldDrawNativeLocationDot(
+                  gpsDotEnabled: _d._mapMyLocationDotEnabled,
+                  aboardCarVisible: showPassengerAboardCar,
+                ),
                 // Recentrado unificado en barra superior (mismo c├¡rculo que idioma/perfil); evita duplicar el FAB nativo.
                 myLocationButtonEnabled: false,
                 // Zoom/pan siempre. No reubicar pines por tap: con origen+destino
@@ -380,7 +445,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                       markerId: const MarkerId('origin'),
                       position: originMarkerPos,
                       icon: _d._originOnTripIcon ?? _d._originFallbackIcon,
-                      anchor: const Offset(0.5, kPassengerWaypointPinTipAnchorY),
+                      anchor: const Offset(
+                        0.5,
+                        kPassengerWaypointPinTipAnchorY,
+                      ),
                     ),
                   if (destMarkerPos != null &&
                       !(isMapConfirmMode && !confirmingOrigin))
@@ -388,15 +456,30 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                       markerId: const MarkerId('destination'),
                       position: destMarkerPos,
                       icon: _d._destinationOnTripIcon ?? _d._destFallbackIcon,
-                      anchor: const Offset(0.5, kPassengerWaypointPinTipAnchorY),
+                      anchor: const Offset(
+                        0.5,
+                        kPassengerWaypointPinTipAnchorY,
+                      ),
                     ),
-                  if (showDriverMarker)
+                  if (showDriverMarker && animatedDriver != null)
                     Marker(
                       markerId: const MarkerId('driver'),
                       position: animatedDriver,
                       icon: _d._driverOnTripIcon ?? _d._driverFallbackIcon,
                       rotation: driverBearing ?? 0,
                       flat: true,
+                      anchor: _d._driverOnTripIcon != null
+                          ? const Offset(0.5, 0.5)
+                          : const Offset(0.5, 1.0),
+                    ),
+                  if (showPassengerAboardCar && passengerAboard != null)
+                    Marker(
+                      markerId: const MarkerId('passenger_aboard'),
+                      position: passengerAboard,
+                      icon: _d._driverOnTripIcon ?? _d._driverFallbackIcon,
+                      rotation: _d._passengerAboardBearing,
+                      flat: true,
+                      zIndexInt: 4,
                       anchor: _d._driverOnTripIcon != null
                           ? const Offset(0.5, 0.5)
                           : const Offset(0.5, 1.0),
@@ -417,7 +500,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     ),
                 },
                 circles: {
-                  if (showDriverPulse)
+                  if (showDriverPulse && animatedDriver != null)
                     Circle(
                       circleId: const CircleId('driver_pulse'),
                       center: animatedDriver,
@@ -428,7 +511,8 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     ),
                 },
                 polylines:
-                    _d._destination != null && mapRoutePolylinePoints.length >= 2
+                    _d._destination != null &&
+                        mapRoutePolylinePoints.length >= 2
                     ? {
                         Polyline(
                           polylineId: const PolylineId('route_casing'),
@@ -494,179 +578,199 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   bottom: false,
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                      10,
+                      showDraftPlanningChrome ? 0 : 10,
                       6,
-                      10,
+                      showDraftPlanningChrome ? 0 : 10,
                       6 +
                           (draftSearchPriorityMode
                               ? 0
                               : MediaQuery.of(context).viewInsets.bottom * 0.2),
                     ),
                     child: IgnorePointer(
-                    ignoring: draftChromeHiddenWhileDragging,
-                    child: AnimatedSlide(
-                      duration: AppMotion.draftSearchChromeReveal,
-                      curve: AppMotion.standard,
-                      offset: draftChromeHiddenWhileDragging
-                          ? const Offset(0, -0.04)
-                          : Offset.zero,
-                      child: AnimatedOpacity(
+                      ignoring: draftChromeHiddenWhileDragging,
+                      child: AnimatedSlide(
                         duration: AppMotion.draftSearchChromeReveal,
                         curve: AppMotion.standard,
-                        opacity: draftChromeHiddenWhileDragging ? 0 : 1,
-                        child: showDraftPlanningChrome
-                            ? PassengerTripDraftHeader(
-                                originConfirmed: _d._originConfirmed,
-                                // Mientras el pin se est├í moviendo (modo aguja), inyectamos la
-                                // previsualizaci├│n en vivo en la fila correspondiente para que el
-                                // usuario vea la direcci├│n que apunta sin texto sobre el pin.
-                                originDisplayLine:
-                                    _resolveDraftOriginDisplayLine(l10n),
-                                destinationDisplayLine:
-                                    _resolveDraftDestinationDisplayLine(l10n),
-                                hasDestinationSet: _d._destination != null,
-                                searchController: _d._draftSearchController,
-                                searchFocusNode: _d._draftSearchFocus,
-                                onSearchChanged: _onDraftSearchChanged,
-                                searchFieldHint:
-                                    _draftSearchPhase ==
-                                        PassengerDraftSearchRole.origin
-                                    ? l10n.tripYourLocation
-                                    : l10n.tripDraftSearchHint,
-                                showSuggestionsPanel:
-                                    _draftLocationSearchChromeVisible &&
-                                    _d._draftSearchFocus.hasFocus &&
-                                    (_d._draftSearchController.text.trim().length <
-                                            2 ||
-                                        _d._loadingDraftSuggestions ||
-                                        _d._draftSuggestions.isNotEmpty),
-                                loadingSuggestions: _d._loadingDraftSuggestions,
-                                suggestions: _d._draftSuggestions,
-                                onPickSuggestion: (s) {
-                                  unawaited(_pickDraftSuggestion(s));
-                                },
-                                recentPlaces:
-                                    _draftSearchPhase ==
-                                        PassengerDraftSearchRole.origin
-                                    ? _d._recentOriginPlaces
-                                    : _d._recentDestinationPlaces,
-                                onPickRecent: _pickDraftRecent,
-                                recentSectionTitle: l10n.profileRecentPlaces,
-                                onMyLocationIconTap: _onDraftMyLocationIconTap,
-                                onSavedIconTap: _onDraftSavedIconTap,
-                                myLocationTooltip: l10n.tripUseMyLocation,
-                                savedPlacesTooltip: l10n.profileSavedPlaces,
-                                showLocationSearchChrome:
-                                    _draftLocationSearchChromeVisible,
-                                highlightOrigin:
-                                    isMapConfirmMode && confirmingOrigin,
-                                highlightDestination:
-                                    isMapConfirmMode && !confirmingOrigin,
-                                searchPriorityMode: draftSearchPriorityMode,
-                                searchRole: _draftSearchPhase,
-                                searchCollapseToken:
-                                    _d._draftSearchCollapseToken,
-                                searchExpandToken: _d._draftSearchExpandToken,
-                                onOpenSearchOrigin: _onDraftOpenSearchForOrigin,
-                                onOpenSearchDestination: _d._originConfirmed
-                                    ? _onDraftOpenSearchForDestination
-                                    : null,
-                                onEditOrigin: _d._originConfirmed
-                                    ? _onDraftEditOriginPressed
-                                    : null,
-                                onEditDestination: _d._originConfirmed
-                                    ? _onDraftEditDestinationPressed
-                                    : null,
-                                editStopLabel: l10n.tripDraftEditStop,
-                                onSaveOriginToFavorites: _d._origin != null
-                                    ? () => unawaited(_saveCurrentOriginPlace())
-                                    : null,
-                                saveOriginFavoritesTooltip:
-                                    l10n.tripDraftSaveOriginShortcut,
-                                onSaveDestinationToFavorites:
-                                    _d._destination != null
-                                    ? () => unawaited(
-                                        _saveCurrentDestinationPlace(),
-                                      )
-                                    : null,
-                                saveDestinationFavoritesTooltip:
-                                    l10n.tripDraftSaveDestinationShortcut,
-                              )
-                            : (isTripActive && !isMapConfirmMode)
-                                ? Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Spacer(),
-                                      Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (passengerTripChatPhaseActive(
-                                            rtState.status,
-                                          ))
-                                            AnimatedBuilder(
-                                              animation: _d
-                                                  ._chatAttentionController,
-                                              builder: (context, _) {
-                                                return _MapChatActionButton(
-                                                  unread:
-                                                      _d._tripChatUnreadCount,
-                                                  pulse: _d
-                                                      ._chatAttentionController
-                                                      .value,
-                                                  tooltip:
-                                                      l10n.passengerTripChatTitle,
-                                                  onPressed: () => unawaited(
-                                                    _openTripChatSheet(
-                                                      tripId: effectiveTripId,
-                                                    ),
+                        offset: draftChromeHiddenWhileDragging
+                            ? const Offset(0, -0.04)
+                            : Offset.zero,
+                        child: AnimatedOpacity(
+                          duration: AppMotion.draftSearchChromeReveal,
+                          curve: AppMotion.standard,
+                          opacity: draftChromeHiddenWhileDragging ? 0 : 1,
+                          child: showDraftPlanningChrome
+                              ? PassengerTripDraftHeader(
+                                  originConfirmed: _d._originConfirmed,
+                                  // Mientras el pin se est├í moviendo (modo aguja), inyectamos la
+                                  // previsualizaci├│n en vivo en la fila correspondiente para que el
+                                  // usuario vea la direcci├│n que apunta sin texto sobre el pin.
+                                  originDisplayLine:
+                                      _resolveDraftOriginDisplayLine(l10n),
+                                  destinationDisplayLine:
+                                      _resolveDraftDestinationDisplayLine(l10n),
+                                  hasDestinationSet: _d._destination != null,
+                                  searchController: _d._draftSearchController,
+                                  searchFocusNode: _d._draftSearchFocus,
+                                  onSearchChanged: _onDraftSearchChanged,
+                                  searchFieldHint:
+                                      _draftSearchPhase ==
+                                          PassengerDraftSearchRole.origin
+                                      ? l10n.tripYourLocation
+                                      : l10n.tripDraftSearchHint,
+                                  showSuggestionsPanel:
+                                      _draftLocationSearchChromeVisible &&
+                                      _d._draftSearchFocus.hasFocus &&
+                                      (_d._draftSearchController.text
+                                                  .trim()
+                                                  .length <
+                                              2 ||
+                                          _d._loadingDraftSuggestions ||
+                                          _d._draftSuggestions.isNotEmpty),
+                                  loadingSuggestions:
+                                      _d._loadingDraftSuggestions,
+                                  suggestions: _d._draftSuggestions,
+                                  onPickSuggestion: (s) {
+                                    unawaited(_pickDraftSuggestion(s));
+                                  },
+                                  recentPlaces:
+                                      _draftSearchPhase ==
+                                          PassengerDraftSearchRole.origin
+                                      ? _d._recentOriginPlaces
+                                      : _d._recentDestinationPlaces,
+                                  onPickRecent: _pickDraftRecent,
+                                  recentSectionTitle: l10n.profileRecentPlaces,
+                                  onMyLocationIconTap:
+                                      _onDraftMyLocationIconTap,
+                                  onSavedIconTap: _onDraftSavedIconTap,
+                                  myLocationTooltip: l10n.tripUseMyLocation,
+                                  savedPlacesTooltip: l10n.profileSavedPlaces,
+                                  showLocationSearchChrome:
+                                      _draftLocationSearchChromeVisible,
+                                  highlightOrigin:
+                                      _d._pickingOrigin && _d._originConfirmed,
+                                  highlightDestination:
+                                      isMapConfirmMode && !confirmingOrigin,
+                                  attractDestinationTap:
+                                      !_d._originConfirmed &&
+                                      _d._destination == null,
+                                  settledCompact:
+                                      _d._originConfirmed &&
+                                      _d._destination != null &&
+                                      !_d._pickingOrigin &&
+                                      !_d._pickingDestination &&
+                                      !_d._destinationMapPickArmed &&
+                                      _d._draftEditTarget ==
+                                          PassengerDraftEditTarget.none,
+                                  searchPriorityMode: draftSearchPriorityMode,
+                                  searchRole: _draftSearchPhase,
+                                  searchCollapseToken:
+                                      _d._draftSearchCollapseToken,
+                                  searchExpandToken: _d._draftSearchExpandToken,
+                                  onOpenSearchOrigin:
+                                      _onDraftOpenSearchForOrigin,
+                                  onOpenSearchDestination:
+                                      _onDraftDestinationSectionPressed,
+                                  onSearchOnMap:
+                                      _draftSearchPhase ==
+                                              PassengerDraftSearchRole
+                                                  .destination &&
+                                          _d._originConfirmed &&
+                                          _d._destination == null
+                                      ? _onDraftChooseDestinationOnMap
+                                      : null,
+                                  searchOnMapLabel: l10n.tripSearchOnMap,
+                                  onEditOrigin: _d._originConfirmed
+                                      ? _onDraftEditOriginPressed
+                                      : null,
+                                  onEditDestination: _d._originConfirmed
+                                      ? _onDraftEditDestinationPressed
+                                      : null,
+                                  editStopLabel: l10n.tripDraftEditStop,
+                                  onSaveOriginToFavorites: _d._origin != null
+                                      ? () =>
+                                            unawaited(_saveCurrentOriginPlace())
+                                      : null,
+                                  saveOriginFavoritesTooltip:
+                                      l10n.tripDraftSaveOriginShortcut,
+                                  onSaveDestinationToFavorites:
+                                      _d._destination != null
+                                      ? () => unawaited(
+                                          _saveCurrentDestinationPlace(),
+                                        )
+                                      : null,
+                                  saveDestinationFavoritesTooltip:
+                                      l10n.tripDraftSaveDestinationShortcut,
+                                )
+                              : (isTripActive && !isMapConfirmMode)
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Spacer(),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (passengerTripChatPhaseActive(
+                                          rtState.status,
+                                        ))
+                                          AnimatedBuilder(
+                                            animation:
+                                                _d._chatAttentionController,
+                                            builder: (context, _) {
+                                              return _MapChatActionButton(
+                                                unread: _d._tripChatUnreadCount,
+                                                pulse: _d
+                                                    ._chatAttentionController
+                                                    .value,
+                                                tooltip:
+                                                    l10n.passengerTripChatTitle,
+                                                onPressed: () => unawaited(
+                                                  _openTripChatSheet(
+                                                    tripId: effectiveTripId,
                                                   ),
-                                                );
-                                              },
-                                            ),
-                                          if (passengerTripChatPhaseActive(
-                                                rtState.status,
-                                              ) &&
-                                              passengerTripIsEnRouteToDestination(
-                                                rtState.status,
-                                              ))
-                                            const SizedBox(
-                                              height: AppSpacing.sm,
-                                            ),
-                                          if (passengerTripIsEnRouteToDestination(
-                                            rtState.status,
-                                          ))
-                                            Tooltip(
-                                              message: l10n.menuSupportHelp,
-                                              child: Material(
-                                                color: Colors.transparent,
-                                                child: InkWell(
-                                                  customBorder:
-                                                      const CircleBorder(),
-                                                  onTap: () => context
-                                                      .pushNamed(
-                                                    AppRouter.safetyHub,
-                                                  ),
-                                                  child: Image.asset(
-                                                    AppAssets.safetyButton,
-                                                    width: 52,
-                                                    height: 52,
-                                                    fit: BoxFit.contain,
-                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        if (passengerTripChatPhaseActive(
+                                              rtState.status,
+                                            ) &&
+                                            passengerTripIsEnRouteToDestination(
+                                              rtState.status,
+                                            ))
+                                          const SizedBox(height: AppSpacing.sm),
+                                        if (passengerTripIsEnRouteToDestination(
+                                          rtState.status,
+                                        ))
+                                          Tooltip(
+                                            message: l10n.menuSupportHelp,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                customBorder:
+                                                    const CircleBorder(),
+                                                onTap: () => context.pushNamed(
+                                                  AppRouter.safetyHub,
+                                                ),
+                                                child: Image.asset(
+                                                  AppAssets.safetyButton,
+                                                  width: 52,
+                                                  height: 52,
+                                                  fit: BoxFit.contain,
                                                 ),
                                               ),
                                             ),
-                                        ],
-                                      ),
-                                    ],
-                                  )
-                                : const SizedBox.shrink(),
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
             if (isTripActive &&
                 !isSearchingDriver &&
                 rtState.status != null &&
@@ -693,7 +797,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                             Icon(
                               Icons.directions_car_rounded,
                               size: 18,
-                              color: passengerTripActiveRouteColor(rtState.status),
+                              color: passengerTripActiveRouteColor(
+                                rtState.status,
+                              ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -726,6 +832,17 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   ),
                   l10n: l10n,
                   initialStage: _d._searchingHoldUi ? 3 : 1,
+                  above:
+                      effectiveTripId != null &&
+                          tripState.quote?.isOfferable == true
+                      ? PassengerOfferableBidsPanel(tripId: effectiveTripId)
+                      : null,
+                  offerRaise: tripState.quote?.isOfferable == true
+                      ? PassengerSearchFareBump(
+                          busy: _d._submittingTrip,
+                          onResubmit: _resubmitSearchWithHigherOffer,
+                        )
+                      : null,
                   onCancel: () => unawaited(_cancelSearchingTrip()),
                   onContinue: () =>
                       unawaited(_restartSearchingTripAfterTimeout()),
@@ -756,10 +873,9 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     }
                     final rt = ref.read(passengerRealtimeProvider);
                     if (!rt.connected && !rt.connecting) {
-                      ref.read(passengerRealtimeProvider.notifier).connect(
-                            tripId: effectiveTripId,
-                            quote: quote,
-                          );
+                      ref
+                          .read(passengerRealtimeProvider.notifier)
+                          .connect(tripId: effectiveTripId, quote: quote);
                     }
                   }());
                 },
@@ -780,188 +896,226 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                     return false;
                   },
                   child: DraggableScrollableSheet(
-                  initialChildSize: 0.34,
-                  minChildSize: 0.14,
-                  maxChildSize: 0.72,
-                  builder: (context, scrollController) {
-                    final estimatedPrice = rtState.estimatedPrice ??
-                        tripState.previewTotalPrice ??
-                        tripState.selectedOption?.estimatedPrice ??
-                        tripState.quote?.options.firstOrNull?.estimatedPrice ??
-                        rtState.quote?.options.firstOrNull?.estimatedPrice ??
-                        0.0;
-                    final quoteCashDue = tripState.selectedOption
-                        ?.youPayForDisplayedGross(
-                          tripState.previewTotalPrice ?? estimatedPrice,
-                        );
-                    final cashDuePassenger =
-                        rtState.cashDuePassenger ?? quoteCashDue;
-                    final hasPromoBenefit = rtState.hasPromoBreakdown ||
-                        (quoteCashDue != null &&
-                            (tripState.selectedOption?.coveredBenefitAmount ??
-                                    0) >
-                                0);
-                    final promoPayDriverAmount =
-                        hasPromoBenefit &&
-                            cashDuePassenger != null &&
-                            passengerTripIsTrackingDriver(rtState.status)
-                        ? formatTripMoney(
-                            cashDuePassenger,
-                            currencyCode:
-                                tripState.selectedOption?.currencyCode ??
-                                tripState.quote?.currencyCode ??
-                                rtState.quote?.currencyCode ??
-                                rtState.currencyCode,
-                          )
-                        : null;
-                    return Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
-                    child: ListView(
-                      controller: scrollController,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        TripStatusCard(
-                          status: rtState.status!,
-                          statusLabel: passengerTripStatusLabel(l10n, rtState.status!),
-                          driverName: displayDriverName(
-                            rtState.driverName,
-                            l10n.tripDriverNameFallback,
+                    initialChildSize: 0.34,
+                    minChildSize: 0.14,
+                    maxChildSize: 0.72,
+                    builder: (context, scrollController) {
+                      final estimatedPrice =
+                          rtState.estimatedPrice ??
+                          tripState.previewTotalPrice ??
+                          tripState.selectedOption?.estimatedPrice ??
+                          tripState
+                              .quote
+                              ?.options
+                              .firstOrNull
+                              ?.estimatedPrice ??
+                          rtState.quote?.options.firstOrNull?.estimatedPrice ??
+                          0.0;
+                      final quoteCashDue = tripState.selectedOption
+                          ?.youPayForDisplayedGross(
+                            tripState.previewTotalPrice ?? estimatedPrice,
+                          );
+                      final cashDuePassenger =
+                          rtState.cashDuePassenger ?? quoteCashDue;
+                      final benefitCover =
+                          rtState.companyGuaranteeToDriver ??
+                          ((tripState.selectedOption?.coveredBenefitAmount ??
+                                      0) >
+                                  0
+                              ? tripState.selectedOption!.coveredBenefitAmount
+                              : null);
+                      final shownCashDue =
+                          (estimatedPrice > 0 &&
+                              benefitCover != null &&
+                              benefitCover > 0)
+                          ? (estimatedPrice - benefitCover < 0
+                                ? 0.0
+                                : estimatedPrice - benefitCover)
+                          : cashDuePassenger;
+                      final hasPromoBenefit =
+                          rtState.hasPromoBreakdown ||
+                          (quoteCashDue != null &&
+                              (tripState.selectedOption?.coveredBenefitAmount ??
+                                      0) >
+                                  0);
+                      final promoPayDriverAmount =
+                          hasPromoBenefit &&
+                              shownCashDue != null &&
+                              passengerTripIsTrackingDriver(rtState.status)
+                          ? formatTripMoney(
+                              shownCashDue,
+                              currencyCode:
+                                  tripState.selectedOption?.currencyCode ??
+                                  tripState.quote?.currencyCode ??
+                                  rtState.quote?.currencyCode ??
+                                  rtState.currencyCode,
+                            )
+                          : null;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(24),
                           ),
-                          driverPhotoUrl: rtState.driverPhotoUrl,
-                          driverRating: rtState.driverRating,
-                          showAvatarRefreshingRing: (() {
-                            final expiresAt = rtState.driverPhotoExpiresAt;
-                            if (expiresAt == null) return false;
-                            final now = DateTime.now();
-                            return !now.isBefore(
-                              expiresAt.subtract(const Duration(seconds: 45)),
-                            );
-                          })(),
-                          carColor: rtState.carColor,
-                          carPlate: rtState.carPlate,
-                          carModel: rtState.carModel,
-                          originLabel:
-                              _d._originDisplayLabel ?? l10n.tripYourLocation,
-                          destinationLabel:
-                              _d._destinationDisplayLabel ?? l10n.tripDestination,
-                          durationMinutes:
-                              tripState.quote?.durationMinutes ??
-                              rtState.quote?.durationMinutes ??
-                              0,
-                          distanceKm:
-                              tripState.quote?.distanceKm ??
-                              rtState.quote?.distanceKm ??
-                              0.0,
-                          estimatedPrice: estimatedPrice,
-                          currencyCode:
-                              tripState.selectedOption?.currencyCode ??
-                              tripState.quote?.currencyCode ??
-                              rtState.quote?.currencyCode ??
-                              rtState.currencyCode,
-                          promoPayDriverAmount: promoPayDriverAmount,
-                          statusFromLabel: l10n.tripStatusFrom,
-                          statusToLabel: l10n.tripStatusTo,
-                          driverAssignedLabel: l10n.tripStatusDriverAssigned,
-                          statusMinutesLabel: (int c) =>
-                              l10n.tripStatusMinutes(c),
-                          statusKmLabel: (String v) => l10n.tripStatusKm(v),
-                          onFinishedClose: rtState.status == 'completed'
-                              ? () => unawaited(
-                                    _resetHomeAfterTripEnded(effectiveTripId),
-                                  )
-                              : null,
-                          finishedCloseLabel: rtState.status == 'completed'
-                              ? l10n.tripFinishedBackToHome
-                              : null,
-                          onShareTrip: passengerTripCanShareLive(rtState.status)
-                              ? () => unawaited(
-                                    _shareActiveTrip(
-                                      tripId: effectiveTripId,
-                                      driverName: rtState.driverName,
-                                      plate: rtState.carPlate,
-                                    ),
-                                  )
-                              : null,
-                          shareTripLabel: l10n.tripShareRide,
-                          onOpenChat:
-                              passengerTripChatPhaseActive(rtState.status)
-                              ? () => unawaited(
-                                    _openTripChatSheet(tripId: effectiveTripId),
-                                  )
-                              : null,
-                          chatLabel: l10n.tripSecureChat,
-                          unreadChatCount: _d._tripChatUnreadCount,
-                          paymentMethod:
-                              rtState.paymentMethod ?? tripState.paymentMethod,
-                          tripExtras: tripState.extras.isNotEmpty
-                              ? tripState.extras.toDisplayCodes()
-                              : rtState.tripExtras,
-                          tripSpecials: tripState.specials.isNotEmpty
-                              ? tripState.specials.toCodes()
-                              : rtState.tripSpecials,
-                          driverLat: rtState.driverLat,
-                          driverLng: rtState.driverLng,
-                          pickupLat:
-                              _d._origin?.latitude ?? tripState.origin?.lat,
-                          pickupLng:
-                              _d._origin?.longitude ?? tripState.origin?.lng,
-                          destLat: _d._destination?.latitude ??
-                              tripState.destination?.lat,
-                          destLng: _d._destination?.longitude ??
-                              tripState.destination?.lng,
-                          pickupWaitSpec: pickupWaitSpecFromFields(
-                            status: rtState.status,
-                            arrivedAt: rtState.arrivedAt,
-                            waitSec: rtState.waitSec,
-                            waitGraceSec: rtState.waitGraceSec,
-                          ),
-                          onPassengerEnRoute: rtState.status == 'arrived'
-                              ? () => unawaited(() async {
-                                    final ok = await ref
-                                        .read(
-                                          passengerRealtimeProvider.notifier,
-                                        )
-                                        .sendPassengerEnRoute(
-                                          tripId: effectiveTripId,
-                                        );
-                                    if (!mounted || !ok) return;
-                                    final loc = AppLocalizations.of(context);
-                                    if (loc == null) return;
-                                    PassengerTripToast.show(
-                                      context,
-                                      message: loc.tripPassengerEnRouteSent,
-                                      icon: Icons.directions_walk_rounded,
-                                    );
-                                  }())
-                              : null,
-                          passengerEnRouteConnected: rtState.connected,
-                          enRouteCooldownUntilMs: rtState.enRouteCooldownUntilMs,
-                          enRouteErrorCode: rtState.enRouteErrorCode,
-                          onCancelTrip: passengerTripCanCancelAssigned(rtState.status)
-                              ? () => unawaited(_cancelAssignedTrip())
-                              : null,
-                          cancelTripLabel: l10n.tripCancelCta,
-                          showCancelAction: _d._tripSheetFullyExpanded,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 20,
+                              offset: const Offset(0, -4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  );
-                  },
+                        child: ListView(
+                          controller: scrollController,
+                          padding: EdgeInsets.zero,
+                          children: [
+                            TripStatusCard(
+                              status: rtState.status!,
+                              statusLabel: passengerTripStatusLabel(
+                                l10n,
+                                rtState.status!,
+                              ),
+                              driverName: displayDriverName(
+                                rtState.driverName,
+                                l10n.tripDriverNameFallback,
+                              ),
+                              driverPhotoUrl: rtState.driverPhotoUrl,
+                              driverRating: rtState.driverRating,
+                              showAvatarRefreshingRing: (() {
+                                final expiresAt = rtState.driverPhotoExpiresAt;
+                                if (expiresAt == null) return false;
+                                final now = DateTime.now();
+                                return !now.isBefore(
+                                  expiresAt.subtract(
+                                    const Duration(seconds: 45),
+                                  ),
+                                );
+                              })(),
+                              carColor: rtState.carColor,
+                              carPlate: rtState.carPlate,
+                              carModel: rtState.carModel,
+                              originLabel:
+                                  _d._originDisplayLabel ??
+                                  l10n.tripYourLocation,
+                              destinationLabel:
+                                  _d._destinationDisplayLabel ??
+                                  l10n.tripDestination,
+                              durationMinutes:
+                                  tripState.quote?.durationMinutes ??
+                                  rtState.quote?.durationMinutes ??
+                                  0,
+                              distanceKm:
+                                  tripState.quote?.distanceKm ??
+                                  rtState.quote?.distanceKm ??
+                                  0.0,
+                              estimatedPrice: estimatedPrice,
+                              currencyCode:
+                                  tripState.selectedOption?.currencyCode ??
+                                  tripState.quote?.currencyCode ??
+                                  rtState.quote?.currencyCode ??
+                                  rtState.currencyCode,
+                              promoPayDriverAmount: promoPayDriverAmount,
+                              statusFromLabel: l10n.tripStatusFrom,
+                              statusToLabel: l10n.tripStatusTo,
+                              driverAssignedLabel:
+                                  l10n.tripStatusDriverAssigned,
+                              statusMinutesLabel: (int c) =>
+                                  l10n.tripStatusMinutes(c),
+                              statusKmLabel: (String v) => l10n.tripStatusKm(v),
+                              onFinishedClose: rtState.status == 'completed'
+                                  ? () => unawaited(
+                                      _resetHomeAfterTripEnded(effectiveTripId),
+                                    )
+                                  : null,
+                              finishedCloseLabel: rtState.status == 'completed'
+                                  ? l10n.tripFinishedBackToHome
+                                  : null,
+                              onShareTrip:
+                                  passengerTripCanShareLive(rtState.status)
+                                  ? () => unawaited(
+                                      _shareActiveTrip(
+                                        tripId: effectiveTripId,
+                                        driverName: rtState.driverName,
+                                        plate: rtState.carPlate,
+                                      ),
+                                    )
+                                  : null,
+                              shareTripLabel: l10n.tripShareRide,
+                              onOpenChat:
+                                  passengerTripChatPhaseActive(rtState.status)
+                                  ? () => unawaited(
+                                      _openTripChatSheet(
+                                        tripId: effectiveTripId,
+                                      ),
+                                    )
+                                  : null,
+                              chatLabel: l10n.tripSecureChat,
+                              unreadChatCount: _d._tripChatUnreadCount,
+                              paymentMethod:
+                                  rtState.paymentMethod ??
+                                  tripState.paymentMethod,
+                              tripExtras: tripState.extras.isNotEmpty
+                                  ? tripState.extras.toDisplayCodes()
+                                  : rtState.tripExtras,
+                              tripSpecials: tripState.specials.isNotEmpty
+                                  ? tripState.specials.toCodes()
+                                  : rtState.tripSpecials,
+                              driverLat: rtState.driverLat,
+                              driverLng: rtState.driverLng,
+                              pickupLat:
+                                  _d._origin?.latitude ?? tripState.origin?.lat,
+                              pickupLng:
+                                  _d._origin?.longitude ??
+                                  tripState.origin?.lng,
+                              destLat:
+                                  _d._destination?.latitude ??
+                                  tripState.destination?.lat,
+                              destLng:
+                                  _d._destination?.longitude ??
+                                  tripState.destination?.lng,
+                              pickupWaitSpec: pickupWaitSpecFromFields(
+                                status: rtState.status,
+                                arrivedAt: rtState.arrivedAt,
+                                waitSec: rtState.waitSec,
+                                waitGraceSec: rtState.waitGraceSec,
+                              ),
+                              onPassengerEnRoute: rtState.status == 'arrived'
+                                  ? () => unawaited(() async {
+                                      final ok = await ref
+                                          .read(
+                                            passengerRealtimeProvider.notifier,
+                                          )
+                                          .sendPassengerEnRoute(
+                                            tripId: effectiveTripId,
+                                          );
+                                      if (!mounted || !ok) return;
+                                      final loc = AppLocalizations.of(context);
+                                      if (loc == null) return;
+                                      PassengerTripToast.show(
+                                        context,
+                                        message: loc.tripPassengerEnRouteSent,
+                                        icon: Icons.directions_walk_rounded,
+                                      );
+                                    }())
+                                  : null,
+                              passengerEnRouteConnected: rtState.connected,
+                              enRouteCooldownUntilMs:
+                                  rtState.enRouteCooldownUntilMs,
+                              enRouteErrorCode: rtState.enRouteErrorCode,
+                              onCancelTrip:
+                                  passengerTripCanCancelAssigned(rtState.status)
+                                  ? () => unawaited(_cancelAssignedTrip())
+                                  : null,
+                              cancelTripLabel: l10n.tripCancelCta,
+                              showCancelAction: _d._tripSheetFullyExpanded,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
             // Error de conexi├│n Socket: tripId existe pero fall├│ connect (NO_TOKEN, SOCKET, etc.)
             if (hasConnectionError)
               Positioned(
@@ -987,7 +1141,11 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 ),
               ),
             // Borrador: barra inferior (confirmar en mapa / cotizaci├│n / solicitar). GPS y guardados van en la cabecera.
-            if (showDraftPlanningChrome)
+            if (showDraftPlanningChrome &&
+                ((!originPinIsLive && !destinationSearchOnly) ||
+                    editingSettledOrigin ||
+                    editingSettledDraft ||
+                    hasDraftError))
               Positioned(
                 left: 0,
                 right: 0,
@@ -1033,7 +1191,8 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                             !_d._loading &&
                             !_d._loadingRoute,
                         requestRideLoading: _d._submittingTrip,
-                        quotingInProgress: _d._loading && tripState.quote == null,
+                        quotingInProgress:
+                            _d._loading && tripState.quote == null,
                         loadingRoute: _d._loadingRoute,
                         routeLoadingLabel: l10n.tripDraftCalculatingRoute,
                         errorMessage: _d._error,
@@ -1184,7 +1343,10 @@ class _MapChatActionButton extends StatelessWidget {
   }
 }
 
-String _tripDraftDetailsLabel(AppLocalizations l10n, TripRequestState tripState) {
+String _tripDraftDetailsLabel(
+  AppLocalizations l10n,
+  TripRequestState tripState,
+) {
   final pay = TripPaymentMethod.isQr(tripState.paymentMethod)
       ? l10n.tripPaymentMethodQr
       : l10n.tripPaymentMethodCash;
@@ -1200,5 +1362,3 @@ String _tripDraftDetailsLabel(AppLocalizations l10n, TripRequestState tripState)
   }
   return bits.join(' · ');
 }
-
-

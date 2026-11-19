@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../core/analytics/passenger_marketing_analytics.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/device/passenger_device_identity.dart';
 import '../promotions/passenger_promotions_repository.dart';
 import 'passenger_profile_photo_helper.dart';
 import '../../core/config/app_config.dart';
+import '../../core/config/passenger_app_environment.dart';
 import '../../core/network/passenger_api_client.dart';
 import '../../core/network/passenger_api_providers.dart';
 import '../../core/network/passenger_client_meta.dart';
@@ -208,6 +210,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         await AuthService.persistLoginPhoneE164(fullPhone);
       }
       await AuthService.savePassengerDisplayName(name);
+      PassengerMarketingAnalytics.logSignUp();
 
       final referralCode = _referralController.text.trim();
       if (referralCode.isNotEmpty) {
@@ -285,13 +288,26 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       leading: PassengerAuthBackButton(
         onPressed: _saving
             ? null
-            : () => context.goNamed(
+            : () {
+                if (_isEmailOnly) {
+                  context.goNamed(
+                    'verify_code',
+                    queryParameters: {'email': widget.email!.trim()},
+                  );
+                  return;
+                }
+                if (!PassengerAppEnvironment.usesClassicPhoneOtp) {
+                  context.goNamed('login');
+                  return;
+                }
+                context.goNamed(
                   'verify_code',
                   queryParameters: {
                     'cc': widget.countryCode,
                     'phone': widget.phoneNumber,
                   },
-                ),
+                );
+              },
       ),
       child: PassengerAuthEntrance(
         child: Form(
@@ -406,17 +422,43 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       onFieldSubmitted: (_) => _referralFocusNode.requestFocus(),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    TextFormField(
-                      controller: _referralController,
-                      focusNode: _referralFocusNode,
-                      textCapitalization: TextCapitalization.characters,
-                      textInputAction: TextInputAction.done,
-                      maxLength: 16,
-                      decoration: passengerAuthFieldDecoration(
-                        label: l10n.profileSetupReferralLabel,
-                        hint: l10n.profileSetupReferralHint,
-                      ),
-                      onFieldSubmitted: (_) => _save(),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        TextFormField(
+                          controller: _referralController,
+                          focusNode: _referralFocusNode,
+                          textCapitalization: TextCapitalization.characters,
+                          textInputAction: TextInputAction.done,
+                          maxLength: 16,
+                          decoration: passengerAuthFieldDecoration(
+                            label: l10n.profileSetupReferralLabel,
+                          ),
+                          onFieldSubmitted: (_) => _save(),
+                        ),
+                        Positioned(
+                          top: -7,
+                          right: 14,
+                          child: IgnorePointer(
+                            child: ColoredBox(
+                              color: const Color(0xFF181511),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 6),
+                                child: Text(
+                                  l10n.profileSetupReferralHint,
+                                  style: const TextStyle(
+                                    color: PassengerAuthLook.muted,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 22),
                     PassengerAuthPrimaryButton(

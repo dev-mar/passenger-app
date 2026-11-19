@@ -31,7 +31,13 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     final s = status.trim().toLowerCase();
     if (s.isEmpty) return;
     if (state.activeTripId != null && state.activeTripId != tripId) return;
+    final previousStatus = state.status;
     state = state.copyWith(activeTripId: tripId, status: s, errorCode: null);
+    PassengerMarketingAnalytics.onLiveStatus(
+      tripId: tripId,
+      previous: previousStatus,
+      next: s,
+    );
     unawaited(
       TripSessionStorage.saveLastKnownStatus(tripId: tripId, status: s),
     );
@@ -102,6 +108,11 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
           tripId: tripId,
           status: res.status,
         ),
+      );
+      PassengerMarketingAnalytics.onLiveStatus(
+        tripId: tripId,
+        previous: previousStatus,
+        next: res.status,
       );
       if (res.status == 'arrived' &&
           previousStatus != 'arrived' &&

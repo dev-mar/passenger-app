@@ -1,12 +1,10 @@
-﻿part of 'trip_request_screen.dart';
+part of 'trip_request_screen.dart';
 
 enum _PassengerLeaveSheetHeader { close, back }
 
 mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   @override
   _TripRequestScreenState get _d => this as _TripRequestScreenState;
-
-  static const _kMaxSavedPlaces = 5;
 
   void registerDraftSearchFocusListener() {
     _d._draftSearchFocus.addListener(() {
@@ -30,7 +28,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         : PassengerDraftSearchRole.origin;
   }
 
-  /// Oculta buscador + acciones cuando ya hay origen y destino (salvo modo edici├│n).
+  /// Oculta buscador + acciones cuando ya hay origen y destino (salvo modo ediciÃÂÃÂÃÂÃÂ³n).
   bool get _draftLocationSearchChromeVisible {
     if (!_d._originConfirmed) return true;
     if (_d._destination == null) return true;
@@ -38,25 +36,58 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     return false;
   }
 
-  /// Texto del slot de origen en la cabecera. Si estamos moviendo el pin para
-  /// confirmar (`_d._pickingOrigin`), inyectamos la previsualizaci├│n en vivo
-  /// (`_d._mapNeedleAddressPreview`) para que la direcci├│n apuntada se vea ah├¡
-  /// mismo y, al confirmar, quede directamente persistida sin saltos visuales.
+  /// BÃÂÃÂÃÂÃÂºsqueda, GPS o guardados fijan el origen al momento. Si aÃÂÃÂÃÂÃÂºn no hay destino,
+  /// el mapa puede seguir moviendo ese origen. Con destino ya puesto, queda cerrado.
+  void _assignOriginFollowState() {
+    _d._originEditAnchor = null;
+    _d._originPinAdjusted = true;
+    _d._originResolveGeneration++;
+    _d._draftEditTarget = PassengerDraftEditTarget.none;
+    _d._pickingDestination = false;
+    _d._activeStop = ActiveStop.none;
+    if (_d._destination == null) {
+      _d._originConfirmed = false;
+      _d._pickingOrigin = true;
+    } else {
+      _d._originConfirmed = true;
+      _d._pickingOrigin = false;
+    }
+  }
+
+  /// Texto del slot de origen. Mientras el pin de origen estÃÂÃÂÃÂÃÂ¡ activo, la calle
+  /// en vivo sustituye al nombre solo si el mapa se alejÃÂÃÂÃÂÃÂ³ del punto ya elegido.
   String _resolveDraftOriginDisplayLine(AppLocalizations l10n) {
-    // Preview de aguja solo en modo pin (no al abrir lupa desde la fila).
-    if (_d._pickingOrigin) {
+    final followPin =
+        _d._pickingOrigin || (!_d._originConfirmed && _d._destination == null);
+    if (followPin) {
+      final locked = _d._originDisplayLabel?.trim();
+      final origin = _d._origin;
+      final center = _d._mapCenter;
+      if (origin != null &&
+          center != null &&
+          locked != null &&
+          locked.isNotEmpty) {
+        final movedM = Geolocator.distanceBetween(
+          origin.latitude,
+          origin.longitude,
+          center.latitude,
+          center.longitude,
+        );
+        if (movedM < _kLiveOriginHoldMeters) return locked;
+      }
       final preview = _d._mapNeedleAddressPreview?.trim();
       if (preview != null && preview.isNotEmpty) return preview;
     }
     return _d._originDisplayLabel ?? l10n.tripYourLocation;
   }
 
-  /// Texto del slot de destino. Mientras se est├í apuntando con el pin, tambi├®n
-  /// usamos `_d._mapNeedleAddressPreview` para mostrar la direcci├│n en tiempo real.
+  /// Texto del slot de destino. Mientras se estÃÂÃÂÃÂÃÂ¡ apuntando con el pin, tambiÃÂÃÂÃÂÃÂ©n
+  /// usamos `_d._mapNeedleAddressPreview` para mostrar la direcciÃÂÃÂÃÂÃÂ³n en tiempo real.
   String _resolveDraftDestinationDisplayLine(AppLocalizations l10n) {
     final isPickingDest =
         _d._pickingDestination ||
-        (_d._originConfirmed &&
+        (_d._destinationMapPickArmed &&
+            _d._originConfirmed &&
             _d._destination == null &&
             _d._activeStop == ActiveStop.none);
     if (isPickingDest) {
@@ -70,18 +101,74 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     return l10n.tripTapMapDestination;
   }
 
-  /// Abre la lupa apuntando a origen (sin modo aguja del botón Editar).
+  /// Abre la lupa apuntando a origen (sin modo aguja del botÃÂÃÂÃÂÃÂ³n Editar).
   void _onDraftOpenSearchForOrigin() {
     TexiUiFeedback.lightTap();
     if (!mounted) return;
     _d._mapConfirmIdleTimer?.cancel();
     setState(() {
       _d._draftEditTarget = PassengerDraftEditTarget.origin;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
+      _holdSettledMapConfirm(PassengerDraftEditTarget.origin);
       _d._mapConfirmInstructionHiddenWhileDragging = false;
       _d._draftSearchExpandToken++;
     });
+  }
+
+  /// Si ya hay origen y destino, el buscador no cierra «Confirmar».
+  void _holdSettledMapConfirm(PassengerDraftEditTarget target) {
+    final bothReady = _d._originConfirmed && _d._destination != null;
+    if (!bothReady) {
+      _d._pickingOrigin = false;
+      _d._pickingDestination = false;
+      return;
+    }
+    _d._pickingOrigin = target == PassengerDraftEditTarget.origin;
+    _d._pickingDestination = target == PassengerDraftEditTarget.destination;
+    _d._destinationMapPickArmed = false;
+    _d._activeStop = ActiveStop.none;
+  }
+
+  /// Primer toque en ÃÂ«ÃÂ¿A dÃÂ³nde vas?ÃÂ»: fija el origen y abre el buscador juntos.
+  /// El pin de destino queda para ÃÂ«Buscar en el mapaÃÂ».
+  void _onDraftDestinationSectionPressed() {
+    if (!mounted) return;
+    if (_d._originConfirmed && _d._destination != null) {
+      _onDraftOpenSearchForDestination();
+      return;
+    }
+    final editingLiveOrigin = _d._pickingOrigin && _d._originConfirmed;
+    final mustLock = !_d._originConfirmed || editingLiveOrigin;
+    if (mustLock) {
+      if (_d._mapCenter == null && _d._origin == null) return;
+      TexiUiFeedback.lightTap();
+      _lockOriginAtPin(openDestinationSearch: true);
+      return;
+    }
+    _onDraftOpenSearchForDestination();
+  }
+
+  /// Sale del buscador y habilita el pin de destino. Confirmar destino no cambia.
+  void _onDraftChooseDestinationOnMap() {
+    TexiUiFeedback.lightTap();
+    if (!mounted || !_d._originConfirmed) return;
+    _d._mapConfirmIdleTimer?.cancel();
+    _d._draftSearchFocus.unfocus();
+    final focus = _d._mapCenter ?? _d._origin;
+    setState(() {
+      _d._draftSearchCollapseToken++;
+      _d._draftSuggestions = const <PlaceSuggestion>[];
+      _d._loadingDraftSuggestions = false;
+      _d._draftEditTarget = PassengerDraftEditTarget.none;
+      _d._destinationMapPickArmed = true;
+      _d._pickingOrigin = false;
+      _d._pickingDestination = false;
+      _d._activeStop = ActiveStop.none;
+      _d._mapConfirmInstructionHiddenWhileDragging = false;
+      if (focus != null) _d._mapCenter = focus;
+    });
+    if (_d._draftSearchController.text.isNotEmpty) {
+      _d._draftSearchController.clear();
+    }
   }
 
   /// Abre la lupa apuntando a destino (requiere origen confirmado).
@@ -91,8 +178,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _d._mapConfirmIdleTimer?.cancel();
     setState(() {
       _d._draftEditTarget = PassengerDraftEditTarget.destination;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
+      _holdSettledMapConfirm(PassengerDraftEditTarget.destination);
       _d._mapConfirmInstructionHiddenWhileDragging = false;
       _d._draftSearchExpandToken++;
     });
@@ -110,6 +196,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     if (!mounted) return;
     setState(() {
       _d._draftEditTarget = PassengerDraftEditTarget.none;
+      _d._pickingOrigin = false;
+      _d._pickingDestination = false;
     });
   }
 
@@ -126,6 +214,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._pickingOrigin = true;
       _d._pickingDestination = false;
       _d._activeStop = ActiveStop.none;
+      _d._originEditAnchor = o;
       _d._mapCenter = o;
       _d._mapConfirmInstructionHiddenWhileDragging = false;
       _d._mapNeedleAddressPreview = _d._originDisplayLabel;
@@ -161,7 +250,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     });
   }
 
-  /// Backend exige label 2ÔÇô60 y address 3ÔÇô180 caracteres.
+  /// Backend exige label 2ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ60 y address 3ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ180 caracteres.
   String _ensureSavedPlaceLabel(
     String primary,
     String backupMin2,
@@ -188,12 +277,10 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() {
       _d._origin = p;
       _d._originDisplayLabel = place.label;
+      _d._originDriverAddress = null;
       _d._routePoints = null;
-      _d._originConfirmed = true;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
-      _d._activeStop = ActiveStop.none;
-      _d._draftEditTarget = PassengerDraftEditTarget.none;
+      _d._mapNeedleAddressPreview = place.label;
+      _assignOriginFollowState();
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     _d._controller?.animateCamera(CameraUpdate.newLatLng(p));
@@ -210,6 +297,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() {
       _d._destination = p;
       _d._destinationDisplayLabel = place.label;
+      _d._destinationDriverAddress = null;
       _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
     });
@@ -223,18 +311,17 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _notifyDraftSearchCollapsedAfterBothStops();
   }
 
-  void _pickOriginSavedPlace(TripSavedPlaceItem place) {
+  Future<void> _pickOriginSavedPlace(TripSavedPlaceItem place) async {
+    final resolved = await _resolveSavedPlaceCopy(place);
+    if (!mounted) return;
     final p = LatLng(place.lat, place.lng);
     setState(() {
       _d._origin = p;
-      _d._originDisplayLabel = place.address.isNotEmpty
-          ? place.address
-          : place.label;
+      _d._originDisplayLabel = resolved.display;
+      _d._originDriverAddress = resolved.driver;
       _d._routePoints = null;
-      _d._originConfirmed = true;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
-      _d._activeStop = ActiveStop.none;
+      _d._mapNeedleAddressPreview = resolved.display;
+      _assignOriginFollowState();
     });
     ref.read(tripRequestProvider.notifier).setOrigin(p.latitude, p.longitude);
     _d._controller?.animateCamera(CameraUpdate.newLatLng(p));
@@ -246,13 +333,14 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  void _pickDestinationSavedPlace(TripSavedPlaceItem place) {
+  Future<void> _pickDestinationSavedPlace(TripSavedPlaceItem place) async {
+    final resolved = await _resolveSavedPlaceCopy(place);
+    if (!mounted) return;
     final p = LatLng(place.lat, place.lng);
     setState(() {
       _d._destination = p;
-      _d._destinationDisplayLabel = place.address.isNotEmpty
-          ? place.address
-          : place.label;
+      _d._destinationDisplayLabel = resolved.display;
+      _d._destinationDriverAddress = resolved.driver;
       _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
     });
@@ -264,6 +352,31 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _fitCameraToOriginDestination();
     _collapseStops();
     _notifyDraftSearchCollapsedAfterBothStops();
+  }
+
+  Future<({String display, String driver})> _resolveSavedPlaceCopy(
+    TripSavedPlaceItem place,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final reference = HomeQuickSlots.savedPlaceReferenceName(place.label, l10n);
+    var street = HomeQuickSlots.savedPlaceStreet(
+      place.address,
+      reference: reference,
+    );
+    street ??= HomeQuickSlots.savedPlaceStreet(
+      await _d._geocoding.reverseGeocodeStreet(lat: place.lat, lng: place.lng),
+      reference: reference,
+    );
+    final driver = HomeQuickSlots.savedPlaceDriverAddress(
+      street: street,
+      lat: place.lat,
+      lng: place.lng,
+    );
+    final display = HomeQuickSlots.savedPlacePassengerLabel(
+      reference: reference,
+      streetOrCoords: driver,
+    );
+    return (display: display, driver: driver);
   }
 
   Future<void> _saveCurrentOriginPlace() async {
@@ -292,7 +405,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         lat: _d._origin!.latitude,
         lng: _d._origin!.longitude,
       );
-      await _loadSavedPlaces();
       if (!mounted) return;
       _showSubtleSnack(l10n.tripSavedPlaceSaved);
     } catch (_) {
@@ -327,7 +439,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         lat: _d._destination!.latitude,
         lng: _d._destination!.longitude,
       );
-      await _loadSavedPlaces();
       if (!mounted) return;
       _showSubtleSnack(l10n.tripSavedPlaceSaved);
     } catch (_) {
@@ -337,223 +448,25 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   }
 
   Future<void> _openSavedPlacesManager({required bool forOrigin}) async {
-    final token = await AuthService.getValidToken();
-    if (token == null || token.isEmpty || !mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    await _loadSavedPlaces();
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheet) {
-            final places = forOrigin
-                ? _d._savedOriginPlaces
-                : _d._savedDestinationPlaces;
-            final atLimit = places.length >= _kMaxSavedPlaces;
-            return Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        l10n.profileSavedPlaces,
-                        style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.tripSavedPlacesMax(_kMaxSavedPlaces),
-                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      FilledButton.tonalIcon(
-                        onPressed: atLimit
-                            ? null
-                            : () async {
-                                final labelCtrl = TextEditingController(
-                                  text: forOrigin
-                                      ? (_d._originDisplayLabel ?? '').trim()
-                                      : (_d._destinationDisplayLabel ?? '').trim(),
-                                );
-                                final ok = await showDialog<bool>(
-                                  context: ctx,
-                                  builder: (dCtx) => AlertDialog(
-                                    title: Text(l10n.tripSavedPlaceDialogTitle),
-                                    content: TextField(
-                                      controller: labelCtrl,
-                                      decoration: InputDecoration(
-                                        labelText: l10n.tripSavedPlaceNameLabel,
-                                        hintText: l10n.tripSavedPlaceNameHint,
-                                      ),
-                                      autofocus: true,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, false),
-                                        child: Text(l10n.commonCancel),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(dCtx, true),
-                                        child: Text(l10n.tripSavedPlaceSaveCta),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (ok != true || !mounted) return;
-                                final label = _ensureSavedPlaceLabel(
-                                  labelCtrl.text,
-                                  forOrigin
-                                      ? l10n.tripOrigin
-                                      : l10n.tripDestination,
-                                  l10n,
-                                );
-                                final latLng = forOrigin
-                                    ? _d._origin
-                                    : _d._destination;
-                                if (latLng == null) {
-                                  _showSubtleSnack(l10n.commonError);
-                                  return;
-                                }
-                                final addr = _ensureSavedPlaceAddress(
-                                  forOrigin
-                                      ? (_d._originDisplayLabel ?? '')
-                                      : (_d._destinationDisplayLabel ?? ''),
-                                  latLng.latitude,
-                                  latLng.longitude,
-                                );
-                                try {
-                                  await TripsApi(
-                                    token: token,
-                                  ).savePassengerPlace(
-                                    label: label,
-                                    address: addr,
-                                    lat: latLng.latitude,
-                                    lng: latLng.longitude,
-                                  );
-                                  await _loadSavedPlaces();
-                                  if (!mounted) return;
-                                  setSheet(() {});
-                                  _showSubtleSnack(l10n.tripSavedPlaceSaved);
-                                } catch (e) {
-                                  if (!mounted) return;
-                                  final code = e is DioException
-                                      ? TexiBackendError.codeFromResponse(
-                                          e.response?.data,
-                                        )
-                                      : null;
-                                  _showSubtleSnack(
-                                    code == 'SAVED_PLACES_LIMIT_REACHED'
-                                        ? l10n.tripSavedPlacesLimitReached(
-                                            _kMaxSavedPlaces,
-                                          )
-                                        : l10n.commonError,
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.add_location_alt_rounded),
-                        label: Text(l10n.tripSavedPlaceSaveMapCta),
-                      ),
-                      const SizedBox(height: 10),
-                      if (places.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          child: Text(l10n.profileStateEmpty),
-                        )
-                      else
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 320),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: places.length,
-                            separatorBuilder: (_, _) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final p = places[index];
-                              return ListTile(
-                                dense: true,
-                                leading: Icon(
-                                  p.isFavorite
-                                      ? Icons.star_rounded
-                                      : Icons.place_rounded,
-                                  color: p.isFavorite
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary,
-                                ),
-                                title: Text(
-                                  p.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Text(
-                                  p.address,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                onTap: () {
-                                  if (forOrigin) {
-                                    _pickOriginSavedPlace(p);
-                                  } else {
-                                    _pickDestinationSavedPlace(p);
-                                  }
-                                  Navigator.of(ctx).pop();
-                                },
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (action) async {
-                                    final api = TripsApi(token: token);
-                                    if (action == 'favorite') {
-                                      await api.updatePassengerSavedPlace(
-                                        placeId: p.id,
-                                        isFavorite: !p.isFavorite,
-                                      );
-                                      await _loadSavedPlaces();
-                                      if (!mounted) return;
-                                      setSheet(() {});
-                                    }
-                                    if (action == 'delete') {
-                                      await api.deletePassengerSavedPlace(p.id);
-                                      await _loadSavedPlaces();
-                                      if (!mounted) return;
-                                      setSheet(() {});
-                                    }
-                                  },
-                                  itemBuilder: (_) => [
-                                    PopupMenuItem(
-                                      value: 'favorite',
-                                      child: Text(l10n.placeFavorite),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(l10n.tripSavedPlaceDeleteCta),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+    final result = await context.pushNamed(
+      AppRouter.savedPlaces,
+      queryParameters: {'purpose': forOrigin ? 'origin' : 'destination'},
     );
+    if (!mounted || result is! PassengerSavedPlace) return;
+    final item = TripSavedPlaceItem(
+      id: result.id,
+      label: result.label,
+      address: result.address,
+      lat: result.lat,
+      lng: result.lng,
+      isFavorite: result.isFavorite,
+    );
+    if (forOrigin) {
+      await _pickOriginSavedPlace(item);
+    } else {
+      await _pickDestinationSavedPlace(item);
+    }
+    _afterDraftLocationPicked();
   }
 
   String _newPlacesSessionToken() {
@@ -588,24 +501,27 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       });
       return;
     }
-    _d._draftSearchDebounce = Timer(const Duration(milliseconds: 350), () async {
-      if (!mounted) return;
-      setState(() => _d._loadingDraftSuggestions = true);
-      final center = _draftSearchPhase == PassengerDraftSearchRole.origin
-          ? (_d._mapCenter ?? _d._origin)
-          : (_d._mapCenter ?? _d._destination ?? _d._origin);
-      final result = await _d._places.fetchSuggestions(
-        query: trimmed,
-        sessionToken: _d._draftPlacesSessionToken,
-        nearLat: center?.latitude,
-        nearLng: center?.longitude,
-      );
-      if (!mounted) return;
-      setState(() {
-        _d._draftSuggestions = result;
-        _d._loadingDraftSuggestions = false;
-      });
-    });
+    _d._draftSearchDebounce = Timer(
+      const Duration(milliseconds: 350),
+      () async {
+        if (!mounted) return;
+        setState(() => _d._loadingDraftSuggestions = true);
+        final center = _draftSearchPhase == PassengerDraftSearchRole.origin
+            ? (_d._mapCenter ?? _d._origin)
+            : (_d._mapCenter ?? _d._destination ?? _d._origin);
+        final result = await _d._places.fetchSuggestions(
+          query: trimmed,
+          sessionToken: _d._draftPlacesSessionToken,
+          nearLat: center?.latitude,
+          nearLng: center?.longitude,
+        );
+        if (!mounted) return;
+        setState(() {
+          _d._draftSuggestions = result;
+          _d._loadingDraftSuggestions = false;
+        });
+      },
+    );
   }
 
   Future<void> _pickDraftSuggestion(PlaceSuggestion s) async {
@@ -646,7 +562,10 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final tripState = ref.read(tripRequestProvider);
     final q = tripState.quote;
     final opt = tripState.selectedOption;
-    if (q == null || opt == null || _d._origin == null || _d._destination == null) {
+    if (q == null ||
+        opt == null ||
+        _d._origin == null ||
+        _d._destination == null) {
       return;
     }
 
@@ -657,7 +576,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final submitGeneration = _d._tripSubmitGeneration;
     final l10n = AppLocalizations.of(context)!;
     final originAddress =
-        (_d._originDisplayLabel != null && _d._originDisplayLabel!.trim().isNotEmpty)
+        (_d._originDisplayLabel != null &&
+            _d._originDisplayLabel!.trim().isNotEmpty)
         ? _d._originDisplayLabel!.trim()
         : '${_d._origin!.latitude.toStringAsFixed(6)},${_d._origin!.longitude.toStringAsFixed(6)}';
     final destinationAddress =
@@ -730,7 +650,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final mainLower = main.toLowerCase();
     final addrLower = addr.toLowerCase();
     if (addrLower.startsWith(mainLower)) return addr;
-    return '$main · $addr';
+    return '$main \u00B7 $addr';
   }
 
   Future<void> _selectOriginSuggestion(
@@ -753,20 +673,19 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final composedLabel = details.formattedAddress.isNotEmpty
         ? _composePlaceLabel(suggestion, details.formattedAddress)
         : suggestion.fullText;
-    // Si el label compuesto incluye nombre de POI (formato "Nombre ┬À Direcci├│n"),
-    // ya tenemos el dato m├ís rico desde Places y NO disparamos reverse-geocode
-    // (que sobrescribir├¡a el nombre del POI con la calle).
-    final hasPoiName = composedLabel.contains(' · ');
+    // Si el label compuesto incluye nombre de POI (formato "Nombre \u00B7 DirecciÃÂÃÂÃÂÃÂ³n"),
+    // ya tenemos el dato mÃÂÃÂÃÂÃÂ¡s rico desde Places y NO disparamos reverse-geocode
+    // (que sobrescribirÃÂÃÂÃÂÃÂ­a el nombre del POI con la calle).
+    final hasPoiName = composedLabel.contains(' \u00B7 ');
     setState(() {
       _d._origin = LatLng(details.lat, details.lng);
       _d._originDisplayLabel = composedLabel;
+      _d._originDriverAddress = null;
       _d._mapCenter = _d._origin;
       _d._routePoints = null;
       _d._searchingOriginAddress = false;
-      _d._originConfirmed = true;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
-      _d._activeStop = ActiveStop.none;
+      _d._mapNeedleAddressPreview = composedLabel;
+      _assignOriginFollowState();
     });
     ref.read(tripRequestProvider.notifier).setOrigin(details.lat, details.lng);
     _d._controller?.animateCamera(
@@ -806,6 +725,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._destinationDisplayLabel = details.formattedAddress.isNotEmpty
           ? _composePlaceLabel(suggestion, details.formattedAddress)
           : suggestion.fullText;
+      _d._destinationDriverAddress = null;
       _d._destinationPoiLabelLocked = true;
       _d._routePoints = null;
       _d._searchingDestinationAddress = false;
@@ -847,13 +767,12 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       setState(() {
         _d._origin = LatLng(result.lat, result.lng);
         _d._originDisplayLabel = result.formattedAddress ?? query;
+        _d._originDriverAddress = null;
         _d._mapCenter = _d._origin;
         _d._searchingOriginAddress = false;
         _d._routePoints = null;
-        _d._originConfirmed = true;
-        _d._pickingOrigin = false;
-        _d._pickingDestination = false;
-        _d._activeStop = ActiveStop.none;
+        _d._mapNeedleAddressPreview = _d._originDisplayLabel;
+        _assignOriginFollowState();
       });
       ref.read(tripRequestProvider.notifier).setOrigin(result.lat, result.lng);
       _d._controller?.animateCamera(
@@ -883,8 +802,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   Future<void> _setOriginFromCurrentLocation() async {
     setState(() => _d._loadingOrigin = true);
     // Estrategia de fix: 1) lectura precisa con timeout corto; 2) fallback a la
-    // ├║ltima posici├│n conocida del SO. Esto evita el banner rojo cuando el GPS
-    // del sistema s├¡ tiene fix (pin azul visible) pero `getCurrentPosition` con
+    // ÃÂÃÂÃÂÃÂºltima posiciÃÂÃÂÃÂÃÂ³n conocida del SO. Esto evita el banner rojo cuando el GPS
+    // del sistema sÃÂÃÂÃÂÃÂ­ tiene fix (pin azul visible) pero `getCurrentPosition` con
     // `LocationAccuracy.high` no logra cerrar una nueva muestra a tiempo.
     Position? position;
     try {
@@ -910,14 +829,13 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._error = null;
       _d._origin = LatLng(position!.latitude, position.longitude);
       _d._originDisplayLabel = null;
+      _d._originDriverAddress = null;
       _d._mapCenter = _d._origin;
       _d._loadingOrigin = false;
       _d._routePoints = null;
       _d._deviceGpsFixOk = true;
-      _d._originConfirmed = true;
-      _d._pickingOrigin = false;
-      _d._pickingDestination = false;
-      _d._activeStop = ActiveStop.none;
+      _d._mapNeedleAddressPreview = null;
+      _assignOriginFollowState();
     });
     ref
         .read(tripRequestProvider.notifier)
@@ -930,13 +848,9 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  Future<void> _showProfileMenu(
-    BuildContext context, {
-    Offset? anchor,
-  }) async {
+  Future<void> _showProfileMenu(BuildContext context, {Offset? anchor}) async {
     final size = MediaQuery.sizeOf(context);
-    final resolvedAnchor = anchor ??
-        Offset(size.width - 40, size.height - 120);
+    final resolvedAnchor = anchor ?? Offset(size.width - 40, size.height - 120);
     final action = await showPassengerFanMenu(
       context: context,
       anchorGlobal: resolvedAnchor,
@@ -960,8 +874,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  /// Prioriza salir de la app (sesión permanece vía refresh token).
-  /// Cerrar sesión abre una segunda confirmación; Volver regresa al paso anterior.
+  /// Prioriza salir de la app (sesiÃÂÃÂÃÂÃÂ³n permanece vÃÂÃÂÃÂÃÂ­a refresh token).
+  /// Cerrar sesiÃÂÃÂÃÂÃÂ³n abre una segunda confirmaciÃÂÃÂÃÂÃÂ³n; Volver regresa al paso anterior.
   Future<void> _confirmLeaveOrLogout(BuildContext context) async {
     while (context.mounted) {
       final choice = await _showLeaveAppSheet(context);
@@ -1016,7 +930,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       primaryLabel: l10n.menuLogoutConfirmAction,
       primaryValue: 'logout',
       primaryDanger: true,
-      // Flecha atrás reemplaza el TextButton "Volver".
+      // Flecha atrÃÂÃÂÃÂÃÂ¡s reemplaza el TextButton "Volver".
       headerControl: _PassengerLeaveSheetHeader.back,
       headerBackValue: 'back',
     );
@@ -1080,26 +994,26 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
-                        if (headerControl ==
-                            _PassengerLeaveSheetHeader.back)
+                        if (headerControl == _PassengerLeaveSheetHeader.back)
                           Align(
                             alignment: Alignment.centerLeft,
                             child: IconButton(
-                              tooltip: MaterialLocalizations.of(ctx)
-                                  .backButtonTooltip,
+                              tooltip: MaterialLocalizations.of(
+                                ctx,
+                              ).backButtonTooltip,
                               onPressed: () =>
                                   Navigator.pop(ctx, headerBackValue),
                               icon: const Icon(Icons.arrow_back_rounded),
                               color: AppColors.textPrimary,
                             ),
                           ),
-                        if (headerControl ==
-                            _PassengerLeaveSheetHeader.close)
+                        if (headerControl == _PassengerLeaveSheetHeader.close)
                           Align(
                             alignment: Alignment.centerRight,
                             child: IconButton(
-                              tooltip: MaterialLocalizations.of(ctx)
-                                  .closeButtonTooltip,
+                              tooltip: MaterialLocalizations.of(
+                                ctx,
+                              ).closeButtonTooltip,
                               onPressed: () => Navigator.pop(ctx),
                               icon: const Icon(Icons.close_rounded),
                               color: AppColors.textPrimary,
@@ -1120,10 +1034,11 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: (primaryDanger
-                                    ? const Color(0xFFE05140)
-                                    : AppColors.primary)
-                                .withValues(alpha: 0.14),
+                            color:
+                                (primaryDanger
+                                        ? const Color(0xFFE05140)
+                                        : AppColors.primary)
+                                    .withValues(alpha: 0.14),
                           ),
                           child: Icon(
                             icon,
@@ -1150,14 +1065,14 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
                           style: TextStyle(
                             fontSize: 14,
                             height: 1.4,
-                            color: AppColors.textSecondary
-                                .withValues(alpha: 0.95),
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.95,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
                         FilledButton(
-                          onPressed: () =>
-                              Navigator.pop(ctx, primaryValue),
+                          onPressed: () => Navigator.pop(ctx, primaryValue),
                           style: FilledButton.styleFrom(
                             backgroundColor: primaryDanger
                                 ? const Color(0xFFE05140)
@@ -1177,8 +1092,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
                             secondaryValue != null) ...[
                           const SizedBox(height: 6),
                           TextButton(
-                            onPressed: () =>
-                                Navigator.pop(ctx, secondaryValue),
+                            onPressed: () => Navigator.pop(ctx, secondaryValue),
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.textSecondary
                                   .withValues(alpha: 0.72),
@@ -1226,6 +1140,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       setState(() {
         _d._destination = LatLng(result.lat, result.lng);
         _d._destinationDisplayLabel = result.formattedAddress ?? query;
+        _d._destinationDriverAddress = null;
         _d._destinationPoiLabelLocked = true;
         _d._routePoints = null;
       });
@@ -1259,7 +1174,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
 
   Future<void> _setDestinationFromCurrentLocation() async {
     // Misma estrategia que `_setOriginFromCurrentLocation`: si `getCurrentPosition`
-    // con alta precisi├│n falla (timeout/ruido), usar `getLastKnownPosition` antes
+    // con alta precisiÃÂÃÂÃÂÃÂ³n falla (timeout/ruido), usar `getLastKnownPosition` antes
     // de renderizar el banner rojo.
     Position? position;
     try {
@@ -1284,6 +1199,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       _d._error = null;
       _d._destination = LatLng(position!.latitude, position.longitude);
       _d._destinationDisplayLabel = null;
+      _d._destinationDriverAddress = null;
       _d._destinationPoiLabelLocked = false;
       _d._routePoints = null;
       _d._deviceGpsFixOk = true;
@@ -1303,7 +1219,10 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   // ignore: unused_element
   void _setDestinationFromMapCenter() {
     final center =
-        _d._mapCenter ?? _d._destination ?? _d._origin ?? const LatLng(-16.5, -68.1);
+        _d._mapCenter ??
+        _d._destination ??
+        _d._origin ??
+        const LatLng(-16.5, -68.1);
     setState(() {
       _d._destination = center;
       _d._destinationDisplayLabel =
@@ -1354,7 +1273,10 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
           .setOrigin(_d._origin!.latitude, _d._origin!.longitude);
       ref
           .read(tripRequestProvider.notifier)
-          .setDestination(_d._destination!.latitude, _d._destination!.longitude);
+          .setDestination(
+            _d._destination!.latitude,
+            _d._destination!.longitude,
+          );
       final api = TripsApi(token: token);
       final promo = await passengerPromoRequestFields(ref);
       final quote = await api.quoteTrip(
@@ -1402,7 +1324,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
 
   void _showQuoteSheet(QuoteResponse quote) {
     final originAddress =
-        (_d._originDisplayLabel != null && _d._originDisplayLabel!.trim().isNotEmpty)
+        (_d._originDisplayLabel != null &&
+            _d._originDisplayLabel!.trim().isNotEmpty)
         ? _d._originDisplayLabel!.trim()
         : (_d._origin != null
               ? '${_d._origin!.latitude.toStringAsFixed(6)},${_d._origin!.longitude.toStringAsFixed(6)}'
@@ -1435,8 +1358,8 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       ),
     ).whenComplete(() {
       if (!mounted) return;
-      // Si el sheet se cerr├│ sin llegar a solicitar conductor (tripId sigue null),
-      // limpiamos cotizaci├│n, ruta y destino para poder rearmar el viaje.
+      // Si el sheet se cerrÃÂÃÂÃÂÃÂ³ sin llegar a solicitar conductor (tripId sigue null),
+      // limpiamos cotizaciÃÂÃÂÃÂÃÂ³n, ruta y destino para poder rearmar el viaje.
       final s = ref.read(tripRequestProvider);
       if (s.tripId == null && s.quote != null) {
         _cancelQuoteDraft();
@@ -1444,7 +1367,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     });
   }
 
-  /// Solo antes de solicitar conductor: quita cotizaci├│n, ruta y destino del mapa.
+  /// Solo antes de solicitar conductor: quita cotizaciÃÂÃÂÃÂÃÂ³n, ruta y destino del mapa.
   /// No aplica a viaje ya creado / en curso (tripId != null).
   void _cancelQuoteDraft() {
     if (!mounted) return;
@@ -1456,14 +1379,19 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     setState(() {
       _d._destination = null;
       _d._destinationDisplayLabel = null;
+      _d._destinationDriverAddress = null;
       _d._destinationPoiLabelLocked = false;
       _d._routePoints = null;
       _d._loadingRoute = false;
       _d._originDisplayLabel = null;
+      _d._originDriverAddress = null;
       _d._originConfirmed = false;
       _d._pickingOrigin = true;
       _d._pickingDestination = false;
       _d._activeStop = ActiveStop.none;
+      _d._originEditAnchor = null;
+      _d._originPinAdjusted = false;
+      _d._destinationMapPickArmed = false;
       _d._error = null;
       _d._draftEditTarget = PassengerDraftEditTarget.none;
     });

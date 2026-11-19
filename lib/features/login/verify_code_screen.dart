@@ -150,7 +150,10 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
         if (mounted) _openSmsVerifyScreen();
       });
     } else if (_isWhatsAppOutbound) {
-      _outboundHelpTimer = Timer(_outboundHelpRevealDelay, () {
+      final delay = widget.linkPhoneMode
+          ? const Duration(seconds: 12)
+          : _outboundHelpRevealDelay;
+      _outboundHelpTimer = Timer(delay, () {
         if (!mounted || _outboundHelpExpanded) return;
         setState(() => _outboundHelpExpanded = true);
       });
@@ -429,6 +432,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     }
 
     final multichannel = PassengerAppEnvironment.multichannelAuthEnabled;
+    final showInbound = multichannel || widget.linkPhoneMode;
     final actionsEnabled = !_isLoading && !_waOutboundLoading;
 
     if (!_outboundHelpExpanded) {
@@ -482,7 +486,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
                 ),
           ),
           const SizedBox(height: 16),
-          if (multichannel) ...[
+          if (showInbound) ...[
             LoginAuthActionRow(
               enabled: actionsEnabled,
               highlighted: true,
@@ -508,6 +512,25 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
             onTap: _resendWhatsAppOutboundCode,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLeavePhoneVerification(AppLocalizations l10n) {
+    if (!widget.linkPhoneMode) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: TextButton(
+        onPressed: _isLoading
+            ? null
+            : () {
+                context.goNamed(AppRouter.home);
+              },
+        style: TextButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          foregroundColor: AppColors.textSecondary,
+        ),
+        child: Text(l10n.verifyCodeBackToMap),
       ),
     );
   }
@@ -1142,6 +1165,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
                   child: Text(l10n.verifyCodeWaRequestOutbound),
                 ),
               ],
+              _buildLeavePhoneVerification(l10n),
             ],
             if (!_isWhatsAppInbound && !_isSmsFirebase) ...[
               const SizedBox(height: 22),
@@ -1180,6 +1204,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
               ),
               const SizedBox(height: 16),
               _buildOutboundDeliveryHelp(l10n),
+              _buildLeavePhoneVerification(l10n),
             ],
           ],
         ),

@@ -160,16 +160,12 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
             ],
-            if (isMapConfirmMode) ...[
+            if (isMapConfirmMode && confirmingOrigin) ...[
               TexiScalePress(
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: confirmingOrigin
-                        ? const Color(0xFFF9AB00)
-                        : const Color(0xFF111111),
-                    foregroundColor: confirmingOrigin
-                        ? Colors.black87
-                        : Colors.white,
+                    backgroundColor: const Color(0xFFF9AB00),
+                    foregroundColor: Colors.black87,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 14,
@@ -180,9 +176,7 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                   label: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      confirmingOrigin
-                          ? l10n.tripConfirmOrigin
-                          : l10n.tripConfirmDestination,
+                      l10n.tripConfirmOrigin,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w700),
@@ -190,7 +184,31 @@ class PassengerTripDraftBottomBar extends StatelessWidget {
                   ),
                 ),
               ),
-            ] else ...[
+            ] else if (isMapConfirmMode && !confirmingOrigin) ...[
+              TexiScalePress(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF111111),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                  ),
+                  onPressed: onConfirmMapPick,
+                  icon: const Icon(Icons.check_circle_rounded, size: 20),
+                  label: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      l10n.tripConfirmDestination,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
+            ] else if (!isMapConfirmMode) ...[
               if (quotingInProgress) ...[
                 Row(
                   children: [

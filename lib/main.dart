@@ -52,9 +52,14 @@ Future<void> main() async {
   };
   AuthService.onSessionSuperseded = AuthService.onSessionExpired;
 
+  final savedLocale = await readSavedPassengerLocale();
   runApp(
-    const ProviderScope(
-      child: TexiApp(),
+    ProviderScope(
+      overrides: [
+        if (savedLocale != null)
+          localeProvider.overrideWith((ref) => savedLocale),
+      ],
+      child: const TexiApp(),
     ),
   );
 

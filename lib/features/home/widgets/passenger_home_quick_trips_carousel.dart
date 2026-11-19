@@ -16,13 +16,19 @@ class PassengerHomeQuickTripCardData {
     required this.subtitle,
     required this.configured,
     required this.onTap,
+    this.onEdit,
   });
 
   final HomeQuickSlotKind kind;
   final String title;
   final String subtitle;
   final bool configured;
+
+  /// Pedir el viaje, o abrir el mapa para guardar si el slot está vacío.
   final VoidCallback onTap;
+
+  /// Solo el lápiz. El resto de la tarjeta sigue en [onTap].
+  final VoidCallback? onEdit;
 }
 
 /// Carrusel horizontal de viajes rápidos (solo gesto; sin auto-avance).
@@ -47,16 +53,13 @@ class PassengerHomeQuickTripsCarousel extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         clipBehavior: Clip.none,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(
-          right: AppSpacing.xxx,
-          top: overflow - 6,
-        ),
+        padding: const EdgeInsets.only(right: AppSpacing.xxx),
         itemCount: cards.length,
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xl),
         itemBuilder: (context, i) {
           return SizedBox(
             width: cardWidth,
-            height: cardBody,
+            height: (overflow - 6) + cardBody,
             child: _QuickTripCard(data: cards[i]),
           );
         },
@@ -73,163 +76,176 @@ class _QuickTripCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final showAdd =
-        HomeQuickSlots.isConfigurable(data.kind) && !data.configured;
+    final configurable = HomeQuickSlots.isConfigurable(data.kind);
+    final showAdd = configurable && !data.configured;
+    final showEdit = configurable && data.configured && data.onEdit != null;
     const iconSize = PassengerHomeQuickTripsCarousel.iconSize;
     const overflow = PassengerHomeQuickTripsCarousel.overflow;
+    const lift = overflow - 6;
+    const badgeTop = lift - overflow + 10;
 
-    return TexiScalePress(
-      minScale: 0.97,
-      child: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.none,
-        child: InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            data.onTap();
-          },
-          borderRadius: BorderRadius.circular(22),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        PassengerHomeLook.quickCardLift,
-                        PassengerHomeLook.quickCard,
-                      ],
-                    ),
-                    border: Border.all(color: PassengerHomeLook.quickBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.32),
-                        blurRadius: 18,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                top: -overflow + 6,
-                left: 4,
-                right: 4,
-                child: SizedBox(
-                  height: iconSize,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned(
-                        bottom: 8,
-                        child: Container(
-                          width: 78,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.32),
-                            borderRadius: BorderRadius.circular(AppRadii.pill),
-                          ),
-                        ),
-                      ),
-                      Image.asset(
-                        _assetFor(data.kind),
-                        height: iconSize,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.high,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const SizedBox.shrink(),
-                      ),
-                      if (showAdd)
-                        Positioned(
-                          right: 8,
-                          top: 4,
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.28),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              color: Colors.black,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 48, 12, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Spacer(),
-                      Text(
-                        data.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: PassengerHomeLook.ink,
-                          height: 1.15,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        data.subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: PassengerHomeLook.muted,
-                          height: 1.2,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Container(
-                        height: 36,
-                        alignment: Alignment.center,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: lift,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: TexiScalePress(
+            minScale: 0.97,
+            child: Material(
+              color: Colors.transparent,
+              clipBehavior: Clip.none,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  data.onTap();
+                },
+                borderRadius: BorderRadius.circular(22),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Positioned.fill(
+                      child: DecoratedBox(
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                        ),
-                        child: Text(
-                          l10n.homeRequestNow,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                          borderRadius: BorderRadius.circular(22),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              PassengerHomeLook.quickCardLift,
+                              PassengerHomeLook.quickCard,
+                            ],
                           ),
+                          border: Border.all(
+                            color: PassengerHomeLook.quickBorder,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.32),
+                              blurRadius: 18,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Positioned(
+                      top: -overflow + 6,
+                      left: 4,
+                      right: 4,
+                      child: SizedBox(
+                        height: iconSize,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned(
+                              bottom: 8,
+                              child: Container(
+                                width: 78,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.32),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.pill,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Image.asset(
+                              _assetFor(data.kind),
+                              height: iconSize,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.high,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const SizedBox.shrink(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 48, 12, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Spacer(),
+                            Text(
+                              data.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: PassengerHomeLook.ink,
+                                    height: 1.15,
+                                    letterSpacing: -0.2,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              data.subtitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: PassengerHomeLook.muted,
+                                    height: 1.2,
+                                    fontSize: 11,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Container(
+                              height: 36,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.pill,
+                                ),
+                              ),
+                              child: Text(
+                                l10n.homeRequestNow,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (showAdd)
+          Positioned(
+            top: badgeTop,
+            right: 12,
+            child: _SlotBadge(icon: Icons.add, onPressed: data.onTap),
+          ),
+        if (showEdit)
+          Positioned(
+            top: badgeTop,
+            right: 12,
+            child: _SlotBadge(
+              icon: Icons.edit_outlined,
+              label: l10n.homeQuickPlaceEdit,
+              onPressed: data.onEdit,
+            ),
+          ),
+      ],
     );
   }
 
@@ -244,5 +260,49 @@ class _QuickTripCard extends StatelessWidget {
       case HomeQuickSlotKind.favorite:
         return AppAssets.quickTripFavorite;
     }
+  }
+}
+
+class _SlotBadge extends StatelessWidget {
+  const _SlotBadge({required this.icon, this.label, this.onPressed});
+
+  final IconData icon;
+  final String? label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final disk = Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 8),
+        ],
+      ),
+      child: Icon(icon, color: Colors.black, size: 16),
+    );
+    if (onPressed == null) return disk;
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onPressed!();
+          },
+          child: disk,
+        ),
+      ),
+    );
   }
 }

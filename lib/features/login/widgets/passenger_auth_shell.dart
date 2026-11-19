@@ -16,6 +16,7 @@ class PassengerAuthShell extends StatelessWidget {
     super.key,
     required this.child,
     this.leading,
+    this.trailing,
     this.loading = false,
     this.loadingMessage,
     this.maxContentWidth = 400,
@@ -24,6 +25,7 @@ class PassengerAuthShell extends StatelessWidget {
 
   final Widget child;
   final Widget? leading;
+  final Widget? trailing;
   final bool loading;
   final String? loadingMessage;
   final double maxContentWidth;
@@ -61,26 +63,39 @@ class PassengerAuthShell extends StatelessWidget {
             ),
           ),
           SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Stack(
               children: [
-                ?leading,
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        leading != null ? 8 : 20,
-                        horizontalPadding,
-                        20 + AppSafeScrolling.systemNavBottom(context),
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxContentWidth),
-                        child: child,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ?leading,
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            leading != null
+                                ? 8
+                                : (trailing != null ? 56 : 20),
+                            horizontalPadding,
+                            20 + AppSafeScrolling.systemNavBottom(context),
+                          ),
+                          child: ConstrainedBox(
+                            constraints:
+                                BoxConstraints(maxWidth: maxContentWidth),
+                            child: child,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
+                if (trailing != null)
+                  Positioned(
+                    top: 4,
+                    right: 12,
+                    child: trailing!,
+                  ),
               ],
             ),
           ),

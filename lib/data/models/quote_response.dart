@@ -7,6 +7,7 @@ class QuoteResponse {
     required this.durationMinutes,
     required this.options,
     this.specialRequirementSurchargePct = 50,
+    this.fulfillmentMode = 'fixed',
   });
 
   final QuoteCity city;
@@ -15,6 +16,12 @@ class QuoteResponse {
   final int durationMinutes;
   final List<QuoteOption> options;
   final double specialRequirementSurchargePct;
+
+  /// `fixed` = solicitud simple. `offerable` = se puede proponer un monto.
+  /// Ausente en el JSON se lee como `fixed`.
+  final String fulfillmentMode;
+
+  bool get isOfferable => fulfillmentMode == 'offerable';
 
   factory QuoteResponse.fromJson(Map<String, dynamic> json) {
     final optionsList = json['options'] as List<dynamic>? ?? [];
@@ -45,6 +52,13 @@ class QuoteResponse {
         if (raw is String) return double.tryParse(raw) ?? 50.0;
         return 50.0;
       }(),
+      fulfillmentMode: () {
+        final raw = (json['fulfillmentMode'] ?? json['fulfillment_mode'])
+            ?.toString()
+            .trim()
+            .toLowerCase();
+        return raw == 'offerable' ? 'offerable' : 'fixed';
+      }(),
     );
   }
 
@@ -54,6 +68,7 @@ class QuoteResponse {
         'distanceKm': distanceKm,
         'durationMinutes': durationMinutes,
         'specialRequirementSurchargePct': specialRequirementSurchargePct,
+        'fulfillmentMode': fulfillmentMode,
         'options': options.map((e) => e.toJson()).toList(),
       };
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import 'passenger_phone_countries.dart';
+
 /// Código de discado de Bolivia (sin `+`).
 const String kBoliviaDialDigits = '591';
 
@@ -19,16 +21,26 @@ bool isValidBoliviaLocalMobile(String raw) {
   return _boliviaLocalMobile.hasMatch(d);
 }
 
-/// Validación del campo de login/vínculo: Bolivia = regla 8 dígitos 5/6/7.
+/// Validación del campo de login/vínculo según el país elegido.
 bool isValidPassengerLocalPhone({
   required String dialCode,
   required String localNumber,
 }) {
-  if (isBoliviaDialCode(dialCode)) {
+  final country = loginCountryExact(dialCode);
+  if (country == null) {
+    final d = localNumber.replaceAll(_nonDigits, '');
+    return d.length >= 6 && d.length <= 15;
+  }
+  if (isBoliviaDialCode(country.dialCode)) {
     return isValidBoliviaLocalMobile(localNumber);
   }
   final d = localNumber.replaceAll(_nonDigits, '');
-  return d.length >= 6 && d.length <= 15;
+  if (d.length < country.minLocalDigits || d.length > country.maxLocalDigits) {
+    return false;
+  }
+  final pattern = country.localPattern;
+  if (pattern != null && !pattern.hasMatch(d)) return false;
+  return true;
 }
 
 /// Solo dígitos; en Bolivia recorta a 8 y, si pegan `591` + local, deja el local.
@@ -61,10 +73,7 @@ String sanitizePassengerLocalPhone({
   required String dialCode,
   required String raw,
 }) {
-  if (!isBoliviaDialCode(dialCode)) {
-    return raw.replaceAll(_nonDigits, '');
-  }
-  return const BoliviaLocalPhoneInputFormatter()
+  return PassengerLocalPhoneInputFormatter(dialCode)
       .formatEditUpdate(
         TextEditingValue.empty,
         TextEditingValue(text: raw),
@@ -73,13 +82,47 @@ String sanitizePassengerLocalPhone({
 }
 
 List<TextInputFormatter> passengerLocalPhoneFormatters(String dialCode) {
-  final formatters = <TextInputFormatter>[
+  return <TextInputFormatter>[
     FilteringTextInputFormatter.digitsOnly,
+    PassengerLocalPhoneInputFormatter(dialCode),
   ];
-  if (isBoliviaDialCode(dialCode)) {
-    formatters.add(const BoliviaLocalPhoneInputFormatter());
+}
+
+/// Recorta al largo del país y, si pegan el prefijo internacional, deja el local.
+class PassengerLocalPhoneInputFormatter extends TextInputFormatter {
+  const PassengerLocalPhoneInputFormatter(this.dialCode);
+
+  final String dialCode;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (isBoliviaDialCode(dialCode)) {
+      return const BoliviaLocalPhoneInputFormatter()
+          .formatEditUpdate(oldValue, newValue);
+    }
+    final country = loginCountryExact(dialCode);
+    final maxDigits = country?.maxLocalDigits ?? 15;
+    var d = newValue.text.replaceAll(_nonDigits, '');
+    final cc = country?.dialDigits ?? '';
+    if (cc.isNotEmpty && d.startsWith(cc)) {
+      final rest = d.substring(cc.length);
+      final within = country != null &&
+          rest.length >= country.minLocalDigits &&
+          rest.length <= country.maxLocalDigits;
+      if (within || d.length > maxDigits) d = rest;
+    }
+    if (country?.stripTrunkZero == true && d.startsWith('0')) {
+      d = d.substring(1);
+    }
+    if (d.length > maxDigits) d = d.substring(0, maxDigits);
+    return TextEditingValue(
+      text: d,
+      selection: TextSelection.collapsed(offset: d.length),
+    );
   }
-  return formatters;
 }
 
 /// Número completo `+591 71234567` (sin máscara).

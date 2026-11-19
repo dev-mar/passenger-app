@@ -120,6 +120,15 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             : int.tryParse('$ratingsCountRaw');
         final currencyCode = (data['currencyCode'] ?? data['currency'])
             ?.toString();
+        final agreedRaw = data['agreedPrice'] ?? data['agreed_price'];
+        final estimatedRaw = data['estimatedPrice'] ?? data['estimated_price'];
+        final agreedPrice = agreedRaw is num
+            ? agreedRaw.toDouble()
+            : double.tryParse('${agreedRaw ?? ''}');
+        final estimatedFromEvent = estimatedRaw is num
+            ? estimatedRaw.toDouble()
+            : double.tryParse('${estimatedRaw ?? ''}');
+        final fare = agreedPrice ?? estimatedFromEvent;
         if (kDebugMode) {
           debugPrint(
             '[PASSENGER_RT] trip:accepted tripId=$tripIdData driver=$driverName',
@@ -135,6 +144,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           driverRating: driverRating,
           driverRatingsCount: driverRatingsCount,
           currencyCode: currencyCode ?? state.currencyCode,
+          estimatedPrice: fare ?? state.estimatedPrice,
           driverPhotoUrl: driverPhotoUrl,
           driverPhotoExpiresAt: driverPhotoExpiresAt,
           tripChatErrorCode: state.tripChatErrorCode,
@@ -217,7 +227,8 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             : int.tryParse('$ratingsCountRaw');
         final currencyCode = (data['currencyCode'] ?? data['currency'])
             ?.toString();
-        if (newStatus == 'arrived' && state.status != 'arrived') {
+        final previousStatus = state.status;
+        if (newStatus == 'arrived' && previousStatus != 'arrived') {
           final fg = PassengerAppVisibility.isInForeground.value;
           if (fg) {
             SystemSound.play(SystemSoundType.alert);
@@ -250,6 +261,11 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
           cancelledBy: data['cancelledBy']?.toString() ?? state.cancelledBy,
           reasonLabel: data['reasonLabel']?.toString() ?? state.reasonLabel,
           helpAvailable: data['helpAvailable'] == true,
+        );
+        PassengerMarketingAnalytics.onLiveStatus(
+          tripId: tripIdData,
+          previous: previousStatus,
+          next: newStatus,
         );
         unawaited(
           TripSessionStorage.saveLastKnownStatus(

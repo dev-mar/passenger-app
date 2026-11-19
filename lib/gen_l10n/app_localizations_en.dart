@@ -304,6 +304,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginPhoneInvalidBolivia => 'Enter your number. E.g.: 70000000';
 
   @override
+  String loginPhoneExampleHint(String example) {
+    return 'E.g.: $example';
+  }
+
+  @override
+  String loginPhoneInvalidExample(String example) {
+    return 'Enter your number. E.g.: $example';
+  }
+
+  @override
+  String get loginCountryPickerTitle => 'Number country';
+
+  @override
   String get homeRequestRide => 'Request ride';
 
   @override
@@ -354,10 +367,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeHomeSubtitle => 'Back to your place';
 
   @override
-  String get homeFavoriteCta => 'My favorite';
+  String get homeFavoriteCta => 'My favorites';
 
   @override
   String get homeFavoriteSubtitle => 'Your special places';
+
+  @override
+  String get savedPlacesAdd => 'Add place';
+
+  @override
+  String get savedPlacesNameTitle => 'Reference name';
+
+  @override
+  String get savedPlacesNameHint => 'E.g. Mom, gym';
+
+  @override
+  String get savedPlacesDeleteTitle => 'Delete this place?';
+
+  @override
+  String get savedPlacesDeleted => 'Place removed';
+
+  @override
+  String get savedPlacesPickHint => 'Tap a place to use it here.';
+
+  @override
+  String get savedPlacesRideHint => 'Tap a place to request the trip.';
+
+  @override
+  String get savedPlacesReservedName =>
+      'That name belongs to Home, Work or Airport.';
+
+  @override
+  String get savedPlacesNeedStreet =>
+      'We couldn\'t read the street. Search it with the magnifying glass.';
+
+  @override
+  String get savedPlacesPickerTitle => 'New location';
 
   @override
   String get homeRequestNow => 'Request now';
@@ -392,10 +437,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Location saved. You can request this trip now.';
 
   @override
+  String get homeQuickPlaceEdit => 'Edit location';
+
+  @override
   String get homeWhereToToday => 'Where to today?';
 
   @override
-  String get homeChooseOriginDestination => 'Choose pickup and destination';
+  String homeHelloName(String name) {
+    return 'Hi, $name!';
+  }
+
+  @override
+  String get homeChooseOriginDestination => 'Choose your destination';
 
   @override
   String get homePlaceTapToRide => 'Request a ride here';
@@ -455,6 +508,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tripChooseOnMap => 'Choose on map';
 
   @override
+  String get tripSearchOnMap => 'Search on the map';
+
+  @override
   String get tripUseAsPickup => 'Use as pickup point';
 
   @override
@@ -469,7 +525,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Move the map and tap the button to set the destination.';
 
   @override
-  String get tripTapMapDestination => 'Tap the map or choose an option below';
+  String get tripTapMapDestination => 'Tap here to choose your destination';
 
   @override
   String get tripSeePrices => 'See prices';
@@ -649,6 +705,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quotePerTrip => 'per trip';
+
+  @override
+  String get offerableFareTitle => 'Your offer';
+
+  @override
+  String get offerableFareHint =>
+      'The calculated fare is the minimum. You can raise it.';
+
+  @override
+  String get offerableBidsTitle => 'Drivers can take your trip';
+
+  @override
+  String get offerableBidsBody =>
+      'These are proposals, not a fixed fare. If they don\'t suit you, TEXIAPP keeps looking so you can ride at ease.';
+
+  @override
+  String get offerableBidAccept => 'Accept';
+
+  @override
+  String get offerableBidDecline => 'Keep searching';
+
+  @override
+  String offerableBidEta(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get offerableBidEmpty =>
+      'If a driver accepts your fare, the trip is assigned. Proposals show up here.';
+
+  @override
+  String get offerableSearchRaiseTitle => 'Raise your offer';
+
+  @override
+  String get offerableSearchRaiseHint =>
+      'A higher offer helps a driver accept your trip sooner.';
+
+  @override
+  String get offerableSearchRaiseCta => 'Search with this fare';
+
+  @override
+  String get offerableSearchRaiseNeedMore => 'Change the fare to search again';
+
+  @override
+  String get offerableSearchRaiseEdit => 'Edit amount';
+
+  @override
+  String offerableSearchRaiseBelowFloor(String amount) {
+    return 'The trip fare must be $amount or higher.';
+  }
+
+  @override
+  String get offerableOfferAboveCap =>
+      'That amount is over the limit. Lower it a bit and try again.';
+
+  @override
+  String get offerableOfferBelowReference =>
+      'The offer can\'t be lower than the calculated fare.';
 
   @override
   String get quoteConfirm => 'Confirm';
@@ -950,7 +1064,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tripPhoneGateBody =>
-      'You signed in with email. To request a trip you need to verify your mobile number once.';
+      'To request a trip you need to verify your mobile number once.';
 
   @override
   String get tripPhoneGatePrimaryAction => 'See verification options';
@@ -1320,10 +1434,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSetupContinue => 'Continue';
 
   @override
-  String get profileSetupReferralLabel => 'Referral code (optional)';
+  String get profileSetupReferralLabel => 'Referral code';
 
   @override
-  String get profileSetupReferralHint => 'Code from who referred you';
+  String get profileSetupReferralHint => 'optional';
 
   @override
   String get commonCancel => 'Cancel';
@@ -1751,6 +1865,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get verifyCodeOutboundHelpSubtitle =>
       'Try another way to verify your number.';
+
+  @override
+  String get verifyCodeBackToMap => 'Back to the map';
 
   @override
   String get verifyCodeOutboundResend => 'Resend code via WhatsApp';
@@ -2648,6 +2765,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVerifiedUserLabel => 'Verified user';
 
   @override
+  String get profileVerifyPhoneAction => 'Verify phone';
+
+  @override
+  String get profileVerifyPhoneHint =>
+      'Benefits turn on after you confirm your number.';
+
+  @override
   String get profileBrandTitle => 'TEXIAPP';
 
   @override
@@ -2856,4 +2980,191 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get promoBenefitsEntry => 'TEXIAPP benefits';
+
+  @override
+  String get noticesInboxTitle => 'Notices';
+
+  @override
+  String get noticesInboxSubtitle =>
+      'News and benefits we send you. Trip alerts stay on their own channel.';
+
+  @override
+  String get noticesInboxEntry => 'TEXIAPP notices';
+
+  @override
+  String get noticesMarkAll => 'Read all';
+
+  @override
+  String get noticesEmpty =>
+      'No notices yet. When we send an update, it will show up here.';
+
+  @override
+  String get homeTexiRutaEntry => 'TEXI Ruta';
+
+  @override
+  String get homeTexiRutaHint =>
+      'Book a seat on a schedule. This is not an on-demand trip.';
+
+  @override
+  String get texiRutaTitle => 'TEXI Ruta';
+
+  @override
+  String get texiRutaFrom => 'From';
+
+  @override
+  String get texiRutaTo => 'To';
+
+  @override
+  String get texiRutaDate => 'Date';
+
+  @override
+  String get texiRutaSearch => 'Search departures';
+
+  @override
+  String get texiRutaSeats => 'Seats';
+
+  @override
+  String get texiRutaBook => 'Book';
+
+  @override
+  String get texiRutaMine => 'Your bookings';
+
+  @override
+  String get texiRutaCancel => 'Cancel booking';
+
+  @override
+  String get texiRutaEmpty => 'No open departures for that leg and date.';
+
+  @override
+  String get texiRutaFull => 'No seats left';
+
+  @override
+  String get texiRutaCash => 'You pay cash when you board.';
+
+  @override
+  String get texiRutaOff => 'TEXI Ruta is not available right now.';
+
+  @override
+  String get texiRutaGenericError => 'Could not finish. Try again.';
+
+  @override
+  String get texiRutaLeaveFrom => 'Leaving from';
+
+  @override
+  String get texiRutaPickCity => 'Choose the departure city';
+
+  @override
+  String get texiRutaUseLocation => 'Use my location';
+
+  @override
+  String get texiRutaCityFar =>
+      'No departure city is nearby. Choose one from the list.';
+
+  @override
+  String get texiRutaSearchPlace => 'Search a city or a destination';
+
+  @override
+  String get texiRutaDestinations => 'Where you can go';
+
+  @override
+  String get texiRutaOtherCity => 'Another city';
+
+  @override
+  String get texiRutaAllLocalities => 'All localities';
+
+  @override
+  String get texiRutaSchedules => 'Schedules';
+
+  @override
+  String get texiRutaNoDestinations =>
+      'There are no active routes from this city yet.';
+
+  @override
+  String get texiRutaToday => 'Today';
+
+  @override
+  String texiRutaFromFare(String fare) {
+    return 'From Bs $fare';
+  }
+
+  @override
+  String get texiRutaBackToPlaces => 'Destinations';
+
+  @override
+  String get texiRutaConfirm => 'Confirm booking';
+
+  @override
+  String get texiRutaNotOpen => 'This departure is not open for booking yet.';
+
+  @override
+  String get texiRutaBoardMap => 'See the boarding point';
+
+  @override
+  String get texiRutaBoardPoint => 'Boarding';
+
+  @override
+  String get texiRutaYou => 'You';
+
+  @override
+  String texiRutaTotal(String fare) {
+    return 'Total Bs $fare';
+  }
+
+  @override
+  String texiRutaSeatsLeft(int count) {
+    return '$count left';
+  }
+
+  @override
+  String get texiRutaSaved => 'Your booking is saved';
+
+  @override
+  String get texiRutaCode => 'Booking code';
+
+  @override
+  String get texiRutaCopy => 'Copy code';
+
+  @override
+  String get texiRutaCopied => 'Code copied';
+
+  @override
+  String get texiRutaAnother => 'Make another booking';
+
+  @override
+  String get texiRutaSeeAll => 'See all';
+
+  @override
+  String get texiRutaNoBookings => 'You do not have bookings yet.';
+
+  @override
+  String texiRutaSeatCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seats',
+      one: '1 seat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get texiRutaStatusPending => 'Pending';
+
+  @override
+  String get texiRutaStatusConfirmed => 'Confirmed';
+
+  @override
+  String get texiRutaStatusBoarded => 'Boarded';
+
+  @override
+  String get texiRutaStatusInTrip => 'On the way';
+
+  @override
+  String get texiRutaStatusCompleted => 'Completed';
+
+  @override
+  String get texiRutaStatusNoShow => 'You did not show up';
+
+  @override
+  String get texiRutaStatusCancelled => 'Cancelled';
 }

@@ -620,6 +620,24 @@ abstract class AppLocalizations {
   /// **'Enter your number. E.g.: 70000000'**
   String get loginPhoneInvalidBolivia;
 
+  /// No description provided for @loginPhoneExampleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g.: {example}'**
+  String loginPhoneExampleHint(String example);
+
+  /// No description provided for @loginPhoneInvalidExample.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your number. E.g.: {example}'**
+  String loginPhoneInvalidExample(String example);
+
+  /// No description provided for @loginCountryPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Number country'**
+  String get loginCountryPickerTitle;
+
   /// No description provided for @homeRequestRide.
   ///
   /// In en, this message translates to:
@@ -713,7 +731,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeFavoriteCta.
   ///
   /// In en, this message translates to:
-  /// **'My favorite'**
+  /// **'My favorites'**
   String get homeFavoriteCta;
 
   /// No description provided for @homeFavoriteSubtitle.
@@ -721,6 +739,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your special places'**
   String get homeFavoriteSubtitle;
+
+  /// No description provided for @savedPlacesAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add place'**
+  String get savedPlacesAdd;
+
+  /// No description provided for @savedPlacesNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference name'**
+  String get savedPlacesNameTitle;
+
+  /// No description provided for @savedPlacesNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. Mom, gym'**
+  String get savedPlacesNameHint;
+
+  /// No description provided for @savedPlacesDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this place?'**
+  String get savedPlacesDeleteTitle;
+
+  /// No description provided for @savedPlacesDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Place removed'**
+  String get savedPlacesDeleted;
+
+  /// No description provided for @savedPlacesPickHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a place to use it here.'**
+  String get savedPlacesPickHint;
+
+  /// No description provided for @savedPlacesRideHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a place to request the trip.'**
+  String get savedPlacesRideHint;
+
+  /// No description provided for @savedPlacesReservedName.
+  ///
+  /// In en, this message translates to:
+  /// **'That name belongs to Home, Work or Airport.'**
+  String get savedPlacesReservedName;
+
+  /// No description provided for @savedPlacesNeedStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t read the street. Search it with the magnifying glass.'**
+  String get savedPlacesNeedStreet;
+
+  /// No description provided for @savedPlacesPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New location'**
+  String get savedPlacesPickerTitle;
 
   /// No description provided for @homeRequestNow.
   ///
@@ -782,16 +860,28 @@ abstract class AppLocalizations {
   /// **'Location saved. You can request this trip now.'**
   String get homeQuickPlaceSaved;
 
+  /// No description provided for @homeQuickPlaceEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit location'**
+  String get homeQuickPlaceEdit;
+
   /// No description provided for @homeWhereToToday.
   ///
   /// In en, this message translates to:
   /// **'Where to today?'**
   String get homeWhereToToday;
 
+  /// No description provided for @homeHelloName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi, {name}!'**
+  String homeHelloName(String name);
+
   /// No description provided for @homeChooseOriginDestination.
   ///
   /// In en, this message translates to:
-  /// **'Choose pickup and destination'**
+  /// **'Choose your destination'**
   String get homeChooseOriginDestination;
 
   /// No description provided for @homePlaceTapToRide.
@@ -896,6 +986,12 @@ abstract class AppLocalizations {
   /// **'Choose on map'**
   String get tripChooseOnMap;
 
+  /// No description provided for @tripSearchOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Search on the map'**
+  String get tripSearchOnMap;
+
   /// No description provided for @tripUseAsPickup.
   ///
   /// In en, this message translates to:
@@ -923,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripTapMapDestination.
   ///
   /// In en, this message translates to:
-  /// **'Tap the map or choose an option below'**
+  /// **'Tap here to choose your destination'**
   String get tripTapMapDestination;
 
   /// No description provided for @tripSeePrices.
@@ -1237,6 +1333,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'per trip'**
   String get quotePerTrip;
+
+  /// No description provided for @offerableFareTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your offer'**
+  String get offerableFareTitle;
+
+  /// No description provided for @offerableFareHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The calculated fare is the minimum. You can raise it.'**
+  String get offerableFareHint;
+
+  /// No description provided for @offerableBidsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drivers can take your trip'**
+  String get offerableBidsTitle;
+
+  /// No description provided for @offerableBidsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These are proposals, not a fixed fare. If they don\'t suit you, TEXIAPP keeps looking so you can ride at ease.'**
+  String get offerableBidsBody;
+
+  /// No description provided for @offerableBidAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get offerableBidAccept;
+
+  /// No description provided for @offerableBidDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep searching'**
+  String get offerableBidDecline;
+
+  /// No description provided for @offerableBidEta.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String offerableBidEta(int minutes);
+
+  /// No description provided for @offerableBidEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'If a driver accepts your fare, the trip is assigned. Proposals show up here.'**
+  String get offerableBidEmpty;
+
+  /// No description provided for @offerableSearchRaiseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Raise your offer'**
+  String get offerableSearchRaiseTitle;
+
+  /// No description provided for @offerableSearchRaiseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A higher offer helps a driver accept your trip sooner.'**
+  String get offerableSearchRaiseHint;
+
+  /// No description provided for @offerableSearchRaiseCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Search with this fare'**
+  String get offerableSearchRaiseCta;
+
+  /// No description provided for @offerableSearchRaiseNeedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the fare to search again'**
+  String get offerableSearchRaiseNeedMore;
+
+  /// No description provided for @offerableSearchRaiseEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit amount'**
+  String get offerableSearchRaiseEdit;
+
+  /// No description provided for @offerableSearchRaiseBelowFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'The trip fare must be {amount} or higher.'**
+  String offerableSearchRaiseBelowFloor(String amount);
+
+  /// No description provided for @offerableOfferAboveCap.
+  ///
+  /// In en, this message translates to:
+  /// **'That amount is over the limit. Lower it a bit and try again.'**
+  String get offerableOfferAboveCap;
+
+  /// No description provided for @offerableOfferBelowReference.
+  ///
+  /// In en, this message translates to:
+  /// **'The offer can\'t be lower than the calculated fare.'**
+  String get offerableOfferBelowReference;
 
   /// No description provided for @quoteConfirm.
   ///
@@ -1763,7 +1955,7 @@ abstract class AppLocalizations {
   /// No description provided for @tripPhoneGateBody.
   ///
   /// In en, this message translates to:
-  /// **'You signed in with email. To request a trip you need to verify your mobile number once.'**
+  /// **'To request a trip you need to verify your mobile number once.'**
   String get tripPhoneGateBody;
 
   /// No description provided for @tripPhoneGatePrimaryAction.
@@ -2429,13 +2621,13 @@ abstract class AppLocalizations {
   /// No description provided for @profileSetupReferralLabel.
   ///
   /// In en, this message translates to:
-  /// **'Referral code (optional)'**
+  /// **'Referral code'**
   String get profileSetupReferralLabel;
 
   /// No description provided for @profileSetupReferralHint.
   ///
   /// In en, this message translates to:
-  /// **'Code from who referred you'**
+  /// **'optional'**
   String get profileSetupReferralHint;
 
   /// No description provided for @commonCancel.
@@ -3175,6 +3367,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try another way to verify your number.'**
   String get verifyCodeOutboundHelpSubtitle;
+
+  /// No description provided for @verifyCodeBackToMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the map'**
+  String get verifyCodeBackToMap;
 
   /// No description provided for @verifyCodeOutboundResend.
   ///
@@ -4787,6 +4985,18 @@ abstract class AppLocalizations {
   /// **'Verified user'**
   String get profileVerifiedUserLabel;
 
+  /// No description provided for @profileVerifyPhoneAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify phone'**
+  String get profileVerifyPhoneAction;
+
+  /// No description provided for @profileVerifyPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits turn on after you confirm your number.'**
+  String get profileVerifyPhoneHint;
+
   /// No description provided for @profileBrandTitle.
   ///
   /// In en, this message translates to:
@@ -5152,6 +5362,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TEXIAPP benefits'**
   String get promoBenefitsEntry;
+
+  /// No description provided for @noticesInboxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notices'**
+  String get noticesInboxTitle;
+
+  /// No description provided for @noticesInboxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'News and benefits we send you. Trip alerts stay on their own channel.'**
+  String get noticesInboxSubtitle;
+
+  /// No description provided for @noticesInboxEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXIAPP notices'**
+  String get noticesInboxEntry;
+
+  /// No description provided for @noticesMarkAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Read all'**
+  String get noticesMarkAll;
+
+  /// No description provided for @noticesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notices yet. When we send an update, it will show up here.'**
+  String get noticesEmpty;
+
+  /// No description provided for @homeTexiRutaEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXI Ruta'**
+  String get homeTexiRutaEntry;
+
+  /// No description provided for @homeTexiRutaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Book a seat on a schedule. This is not an on-demand trip.'**
+  String get homeTexiRutaHint;
+
+  /// No description provided for @texiRutaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXI Ruta'**
+  String get texiRutaTitle;
+
+  /// No description provided for @texiRutaFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'From'**
+  String get texiRutaFrom;
+
+  /// No description provided for @texiRutaTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get texiRutaTo;
+
+  /// No description provided for @texiRutaDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get texiRutaDate;
+
+  /// No description provided for @texiRutaSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search departures'**
+  String get texiRutaSearch;
+
+  /// No description provided for @texiRutaSeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Seats'**
+  String get texiRutaSeats;
+
+  /// No description provided for @texiRutaBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Book'**
+  String get texiRutaBook;
+
+  /// No description provided for @texiRutaMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bookings'**
+  String get texiRutaMine;
+
+  /// No description provided for @texiRutaCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel booking'**
+  String get texiRutaCancel;
+
+  /// No description provided for @texiRutaEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No open departures for that leg and date.'**
+  String get texiRutaEmpty;
+
+  /// No description provided for @texiRutaFull.
+  ///
+  /// In en, this message translates to:
+  /// **'No seats left'**
+  String get texiRutaFull;
+
+  /// No description provided for @texiRutaCash.
+  ///
+  /// In en, this message translates to:
+  /// **'You pay cash when you board.'**
+  String get texiRutaCash;
+
+  /// No description provided for @texiRutaOff.
+  ///
+  /// In en, this message translates to:
+  /// **'TEXI Ruta is not available right now.'**
+  String get texiRutaOff;
+
+  /// No description provided for @texiRutaGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not finish. Try again.'**
+  String get texiRutaGenericError;
+
+  /// No description provided for @texiRutaLeaveFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving from'**
+  String get texiRutaLeaveFrom;
+
+  /// No description provided for @texiRutaPickCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the departure city'**
+  String get texiRutaPickCity;
+
+  /// No description provided for @texiRutaUseLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my location'**
+  String get texiRutaUseLocation;
+
+  /// No description provided for @texiRutaCityFar.
+  ///
+  /// In en, this message translates to:
+  /// **'No departure city is nearby. Choose one from the list.'**
+  String get texiRutaCityFar;
+
+  /// No description provided for @texiRutaSearchPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Search a city or a destination'**
+  String get texiRutaSearchPlace;
+
+  /// No description provided for @texiRutaDestinations.
+  ///
+  /// In en, this message translates to:
+  /// **'Where you can go'**
+  String get texiRutaDestinations;
+
+  /// No description provided for @texiRutaOtherCity.
+  ///
+  /// In en, this message translates to:
+  /// **'Another city'**
+  String get texiRutaOtherCity;
+
+  /// No description provided for @texiRutaAllLocalities.
+  ///
+  /// In en, this message translates to:
+  /// **'All localities'**
+  String get texiRutaAllLocalities;
+
+  /// No description provided for @texiRutaSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedules'**
+  String get texiRutaSchedules;
+
+  /// No description provided for @texiRutaNoDestinations.
+  ///
+  /// In en, this message translates to:
+  /// **'There are no active routes from this city yet.'**
+  String get texiRutaNoDestinations;
+
+  /// No description provided for @texiRutaToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get texiRutaToday;
+
+  /// No description provided for @texiRutaFromFare.
+  ///
+  /// In en, this message translates to:
+  /// **'From Bs {fare}'**
+  String texiRutaFromFare(String fare);
+
+  /// No description provided for @texiRutaBackToPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Destinations'**
+  String get texiRutaBackToPlaces;
+
+  /// No description provided for @texiRutaConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm booking'**
+  String get texiRutaConfirm;
+
+  /// No description provided for @texiRutaNotOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'This departure is not open for booking yet.'**
+  String get texiRutaNotOpen;
+
+  /// No description provided for @texiRutaBoardMap.
+  ///
+  /// In en, this message translates to:
+  /// **'See the boarding point'**
+  String get texiRutaBoardMap;
+
+  /// No description provided for @texiRutaBoardPoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Boarding'**
+  String get texiRutaBoardPoint;
+
+  /// No description provided for @texiRutaYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get texiRutaYou;
+
+  /// No description provided for @texiRutaTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Bs {fare}'**
+  String texiRutaTotal(String fare);
+
+  /// No description provided for @texiRutaSeatsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String texiRutaSeatsLeft(int count);
+
+  /// No description provided for @texiRutaSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your booking is saved'**
+  String get texiRutaSaved;
+
+  /// No description provided for @texiRutaCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Booking code'**
+  String get texiRutaCode;
+
+  /// No description provided for @texiRutaCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy code'**
+  String get texiRutaCopy;
+
+  /// No description provided for @texiRutaCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get texiRutaCopied;
+
+  /// No description provided for @texiRutaAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Make another booking'**
+  String get texiRutaAnother;
+
+  /// No description provided for @texiRutaSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get texiRutaSeeAll;
+
+  /// No description provided for @texiRutaNoBookings.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have bookings yet.'**
+  String get texiRutaNoBookings;
+
+  /// No description provided for @texiRutaSeatCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 seat} other{{count} seats}}'**
+  String texiRutaSeatCount(int count);
+
+  /// No description provided for @texiRutaStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get texiRutaStatusPending;
+
+  /// No description provided for @texiRutaStatusConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get texiRutaStatusConfirmed;
+
+  /// No description provided for @texiRutaStatusBoarded.
+  ///
+  /// In en, this message translates to:
+  /// **'Boarded'**
+  String get texiRutaStatusBoarded;
+
+  /// No description provided for @texiRutaStatusInTrip.
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get texiRutaStatusInTrip;
+
+  /// No description provided for @texiRutaStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get texiRutaStatusCompleted;
+
+  /// No description provided for @texiRutaStatusNoShow.
+  ///
+  /// In en, this message translates to:
+  /// **'You did not show up'**
+  String get texiRutaStatusNoShow;
+
+  /// No description provided for @texiRutaStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get texiRutaStatusCancelled;
 }
 
 class _AppLocalizationsDelegate
