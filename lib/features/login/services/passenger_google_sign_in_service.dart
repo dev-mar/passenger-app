@@ -2,7 +2,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/config/app_config.dart';
 
-/// Google Sign-In pasajero — entrega `id_token` para backend `/auth/google`.
 class PassengerGoogleSignInService {
   GoogleSignIn? get _client {
     final serverClientId = AppConfig.googleOAuthServerClientId;
@@ -20,7 +19,6 @@ class PassengerGoogleSignInService {
     return creds?.idToken;
   }
 
-  /// Google Sign-In del dispositivo — token + email para gate SMS.
   Future<({String idToken, String email})?> signInAndGetCredentials() async {
     final client = _client;
     if (client == null) return null;
@@ -34,7 +32,6 @@ class PassengerGoogleSignInService {
     return (idToken: token.trim(), email: email);
   }
 
-  /// Solo obtiene email de la cuenta Google del dispositivo (sin login backend).
   Future<String?> pickAccountEmail() async {
     final client = _client;
     if (client == null) return null;

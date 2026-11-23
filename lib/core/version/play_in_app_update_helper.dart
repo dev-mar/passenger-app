@@ -8,7 +8,6 @@ import 'package:in_app_update/in_app_update.dart';
 import '../router/app_router.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Google Play In-App Updates (Android). Fail-open fuera de Play Store o sin red.
 class PlayInAppUpdateHelper {
   PlayInAppUpdateHelper._();
 
@@ -52,7 +51,6 @@ class PlayInAppUpdateHelper {
     );
   }
 
-  /// Actualización inmediata (bloqueante). Solo cuando Play lo permite.
   static Future<bool> tryImmediateUpdate() async {
     if (!_isSupported) return false;
     try {
@@ -71,7 +69,6 @@ class PlayInAppUpdateHelper {
     }
   }
 
-  /// Descarga flexible en segundo plano. El listener avisa cuando está lista.
   static Future<bool> tryFlexibleUpdate() async {
     if (!_isSupported) return false;
     try {
@@ -91,7 +88,6 @@ class PlayInAppUpdateHelper {
     }
   }
 
-  /// Cuando el backend no exige update, aún puede haber versión nueva en Play.
   static void scheduleOptionalPlayUpdateCheck() {
     if (!_isSupported) return;
     ensureFlexibleUpdateListener();

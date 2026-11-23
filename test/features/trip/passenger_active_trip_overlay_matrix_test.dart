@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:texi_passenger_app/features/trip/trip_request_trip_phase_helpers.dart';
 
-/// Matriz de overlays alineada a viaje activo / matching / recuperación.
 bool passengerOverlayIsSearchingDriver({
   required String? tripId,
   required String? status,

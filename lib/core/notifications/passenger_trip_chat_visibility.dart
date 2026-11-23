@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-/// Indica si el sheet de chat del viaje está abierto (omitir sonido/notif duplicados).
 class PassengerTripChatVisibility {
   PassengerTripChatVisibility._();
 

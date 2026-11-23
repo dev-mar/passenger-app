@@ -1,6 +1,5 @@
 part of 'trip_request_screen.dart';
 
-/// Listeners Riverpod del viaje (realtime + tripId) extraídos del build.
 mixin _TripRequestScreenListenersMixin on ConsumerState<TripRequestScreen> {
   _TripRequestScreenState get _trip => this as _TripRequestScreenState;
 

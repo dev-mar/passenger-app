@@ -4,10 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-/// PNG de tipo de servicio con rim-light suave para legibilidad en fondos oscuros.
-///
-/// Idle: luz de borde tenue siempre visible (champagne).
-/// Seleccionado: rim más intenso con tinte primary (se mantiene el look actual).
 class ServiceTypeVehicleImage extends StatelessWidget {
   const ServiceTypeVehicleImage({
     super.key,
@@ -32,8 +28,6 @@ class ServiceTypeVehicleImage extends StatelessWidget {
           )
         : _champagne.withValues(alpha: 0.40);
 
-    // Scale > 1 hace que el halo asome fuera del alpha del PNG (no se pierde
-    // por el clip del SizedBox). Idle también necesita rim legible.
     final rimScale = selected ? 1.055 : 1.045;
     final softSigma = selected ? 1.75 : 1.55;
     final edgeSigma = selected ? 0.55 : 0.70;
@@ -80,9 +74,9 @@ class ServiceTypeVehicleImage extends StatelessWidget {
         fit: StackFit.expand,
         clipBehavior: Clip.none,
         children: [
-          // Halo ambiental (siempre).
+
           rimLayer(color: rimColor, sigma: softSigma, scale: rimScale),
-          // Micro-borde más nítido: define silueta sin look “neón”.
+
           rimLayer(
             color: _champagne.withValues(alpha: edgeAlpha),
             sigma: edgeSigma,

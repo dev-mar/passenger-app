@@ -25,7 +25,6 @@ bool isTechnicalFirebaseAuthMessage(String? rawMessage) {
       m.contains('firebaseexception');
 }
 
-/// Clasifica códigos/mensajes crudos de Firebase Auth.
 PassengerFirebaseAuthErrorKind classifyPassengerFirebaseAuthError({
   String? code,
   String? rawMessage,
@@ -75,7 +74,6 @@ PassengerFirebaseAuthErrorKind classifyPassengerFirebaseAuthError({
   return PassengerFirebaseAuthErrorKind.generic;
 }
 
-/// Mensajes amigables para errores Firebase Auth (Phone / credenciales).
 String localizedPassengerFirebaseAuthError(
   AppLocalizations l10n, {
   String? code,

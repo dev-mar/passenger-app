@@ -17,7 +17,6 @@ import 'passenger_promotions_repository.dart';
 import 'widgets/passenger_benefits_icons.dart';
 import 'widgets/passenger_benefits_ui.dart';
 
-/// Beneficios TEXIAPP: listado, código y referido. Vacío si el motor está apagado.
 class PassengerBenefitsScreen extends ConsumerStatefulWidget {
   const PassengerBenefitsScreen({super.key});
 

@@ -7,14 +7,10 @@ import '../../../core/theme/app_ui_tokens.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'trip_request_shell_widgets.dart';
 
-/// Fase implícita de búsqueda (origen hasta confirmar; luego destino).
 enum PassengerDraftSearchRole { origin, destination }
 
-/// Forzar búsqueda / GPS / guardados hacia origen o destino al editar con ambos puntos ya definidos.
 enum PassengerDraftEditTarget { none, origin, destination }
 
-/// Cabecera del borrador: el origen sigue al pin; el destino se activa al pulsar su bloque.
-/// Iconos GPS y guardados van junto al campo de búsqueda (sin fila inferior de acciones rápidas).
 class PassengerTripDraftHeader extends StatelessWidget {
   const PassengerTripDraftHeader({
     super.key,
@@ -83,28 +79,21 @@ class PassengerTripDraftHeader extends StatelessWidget {
   final String myLocationTooltip;
   final String savedPlacesTooltip;
 
-  /// Muestra fila buscador + GPS + guardados (se oculta con origen y destino listos hasta pulsar Editar).
   final bool showLocationSearchChrome;
   final bool highlightOrigin;
   final bool highlightDestination;
 
-  /// Pulso visual en el bloque de destino hasta que el pasajero lo pulse.
   final bool attractDestinationTap;
 
-  /// Origen y destino ya listos, con la cotización a la vista: filas chicas.
   final bool settledCompact;
   final bool searchPriorityMode;
 
-  /// Cambia origen↔destino: la lupa vuelve a modo compacto.
   final PassengerDraftSearchRole searchRole;
 
-  /// Incrementar al mover el mapa / refrescar UI para colapsar la caja de búsqueda.
   final int searchCollapseToken;
 
-  /// Incrementar para expandir/enfocar la lupa (tap en fila de dirección).
   final int searchExpandToken;
 
-  /// Tap en el texto de origen/destino → misma lupa, target según fila.
   final VoidCallback? onOpenSearchOrigin;
   final VoidCallback? onOpenSearchDestination;
   final VoidCallback? onSearchOnMap;
@@ -315,7 +304,7 @@ class PassengerTripDraftHeader extends StatelessWidget {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 220),
                       child: Material(
-                        // Por encima del pin/aguja del mapa (overlay hermano en el Stack).
+
                         elevation: 12,
                         shadowColor: Colors.black.withValues(alpha: 0.28),
                         borderRadius: BorderRadius.circular(AppRadii.md),
@@ -445,9 +434,6 @@ class PassengerTripDraftHeader extends StatelessWidget {
   }
 }
 
-/// Fila de acciones a la derecha: lupa compacta (+ GPS + favoritos).
-/// Al pulsar la lupa aparece el TextField; [searchRole]/[searchCollapseToken]
-/// vuelven al modo compacto.
 class _CollapsibleDraftSearchRow extends StatefulWidget {
   const _CollapsibleDraftSearchRow({
     required this.searchRole,
@@ -571,8 +557,7 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
   void _expand() {
     final alreadyVisible = _expanded && _appearController.value >= 1;
     _awaitingFocus = true;
-    // didUpdateWidget corre dentro del build del padre: no hay setState.
-    // El build que sigue lee `_expanded` y pinta el campo en el mismo frame.
+
     _expanded = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_expanded) return;
@@ -592,7 +577,7 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
     return Tooltip(
       message: tooltip,
       child: Material(
-        // Mismo fondo oscuro que GPS / favoritos (TripCircleButton / surface).
+
         color: AppColors.surface,
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
@@ -769,7 +754,6 @@ class _CollapsibleDraftSearchRowState extends State<_CollapsibleDraftSearchRow>
   }
 }
 
-/// Acceso dentro del buscador de destino para pasar al pin del mapa.
 class _SearchOnMapAction extends StatelessWidget {
   const _SearchOnMapAction({required this.label, required this.onTap});
 
@@ -821,7 +805,6 @@ class _SearchOnMapAction extends StatelessWidget {
   }
 }
 
-/// Expansión / colapso del bloque buscador con altura + opacidad + leve desliz (misma curva).
 class _DraftSearchChromeSlot extends StatefulWidget {
   const _DraftSearchChromeSlot({required this.visible, required this.child});
 
@@ -892,8 +875,6 @@ class _DraftSearchChromeSlotState extends State<_DraftSearchChromeSlot>
   }
 }
 
-/// Bloque de destino con el mismo tamaño de siempre. Antes de pulsarlo, un brillo
-/// recorre el borde para que se note que ahí se define el destino.
 class _DestinationSectionCard extends StatefulWidget {
   const _DestinationSectionCard({
     required this.attract,
@@ -1317,8 +1298,7 @@ class _PinnedRow extends StatelessWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               icon: Icon(
-                // bookmark_add_outlined: contorno con "+" para "guardar a favoritos".
-                // Antes: add_location_alt_rounded (pin; se confundía con el marcador del mapa).
+
                 Icons.bookmark_add_outlined,
                 size: 22,
                 color: AppColors.primary.withValues(alpha: 0.95),

@@ -30,8 +30,6 @@ import '../../features/trip/trip_searching_screen.dart';
 import '../../features/trip/passenger_trip_history_screen.dart';
 import '../../features/labs/passenger_labs_screen.dart';
 
-/// Rutas con nombres alineados a PASAJERO-APP-SETUP.md.
-/// Cambiar paths o pantallas solo aquí.
 class AppRouter {
   AppRouter._();
 
@@ -64,7 +62,6 @@ class AppRouter {
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
 
-  /// Rutas públicas (onboarding / splash). El resto exige sesión persistida.
   static const Set<String> _publicPaths = {
     '/',
     '/login',
@@ -127,7 +124,6 @@ class AppRouter {
     redirect: (BuildContext context, GoRouterState state) async {
       final location = state.matchedLocation;
 
-      // Splash resuelve sesión por su cuenta; evitar lectura segura duplicada al arrancar.
       if (location == '/') return null;
 
       final hasSession = await _hasStoredSession();

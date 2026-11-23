@@ -5,8 +5,6 @@ import 'package:flutter/foundation.dart'
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 
-/// Renderer Android fuera del hilo de [runApp]. El splash cubre el arranque;
-/// [ensureReady] espera un tope corto antes del primer [GoogleMap].
 class PassengerMapsBootstrap {
   PassengerMapsBootstrap._();
 

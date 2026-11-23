@@ -7,11 +7,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_ui_tokens.dart';
 import 'passenger_legal_links.dart';
 
-/// Aviso legal sutil en login / onboarding (Play Store: privacidad accesible sin sesión).
-///
-/// - [PassengerLegalNoticeTone.methodChoice]: pantalla inicial de elección de método.
-/// - [PassengerLegalNoticeTone.authContinue]: teléfono / Google (mayoría de edad + políticas).
-/// - [PassengerLegalNoticeTone.emphasized]: cierre de registro de perfil.
 enum PassengerLegalNoticeTone {
   methodChoice,
   authContinue,

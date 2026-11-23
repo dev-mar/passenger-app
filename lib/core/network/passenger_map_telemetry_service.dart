@@ -49,8 +49,6 @@ class PassengerMapTelemetryService {
           headers: <String, String>{'Authorization': 'Bearer $token'},
         ),
       );
-    } catch (_) {
-      // Telemetría best-effort, nunca rompe UX.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 }

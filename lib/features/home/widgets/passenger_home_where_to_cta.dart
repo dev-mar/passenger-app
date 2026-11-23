@@ -7,7 +7,6 @@ import '../../../core/ui/texi_motion.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import 'passenger_home_look.dart';
 
-/// Pregunta + CTA premium con resplandor que pulsa suavemente.
 class PassengerHomeWhereToCta extends StatefulWidget {
   const PassengerHomeWhereToCta({
     super.key,
@@ -21,7 +20,6 @@ class PassengerHomeWhereToCta extends StatefulWidget {
   final String actionLabel;
   final VoidCallback onPressed;
 
-  /// Saludo con el primer nombre. Si no hay nombre, no se muestra.
   final String? greeting;
 
   @override

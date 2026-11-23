@@ -29,8 +29,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
       _rt._connectTimeoutTimer?.cancel();
       _rt._connectTimeoutTimer = null;
       _rt._connectStartedAt = null;
-      // No forzar 'searching': si status es null estamos recuperando un viaje
-      // (reabrir/minimizar). El sync REST fija el estado real.
+
       state = state.copyWith(
         connecting: false,
         connected: true,
@@ -40,7 +39,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
         chatMessages: state.chatMessages,
         tripChatErrorCode: state.tripChatErrorCode,
       );
-      // Sync REST en paralelo; no debe ser el único camino de status.
+
       unawaited(_rt.syncTripStatusFromApi(tripId: tripId, force: true));
     }
 
@@ -70,7 +69,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     });
 
     socket.on('passenger:force_logout', (data) {
-      // Admin purge / cuenta eliminada / sesión supersedida → login limpio.
+
       markPassengerSessionExpelled();
       unawaited(AuthService.logout());
       AuthService.onSessionExpired?.call();
@@ -167,8 +166,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
             driverPhotoExpiresAt: driverPhotoExpiresAt?.toIso8601String(),
           );
         }());
-        // No GET inmediato: el overlay ya pintó el snapshot WS. Foto/coords
-        // llegan por GPS o por el poll de tracking (~2 s, sin force).
+
         Future<void>.delayed(const Duration(seconds: 2), () {
           if (_rt._tearDown) return;
           if (state.activeTripId != tripIdData) return;
@@ -374,7 +372,6 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     return s != null && s.connected;
   }
 
-  /// Garantiza socket vivo para chat / eventos. Reconecta si hace falta.
   Future<bool> ensureSocketConnected({
     required String tripId,
     QuoteResponse? quote,
@@ -403,9 +400,6 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
     return _socketLive;
   }
 
-  /// [assumeAwaitingDriver]: solo `true` al crear una solicitud nueva.
-  /// En rehidratación/reconexión de viaje activo no debe usarse: evita el overlay
-  /// "Buscando conductor" + Cancelar sobre un viaje ya aceptado.
   Future<void> connect({
     required String tripId,
     QuoteResponse? quote,
@@ -440,7 +434,6 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
       return;
     }
 
-    // Preservar fase/UI del viaje antes de disconnect() (que resetea a initial).
     final preservedTripId = state.activeTripId;
     final preservedStatus = state.status;
     final preservedQuote = state.quote;
@@ -582,7 +575,7 @@ mixin _PassengerRealtimeSocketMixin on StateNotifier<PassengerRealtimeState> {
 
       final socket = io.io(url, opts);
       _rt._socket = socket;
-      // Asegura handshake aunque autoConnect esté off en alguna build.
+
       if (!socket.connected) {
         socket.connect();
       }

@@ -31,7 +31,6 @@ enum SavedPlacesPurpose {
   }
 }
 
-/// Lista compartida de lugares guardados. No muestra aeropuerto, trabajo ni casa.
 class PassengerSavedPlacesScreen extends StatefulWidget {
   const PassengerSavedPlacesScreen({super.key, required this.purpose});
 

@@ -6,8 +6,6 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../trip_request_state.dart';
 
-/// Sube la oferta durante la búsqueda. El mínimo es la tarifa calculada.
-/// El reenvío lo hace la pantalla: anula el matching y crea otra solicitud.
 class PassengerSearchFareBump extends ConsumerStatefulWidget {
   const PassengerSearchFareBump({
     super.key,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-/// Fila del menú de cuenta en trip request (perfil / logout).
 class PassengerProfileMenuActionTile extends StatefulWidget {
   const PassengerProfileMenuActionTile({
     super.key,

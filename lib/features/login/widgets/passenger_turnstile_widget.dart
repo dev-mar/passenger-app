@@ -24,7 +24,6 @@ String _turnstilePageBaseUrl() {
 
 enum _TurnstileUiState { loading, interactive, ready, error }
 
-/// Turnstile embebido con estilo auth pasajero (login + step-up).
 class PassengerTurnstileWidget extends StatefulWidget {
   const PassengerTurnstileWidget({
     super.key,
@@ -37,7 +36,7 @@ class PassengerTurnstileWidget extends StatefulWidget {
   final ValueChanged<String> onToken;
   final VoidCallback? onError;
   final PassengerCaptchaContext captchaContext;
-  /// Más alto y ancho para pantalla de captcha de entrada (sin card contenedor).
+
   final bool expanded;
 
   @override
@@ -109,7 +108,6 @@ class PassengerTurnstileWidgetState extends State<PassengerTurnstileWidget> {
     _pendingToken = null;
   }
 
-  /// Reinicia el widget tras fallo server-side del captcha.
   Future<void> resetWidget() async {
     _pendingToken?.completeError(StateError('reset'));
     _pendingToken = null;

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../home/widgets/passenger_home_look.dart';
 
-/// Campana del hub. No sustituye el switch local de notificaciones del perfil.
 class PassengerNoticesBell extends StatelessWidget {
   const PassengerNoticesBell({
     super.key,

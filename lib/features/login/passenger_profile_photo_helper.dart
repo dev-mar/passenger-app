@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../core/compliance/passenger_play_media_disclosures.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Límites alineados al selfie del conductor (`facePortrait`).
 const int kPassengerProfilePhotoMaxBytes = 320 * 1024;
 const double kPassengerProfilePhotoPickerMaxEdge = 1920;
 const int kPassengerProfilePhotoCropMaxEdge = 640;

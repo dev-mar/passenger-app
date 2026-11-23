@@ -1,4 +1,3 @@
-/// País seleccionable en el login del pasajero y regla del número local.
 class LoginCountryDial {
   const LoginCountryDial({
     required this.dialCode,
@@ -18,7 +17,7 @@ class LoginCountryDial {
   final int maxLocalDigits;
   final String example;
   final RegExp? localPattern;
-  /// Quita un 0 inicial (prefijo de larga distancia) al pegar el número.
+
   final bool stripTrunkZero;
 
   String get dialDigits => dialCode.replaceAll(_nonDigits, '');
@@ -31,7 +30,6 @@ final _usLocal = RegExp(r'^[2-9]\d{2}[2-9]\d{6}$');
 final _colombiaMobile = RegExp(r'^3\d{9}$');
 final _panamaMobile = RegExp(r'^6\d{7}$');
 
-/// Bolivia queda marcada al abrir. La tienda no elige este prefijo.
 final LoginCountryDial kDefaultLoginCountry = LoginCountryDial(
   dialCode: '+591',
   isoCode: 'BO',
@@ -42,7 +40,6 @@ final LoginCountryDial kDefaultLoginCountry = LoginCountryDial(
   localPattern: _boliviaLocal,
 );
 
-/// Prueba inicial: Bolivia y los países de origen de turistas.
 final List<LoginCountryDial> kLoginCountryChoices = [
   kDefaultLoginCountry,
   LoginCountryDial(
@@ -107,7 +104,6 @@ String _normalizeDial(String dialCode) {
   return trimmed.startsWith('+') ? trimmed : '+$trimmed';
 }
 
-/// País del catálogo, o null si el prefijo no está en la prueba.
 LoginCountryDial? loginCountryExact(String dialCode) {
   final normalized = _normalizeDial(dialCode);
   for (final entry in kLoginCountryChoices) {
@@ -116,12 +112,10 @@ LoginCountryDial? loginCountryExact(String dialCode) {
   return null;
 }
 
-/// Si el prefijo no está en la lista, la pantalla sigue mostrando Bolivia.
 LoginCountryDial loginCountryFromDialCode(String dialCode) {
   return loginCountryExact(dialCode) ?? kDefaultLoginCountry;
 }
 
-/// Prefijo más largo que encabeza un E.164 solo con dígitos (`59170000000`).
 LoginCountryDial? loginCountryMatchingDigits(String digits) {
   final d = digits.replaceAll(_nonDigits, '');
   LoginCountryDial? best;

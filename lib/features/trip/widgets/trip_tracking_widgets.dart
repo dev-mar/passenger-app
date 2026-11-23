@@ -172,7 +172,6 @@ class TripStatusCard extends StatelessWidget {
   final String Function(int) statusMinutesLabel;
   final String Function(String) statusKmLabel;
 
-  /// Al completar el viaje: permite salir del panel y volver a pedir otro viaje.
   final VoidCallback? onFinishedClose;
   final String? finishedCloseLabel;
   final VoidCallback? onShareTrip;
@@ -196,13 +195,11 @@ class TripStatusCard extends StatelessWidget {
   final String? enRouteErrorCode;
   final VoidCallback? onCancelTrip;
   final String? cancelTripLabel;
-  /// Visible solo con el sheet del viaje a tope (gesto de arrastre).
+
   final bool showCancelAction;
 
-  /// Monto ya formateado (`Bs 12.5`) si el viaje activo tiene beneficio.
   final String? promoPayDriverAmount;
 
-  /// Si el backend envía hex (#RRGGBB) mostramos punto de color; si no, solo texto.
   Color? _carColorDotColor(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     var s = raw.trim();

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-/// Toast flotante moderno (auto-dismiss) para avisos amigables en el flujo de viaje.
 abstract final class PassengerTripToast {
   static void show(
     BuildContext context, {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Paleta del hub de inicio. No altera [AppColors] del resto de la app.
 abstract final class PassengerHomeLook {
   static const Color canvas = Color(0xFF07090F);
   static const Color card = Color(0xFF151A24);

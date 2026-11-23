@@ -10,7 +10,6 @@ import '../../../gen_l10n/app_localizations.dart';
 import '../../promotions/passenger_promo_you_pay_chip.dart';
 import 'service_type_vehicle_image.dart';
 
-/// Tarjeta de oferta: imagen izq. + textos der. (guía trip-typeofert + PNGs).
 class PassengerQuoteServiceOptionCard extends StatelessWidget {
   const PassengerQuoteServiceOptionCard({
     super.key,
@@ -21,10 +20,8 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
     this.displayPrice,
   });
 
-  /// Altura del carrusel cuando no hay “Tú pagas”.
   static const double heightCompact = 78;
 
-  /// Altura con tarifa bruta grande + chip de beneficio (el ListView debe usar esta).
   static const double heightWithYouPay = 128;
 
   static const double cardWidth = 210;
@@ -223,7 +220,6 @@ class PassengerQuoteServiceOptionCard extends StatelessWidget {
   }
 }
 
-/// Franja oscura detrás de “Tú pagas”, con aire respecto al borde de la tarjeta.
 class _YouPayShadowBand extends StatelessWidget {
   const _YouPayShadowBand({required this.child});
 

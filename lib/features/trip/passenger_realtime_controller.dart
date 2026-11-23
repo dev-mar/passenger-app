@@ -39,7 +39,6 @@ final passengerRealtimeProvider =
       (ref) => PassengerRealtimeController(),
     );
 
-/// Orquestador realtime pasajero: socket + sync REST + chat (part files).
 class PassengerRealtimeController extends StateNotifier<PassengerRealtimeState>
     with
         _PassengerRealtimeTrackingMixin,

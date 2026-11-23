@@ -64,7 +64,6 @@ class PassengerAccountDeletionFailure extends PassengerAccountDeletionResult {
   final String? code;
 }
 
-/// Self-service DELETE `/api/v2/auth/me` (Play Store User Data).
 class PassengerAccountDeletionService {
   PassengerAccountDeletionService({PassengerApiClient? apiClient})
       : _apiClient = apiClient ?? PassengerApiClient();

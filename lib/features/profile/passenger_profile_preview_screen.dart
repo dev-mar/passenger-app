@@ -20,7 +20,6 @@ import 'widgets/passenger_profile_legal_section.dart';
 
 part 'passenger_profile_preview_screen.body.dart';
 
-/// Perfil pasajero: `GET /api/v2/auth/me` (foto firmada si aplica).
 class PassengerProfilePreviewScreen extends ConsumerStatefulWidget {
   const PassengerProfilePreviewScreen({super.key});
 

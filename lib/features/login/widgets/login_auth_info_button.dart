@@ -10,7 +10,6 @@ import '../../../gen_l10n/app_localizations.dart';
 
 const Duration _kLoginAuthInfoVisibleDuration = Duration(seconds: 10);
 
-/// Letra (i) con un solo anillo — sin el doble contorno de `Icons.info_outline`.
 class LoginAuthInfoGlyph extends StatelessWidget {
   const LoginAuthInfoGlyph({
     super.key,
@@ -51,7 +50,6 @@ class LoginAuthInfoGlyph extends StatelessWidget {
   }
 }
 
-/// Muestra información adicional centrada (seguridad + pasos) para botones (i).
 Future<void> showLoginAuthInfoGuide(
   BuildContext context, {
   required String message,
@@ -109,7 +107,6 @@ List<String> _resolveSteps(String message, List<String>? explicit) {
   return [message.trim()];
 }
 
-/// Botón (i) informativo que abre detalle centrado en pantalla.
 class LoginAuthInfoButton extends StatelessWidget {
   const LoginAuthInfoButton({
     super.key,

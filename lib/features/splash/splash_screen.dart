@@ -10,7 +10,6 @@ import '../login/utils/passenger_play_review_credentials.dart';
 import '../../core/version/app_version_gate.dart';
 import '../trip/trip_request_state.dart';
 
-/// Pantalla Splash: logo + comprobar sesión → Login o solicitud de viaje.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -28,10 +27,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _navigateAfterDelay();
   }
 
-  /// Tiempo mínimo para que radar + logo se perciban al abrir la app.
   static const Duration _minBrandDwell = Duration(milliseconds: 2000);
 
-  /// Tope duro del splash: nunca quedarse pegado en release.
   static const Duration _bootHardDeadline = Duration(seconds: 6);
   static const Duration _sessionResolveTimeout = Duration(seconds: 3);
   static const Duration _storageReadTimeout = Duration(seconds: 3);
@@ -117,7 +114,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final canProceed = await AppVersionGate.runStartupCheck(context);
     if (!mounted || _navigated || !canProceed) return;
 
-    // No refrescar token aquí: evita red + lecturas extra de KeyStore en release prod.
     final brandWait = Future<void>.delayed(_minBrandDwell);
     final hasSession = await _resolveHasSession();
     final storedId = hasSession ? await _resolveStoredTripId() : null;

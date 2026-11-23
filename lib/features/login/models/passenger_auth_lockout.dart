@@ -1,6 +1,5 @@
 import '../../../core/network/passenger_http_resilience.dart';
 
-/// Bloqueo temporal de auth pasajero (fuente de verdad: backend 429).
 class PassengerAuthLockout {
   const PassengerAuthLockout({
     required this.retryAfterSec,

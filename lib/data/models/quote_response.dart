@@ -1,4 +1,3 @@
-/// Respuesta de POST /passengers/trips/quote.
 class QuoteResponse {
   const QuoteResponse({
     required this.city,
@@ -17,8 +16,6 @@ class QuoteResponse {
   final List<QuoteOption> options;
   final double specialRequirementSurchargePct;
 
-  /// `fixed` = solicitud simple. `offerable` = se puede proponer un monto.
-  /// Ausente en el JSON se lee como `fixed`.
   final String fulfillmentMode;
 
   bool get isOfferable => fulfillmentMode == 'offerable';
@@ -226,7 +223,6 @@ class QuoteOption {
     return null;
   }
 
-  /// Campaña/apoyo cubierto sobre la tarifa **base** de quote (sin recargo de especiales).
   double get coveredBenefitAmount {
     final due = youPayCashDue;
     if (due == null) return 0;
@@ -234,8 +230,6 @@ class QuoteOption {
     return covered > 0 ? covered : 0;
   }
 
-  /// “Tú pagas” contra el precio que la UI muestra (base + recargo de especiales).
-  /// Evita pintar un descuento fantasma cuando el recargo se aplica solo en cliente.
   double? youPayForDisplayedGross(double displayedGross) {
     if (youPayCashDue == null) return null;
     final due = displayedGross - coveredBenefitAmount;

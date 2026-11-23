@@ -4,12 +4,6 @@ import 'passenger_secure_storage.dart';
 
 import '../../data/models/quote_response.dart';
 
-/// Almacenamiento local del trip para recuperar estado al reabrir la app.
-///
-/// Importante: el backend hoy NO hace replay por WebSocket y tampoco
-/// persiste rating del pasajero. Por eso usamos persistencia local:
-/// - `active_trip_id`: para saber qué trip re-hidratar
-/// - `rating_done_by_tripId`: para decidir si mostrar la sheet de rating
 class TripSessionStorage {
   TripSessionStorage._();
 
@@ -41,7 +35,6 @@ class TripSessionStorage {
     await PassengerSecureStorage.delete(_keyActiveTripUiSnapshot);
   }
 
-  /// Último status conocido (accepted/arrived/…) para rehidratar UI sin flash de búsqueda.
   static Future<void> saveLastKnownStatus({
     required String tripId,
     required String status,
@@ -77,7 +70,6 @@ class TripSessionStorage {
     }
   }
 
-  /// Contexto de UI del viaje activo (O/D, cotización) para rehidratar al reabrir.
   static Future<void> saveActiveTripUiSnapshot({
     required String tripId,
     required double originLat,

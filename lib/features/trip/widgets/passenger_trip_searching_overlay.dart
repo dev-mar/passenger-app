@@ -16,7 +16,6 @@ class _SearchingVisuals {
   static const Color muted = Color(0xFFB0A99C);
 }
 
-/// Overlay matching: 0–30s / 30–120s / ≥120s.
 class TripSearchingDriverOverlay extends StatefulWidget {
   const TripSearchingDriverOverlay({
     super.key,
@@ -40,13 +39,10 @@ class TripSearchingDriverOverlay extends StatefulWidget {
   final VoidCallback? onContinue;
   final VoidCallback? onStage3Reached;
 
-  /// Contenido encima de la tarjeta (p. ej. propuestas de conductores).
   final Widget? above;
 
-  /// Subir la oferta y reenviar. Solo en modo ofertable.
   final Widget? offerRaise;
 
-  /// Si ya estamos en hold (solicitud cancelada), arranca en etapa 3 sin reiniciar.
   final int initialStage;
 
   @override
@@ -78,7 +74,7 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
 
     if (_stage < 3) {
       final started = DateTime.now();
-      // Si ya venimos en etapa 2, compensamos el reloj para no saltar atrás.
+
       final already = _stage >= 2 ? 30 : 0;
       _stageTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted || _stage >= 3) return;
@@ -95,7 +91,7 @@ class _TripSearchingDriverOverlayState extends State<TripSearchingDriverOverlay>
         }
       });
     } else {
-      // Ya en hold: notificar cancel solo si aún no se hizo (no debería).
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_stage3Notified) {
           _stage3Notified = true;

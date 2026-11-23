@@ -1,7 +1,5 @@
 import '../phone/bolivia_local_phone.dart';
 
-/// Teléfono para copy de OTP: `+591 ***4567`.
-/// Deja el código de país y los últimos dígitos; el resto va en `***`.
 String maskPassengerPhoneDisplay({
   required String dialCode,
   required String localNumber,
@@ -20,8 +18,6 @@ String maskPassengerPhoneDisplay({
   return '${parts.cc} $maskedLocal';
 }
 
-/// Correo para copy de OTP: `ju***ez@gmail.com`.
-/// Deja primeras y últimas letras del local; el dominio queda visible.
 String maskPassengerEmailDisplay(String email) {
   final trimmed = email.trim();
   final at = trimmed.lastIndexOf('@');

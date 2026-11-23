@@ -1,11 +1,9 @@
-/// Normaliza etiquetas de vehículo (ignora placeholders «—» del backend legacy/v2).
 String? normalizePassengerTripVehicleLabel(String? raw) {
   final s = raw?.trim();
   if (s == null || s.isEmpty || s == '—' || s == '-') return null;
   return s;
 }
 
-/// Resuelve modelo visible desde payload WS/REST (campos planos o anidados).
 String? resolvePassengerTripCarModel(Map<String, dynamic> json) {
   final direct = normalizePassengerTripVehicleLabel(
     json['carModel']?.toString() ?? json['car_model']?.toString(),

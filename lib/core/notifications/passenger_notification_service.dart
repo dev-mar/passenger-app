@@ -25,9 +25,9 @@ class PassengerNotificationService {
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   String? _waInboundVerifiedNotifyChallengeId;
-  static const int _quietHoursStart = 22; // 22:00
-  static const int _quietHoursEnd = 7; // 07:00
-  static const String _chatVibrationLevel = 'medium'; // low | medium | high
+  static const int _quietHoursStart = 22;
+  static const int _quietHoursEnd = 7;
+  static const String _chatVibrationLevel = 'medium';
   static final Set<String> _arrivedNotifiedTripIds = <String>{};
   static final Set<String> _graceNotifiedTripIds = <String>{};
 
@@ -83,7 +83,6 @@ class PassengerNotificationService {
     _initialized = true;
   }
 
-  /// Android 13+: solicitar tras divulgación in-app (Google Play).
   Future<bool> areAndroidNotificationsEnabled() async {
     if (!Platform.isAndroid) return true;
     try {
@@ -105,12 +104,9 @@ class PassengerNotificationService {
             AndroidFlutterLocalNotificationsPlugin
           >();
       await androidPlugin?.requestNotificationsPermission();
-    } catch (_) {
-      // Permiso ya concedido o no disponible en esta versión.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
-  /// Mensaje solo `data` (sin `notification`): mostrar en isolate de background.
   static Future<void> showFcmDataOnlyMessage(RemoteMessage message) async {
     final inst = PassengerNotificationService.instance;
     await inst.initialize();
@@ -140,7 +136,6 @@ class PassengerNotificationService {
     );
   }
 
-  /// En primer plano Android no muestra banner FCM: duplicamos con notificación local.
   Future<void> showFcmForegroundMessage(RemoteMessage message) async {
     if (!_initialized) await initialize();
     if (message.data['event']?.toString() == 'pickup_grace') return;
@@ -234,8 +229,6 @@ class PassengerNotificationService {
     await _plugin.show(id, title, body, details, payload: payload);
   }
 
-  /// Aviso puntual tras verificar WA inbound con la app en segundo plano (login/registro).
-  /// Canal distinto al de viajes; no usa FCM ni permisos nuevos.
   Future<void> showWaInboundVerifiedReturnPrompt({
     required String challengeId,
     required String countryCode,
@@ -250,7 +243,7 @@ class PassengerNotificationService {
     if (_waInboundVerifiedNotifyChallengeId == challengeId) return;
 
     try {
-      // Login/registro no tienen sesión aún. Vincular teléfono (email/Google) sí.
+
       if (!linkPhoneMode && await AuthService.hasStoredSession()) return;
     } catch (_) {
       return;
@@ -307,7 +300,7 @@ class PassengerNotificationService {
   }) async {
     await initialize();
     if (isAppInForeground && !notifyInForeground) return;
-    // Dedupe: un solo aviso de llegada por tripId (socket + REST resume).
+
     if (_arrivedNotifiedTripIds.contains(tripId)) return;
     _arrivedNotifiedTripIds.add(tripId);
     final l10n = _l10nForCurrentLocale();
@@ -353,7 +346,6 @@ class PassengerNotificationService {
     );
   }
 
-  /// Llamar al cerrar viaje (completed/cancelled) para no arrastrar dedupe.
   static void clearArrivedNotificationDedupe(String tripId) {
     _arrivedNotifiedTripIds.remove(tripId);
     _graceNotifiedTripIds.remove(tripId);

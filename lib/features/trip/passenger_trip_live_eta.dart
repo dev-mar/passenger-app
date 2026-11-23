@@ -1,7 +1,5 @@
 import 'dart:math' as math;
 
-/// ETA grosera urbana, misma idea que el share público (`~22 km/h`).
-/// Solo coords ya presentes en el cliente; no llama red ni cambia contratos.
 const double kPassengerTripLiveEtaSpeedKmh = 22;
 
 enum PassengerTripLiveEtaKind { pickup, destination, atPickup }
@@ -50,9 +48,6 @@ int? passengerEstimateEtaMinutes({
   return minutes;
 }
 
-/// Recojo (`accepted`): conductor → origen.
-/// En el punto (`arrived`): sin minutos.
-/// Trayecto (`started`/`in_trip`): conductor → destino, o duración del quote.
 PassengerTripLiveEta? resolvePassengerTripLiveEta({
   required String? status,
   double? driverLat,

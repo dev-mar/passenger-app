@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/device/passenger_device_identity.dart';
 import 'passenger_promotions_repository.dart';
 
-/// Campos aditivos opcionales para quote/create. Fallan en silencio.
 Future<({String? deviceId, String? promoCode})> passengerPromoRequestFields(
   WidgetRef ref,
 ) async {

@@ -24,15 +24,11 @@ class PassengerHomeQuickTripCardData {
   final String subtitle;
   final bool configured;
 
-  /// Pedir el viaje, o abrir el mapa para guardar si el slot está vacío.
   final VoidCallback onTap;
 
-  /// Solo el lápiz. El resto de la tarjeta sigue en [onTap].
   final VoidCallback? onEdit;
 }
 
-/// Carrusel horizontal de viajes rápidos (solo gesto; sin auto-avance).
-/// Los iconos 3D sobresalen por encima del bloque.
 class PassengerHomeQuickTripsCarousel extends StatelessWidget {
   const PassengerHomeQuickTripsCarousel({super.key, required this.cards});
 

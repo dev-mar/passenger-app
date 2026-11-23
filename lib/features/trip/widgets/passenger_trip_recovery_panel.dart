@@ -9,8 +9,6 @@ import '../../../core/ui/app_safe_scrolling.dart';
 import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
-/// Overlay de recuperación de viaje activo: loading corto y, si no llega
-/// el estado, diagnóstico de red/ubicación + reintentar (sin cancelar viaje).
 class PassengerTripRecoveryPanel extends StatefulWidget {
   const PassengerTripRecoveryPanel({
     super.key,

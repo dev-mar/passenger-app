@@ -9,12 +9,11 @@ class PassengerRealtimeState {
   final String? errorCode;
   final String? activeTripId;
   final String?
-  status; // searching | accepted | arrived | started | completed | cancelled | expired
+  status;
   final QuoteResponse? quote;
   final double? driverLat;
   final double? driverLng;
 
-  /// Grados (0 = norte), desde `trip:driver_location` / REST `driverLocation.bearing`.
   final double? driverBearing;
   final String? driverName;
   final String? carColor;
@@ -217,7 +216,6 @@ class TripChatMessage {
   });
 }
 
-/// Chat pasajero–conductor: solo entre aceptación y arranque del viaje (pickup).
 bool passengerTripChatPhaseActive(String? status) {
   return status == 'accepted' || status == 'arrived';
 }

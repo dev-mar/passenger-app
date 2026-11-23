@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Icono estilizado WhatsApp (UX auth; no asset de marca embebido).
 class LoginWhatsAppBrandIcon extends StatelessWidget {
   const LoginWhatsAppBrandIcon({
     super.key,

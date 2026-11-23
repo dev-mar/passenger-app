@@ -5,14 +5,12 @@ import 'trip_passenger_specials.dart';
 import 'trip_payment_method.dart';
 import 'trip_service_addon_policy.dart';
 
-/// Origen o destino en el flujo de solicitud de viaje.
 class TripPoint {
   const TripPoint({required this.lat, required this.lng});
   final double lat;
   final double lng;
 }
 
-/// Estado del flujo: Origen/Destino → Cotización → Confirmar → Solicitar.
 class TripRequestState {
   const TripRequestState({
     this.origin,
@@ -37,7 +35,6 @@ class TripRequestState {
   final TripPassengerExtras extras;
   final TripPassengerSpecials specials;
 
-  /// Monto que el pasajero quiere ofrecer. Solo se envía si la zona es ofertable.
   final double? passengerOfferAmount;
 
   double get specialSurchargePct =>
@@ -92,15 +89,11 @@ final tripRequestProvider =
   return TripRequestNotifier();
 });
 
-/// Evita repetir el mensaje de “viaje recuperado” para el mismo [tripId] en una sesión.
 final tripRecoverySnackShownForTripIdProvider =
     StateProvider<String?>((ref) => null);
 
-/// Se incrementa al limpiar la sesión de viaje fuera del mapa (p. ej. notificación con viaje ya terminal).
-/// [TripRequestScreen] lo escucha para alinear pines, ruta y modo de confirmación sin recrear el widget.
 final passengerTripMapUiResetTickProvider = StateProvider<int>((ref) => 0);
 
-/// Una sola acción de búsqueda ofertable a la vez: reenviar el monto o elegir una contraoferta.
 enum PassengerSearchLock { idle, resubmit, bid }
 
 final passengerSearchLockProvider =
@@ -137,7 +130,6 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
     ).clearError();
   }
 
-  /// Limpia cotización y opción (p. ej. al recalcular ruta en el borrador).
   void clearQuote() {
     state = TripRequestState(
       origin: state.origin,
@@ -163,7 +155,6 @@ class TripRequestNotifier extends StateNotifier<TripRequestState> {
     state = state.copyWith(tripId: tripId).clearError();
   }
 
-  /// Limpia solo el tripId (p. ej. matching expirado antes de reintentar).
   void clearTripIdKeepingRoute() {
     state = TripRequestState(
       origin: state.origin,

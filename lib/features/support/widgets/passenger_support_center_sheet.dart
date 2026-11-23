@@ -11,7 +11,6 @@ import '../passenger_support_labels.dart';
 import '../support_ticket_models.dart';
 import 'passenger_support_ticket_detail_sheet.dart';
 
-/// Centro de soporte: crear ticket, listar recientes y polling de estado.
 Future<void> showPassengerSupportCenterSheet({
   required BuildContext context,
   required WidgetRef ref,

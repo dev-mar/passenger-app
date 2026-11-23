@@ -1,5 +1,3 @@
-/// Preferencias informativas del viaje. No cambian tarifa.
-/// Códigos legacy `child_seat` / `over_4` se parsean pero ya no se envían.
 abstract final class TripPassengerExtra {
   static const String pet = 'pet';
   static const String childSeat = 'child_seat';

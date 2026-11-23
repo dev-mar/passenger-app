@@ -1,6 +1,5 @@
 ﻿part of 'trip_request_screen.dart';
 
-/// Ajustes GPS para recogida: alta precisión y sin filtro de distancia.
 LocationSettings _passengerPickupLocationSettings() {
   if (kIsWeb) {
     return const LocationSettings(
@@ -73,13 +72,11 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     });
   }
 
-  /// Al soltar el mapa: la calle del pin pasa al origen mientras siga en vivo,
-  /// o cierra la edición de un origen ya fijado si el pin se movió.
   Future<void> _onDraftMapPinSettled() async {
     await _refreshNeedlePreviewFromMapCenter();
     if (!mounted || !_computeIsDraftMapConfirmMode()) return;
     if (_m._pickingOrigin && _m._originConfirmed) {
-      // Con destino ya puesto, el costo espera a «Confirmar origen».
+
       if (_m._destination != null) return;
       await _commitEditedOriginIfPinMoved();
       return;
@@ -101,7 +98,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     await _setOriginFromNeedle();
   }
 
-  /// El origen confirmado es el pin actual. No abre el paso de destino.
   Future<void> _syncLiveOriginFromPin() async {
     if (!mounted) return;
     if (_m._originConfirmed || _m._destination != null) return;
@@ -144,7 +140,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       _m._mapNeedleAddressPreview = (t != null && t.isNotEmpty) ? t : null;
     });
   }
-  /// Obtiene un arreglo GPS sin modificar origen/destino del viaje (reapertura con snapshot).
+
   Future<void> _refreshPassengerGpsDot({
     required bool preserveTripGeometry,
   }) async {
@@ -174,7 +170,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         _m._deviceGpsFixOk = true;
         _m._mapMyLocationDotEnabled = false;
       });
-      // Dos tiempos para que la capa de Maps (puntito azul) se reinicie bien tras cold start.
+
       await Future<void>.delayed(const Duration(milliseconds: 110));
       if (!mounted) return;
       setState(() => _m._mapMyLocationDotEnabled = true);
@@ -190,8 +186,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
 
   Future<bool> _ensureDeviceGpsForNewTrip() async {
     if (_m._deviceGpsFixOk) return true;
-    // No bloquear POST /trips: el origen ya está elegido y la oferta al conductor
-    // sale en el create. El GPS del punto azul se refresca en segundo plano.
+
     unawaited(
       _refreshPassengerGpsDot(
         preserveTripGeometry: ref.read(tripRequestProvider).tripId != null,
@@ -212,7 +207,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       return;
     }
     try {
-      // Viaje activo: prioridad el pin del vehículo (no forzar GPS si falla).
+
       final animated = _m._animatedDriverLatLng;
       if (animated != null || (driverLat != null && driverLng != null)) {
         final driver = animated ?? LatLng(driverLat!, driverLng!);
@@ -238,8 +233,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
           CameraPosition(target: passenger, zoom: 16),
         ),
       );
-    } catch (_) {
-      // Silencioso: es una acción de conveniencia (no forzar mapa en reconnect).
+    } catch (_) { // ignore: empty_catches
     } finally {
       if (mounted) setState(() => _m._recenterInProgress = false);
     }
@@ -260,7 +254,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     );
   }
 
-  /// Tras un viaje terminado, alinear origen y pin del mapa con el GPS actual (no dejar el centro en el destino).
   Future<void> _recenterMapToDeviceGpsAfterTripEnd() async {
     if (!mounted) return;
 
@@ -301,9 +294,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
           await apply(LatLng(last.latitude, last.longitude));
           return;
         }
-      } catch (_) {
-        // seguir al fallback
-      }
+      } catch (_) {} // ignore: empty_catches
       if (!mounted) return;
       final fallback = _m._origin;
       if (fallback != null) {
@@ -355,9 +346,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       if (c != null) {
         await c.animateCamera(CameraUpdate.newLatLngZoom(latLng, 16));
       }
-    } catch (_) {
-      // Silencioso: el usuario ya tiene un origen usable.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
   Future<void> _resolveOrigin() async {
@@ -376,9 +365,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         if (last != null) {
           lastKnownLatLng = LatLng(last.latitude, last.longitude);
         }
-      } catch (_) {
-        // seguimos sin lastKnown
-      }
+      } catch (_) {} // ignore: empty_catches
       if (mounted) {
         setState(() {
           _m._loadingOrigin = false;
@@ -406,9 +393,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       return;
     }
 
-    // Ãšltima posiciÃ³n conocida primero: desbloquea el mapa (loader global) sin esperar
-    // solo al primer `getCurrentPosition`, que en algunos Android se retrasa o falla
-    // si no hay `timeLimit` nativo en los settings (vÃ©ase conductor / AndroidSettings).
     LatLng? bootstrapLatLng;
     if (_m._destination == null) {
       try {
@@ -465,7 +449,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       unawaited(_refinePassengerOriginOnce(refineGen));
     } catch (e) {
       if (!mounted) return;
-      // Ya habÃ­amos mostrado mapa con bootstrap: no pisar `_m._origin` con null.
+
       if (_m._origin != null) {
         setState(() {
           _m._loadingOrigin = false;
@@ -480,9 +464,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         if (last != null) {
           lastKnownLatLng = LatLng(last.latitude, last.longitude);
         }
-      } catch (_) {
-        // seguimos sin lastKnown
-      }
+      } catch (_) {} // ignore: empty_catches
       setState(() {
         _m._loadingOrigin = false;
         _m._deviceGpsFixOk = lastKnownLatLng != null;
@@ -526,9 +508,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         _m._originOnTripIcon = originIcon;
         _m._destinationOnTripIcon = destinationIcon;
       });
-    } catch (_) {
-      // Ignoramos fallos de precarga; los markers siguen funcionando con fallback.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
   Future<void> _refreshSearchingNearbyDrivers() async {
@@ -568,12 +548,9 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       final icon = await buildPassengerDriverOnTripMapIcon();
       if (!mounted) return;
       setState(() => _m._driverOnTripIcon = icon);
-    } catch (_) {
-      // Fallback: pin verde por defecto.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
-  /// El pulso ya no anima el mapa (setState 60 fps colgaba matching/accept).
   void _syncDriverPulseAnimation() {
     if (_m._driverPulseController.isAnimating) {
       _m._driverPulseController.stop();
@@ -655,7 +632,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     });
   }
 
-  /// En camino el mapa sigue el auto del pasajero, no el GPS del conductor.
   void _centerCameraOnPassengerAboardPin(LatLng passenger) {
     final c = _m._controller;
     if (c == null || !_m._appInForeground) return;
@@ -688,8 +664,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     );
   }
 
-  /// Sustituye el punto azul por el auto en la posición del pasajero.
-  /// No altera el trazado: la ruta sigue calculándose con el GPS del conductor.
   Future<void> _startPassengerAboardGps() async {
     if (_m._passengerAboardGpsSub != null || _m._passengerAboardGpsStarting) {
       return;
@@ -756,8 +730,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         });
         _centerCameraOnPassengerAboardPin(next);
       });
-    } catch (_) {
-      // Sin GPS del pasajero se mantiene el punto azul nativo.
+    } catch (_) { // ignore: empty_catches
     } finally {
       _m._passengerAboardGpsStarting = false;
     }
@@ -795,7 +768,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     }
   }
 
-  /// Viaje activo antes de iniciar: el pin del vehículo del conductor es el ancla.
   void _centerCameraOnDriverPin(LatLng driver) {
     final c = _m._controller;
     if (c == null || !_m._appInForeground) return;
@@ -895,8 +867,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
       final prev = _m._searchingRadarAnchor.value;
       if (prev != null && (next - prev).distance < 1.2) return;
       _m._searchingRadarAnchor.value = next;
-    } catch (_) {
-      // Cámara no lista: el próximo idle/move reintenta.
+    } catch (_) { // ignore: empty_catches
     } finally {
       _m._radarAnchorInFlight = false;
     }
@@ -969,9 +940,7 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
         });
       }
     }
-    // Si solo falta confirmar destino (origen listo, destino nulo) y el usuario
-    // estÃ¡ moviendo el mapa, ocultamos opciones expandidas para mantener
-    // una experiencia tipo Uber/Lyft.
+
     if (_m._destination == null &&
         !_m._pickingOrigin &&
         !_m._pickingDestination &&
@@ -982,10 +951,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     }
   }
 
-  /// Obtiene el `LatLng` a confirmar desde el centro de cÃ¡mara.
-  ///
-  /// Volvimos el pin al centro de la pantalla, asÃ­ que el punto confirmado debe ser
-  /// el centro real del mapa (como el flujo original).
   Future<LatLng> _getLatLngFromNeedle() async {
     final fallback = _m._mapCenter ?? _m._origin ?? const LatLng(-16.5, -68.1);
     return fallback;
@@ -1026,7 +991,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     setState(() => _m._destinationDisplayLabel = label);
   }
 
-  /// Conserva el nombre del POI (aeropuerto / Places) y añade zona/ciudad, como el buscador.
   Future<void> _enrichLockedDestinationLabel() async {
     final dest = _m._destination;
     final name = _m._destinationDisplayLabel?.trim();
@@ -1049,8 +1013,6 @@ mixin _TripRequestScreenMapMixin on ConsumerState<TripRequestScreen> {
     _lockOriginAtPin(openDestinationSearch: false);
   }
 
-  /// Fija el origen en el pin actual. Si [openDestinationSearch], en el mismo
-  /// frame abre el buscador de destino (un solo toque en «¿A dónde vas?»).
   void _lockOriginAtPin({required bool openDestinationSearch}) {
     final p = _m._mapCenter ?? _m._origin;
     if (p == null) return;

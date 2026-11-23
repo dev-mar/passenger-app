@@ -4,7 +4,6 @@ import '../maps/passenger_google_maps_health.dart';
 import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
-/// Respuesta de una búsqueda de dirección (Google Geocoding API).
 class GeocodingResult {
   const GeocodingResult({
     required this.lat,
@@ -17,8 +16,6 @@ class GeocodingResult {
   final String? formattedAddress;
 }
 
-/// Cliente para Google Geocoding API.
-/// Requiere habilitar "Geocoding API" en Google Cloud (mismo proyecto que Maps).
 class GeocodingService {
   GeocodingService() : _dio = passengerGoogleMapsHttpClient();
 
@@ -31,8 +28,6 @@ class GeocodingService {
   static final RequestPolicyCache<String?> _reverseCache =
       RequestPolicyCache<String?>(defaultTtl: const Duration(minutes: 3));
 
-  /// Busca una dirección y devuelve la primera coincidencia (lat, lng).
-  /// [address] Ej: "Av. 16 de Julio, La Paz, Bolivia"
   Future<GeocodingResult?> searchAddress(String address) async {
     if (address.trim().isEmpty) return null;
     final normalized = address.trim().toLowerCase();
@@ -81,10 +76,6 @@ class GeocodingService {
     );
   }
 
-  /// Reverse geocoding: convierte [lat]/[lng] en una etiqueta legible.
-  ///
-  /// Prioriza calle/número y barrio/zona; evita códigos Plus Code como etiqueta
-  /// principal cuando Google devuelve resultados alternativos más legibles.
   Future<String?> reverseGeocodeStreet({
     required double lat,
     required double lng,
@@ -94,10 +85,7 @@ class GeocodingService {
       key: key,
       fetcher: () async {
         try {
-          // Primer intento: pedir explícitamente calle/ruta. En puntos sobre una
-          // vía visible del mapa, el reverse general puede devolver una dirección
-          // cercana de otra calle; este filtro da prioridad a la vía antes de caer
-          // a barrio/zona/ciudad.
+
           final routeFirst = await _fetchBestReverseLabel(
             lat: lat,
             lng: lng,
@@ -118,7 +106,6 @@ class GeocodingService {
     );
   }
 
-  /// Zona/ciudad sin calle: para enriquecer un nombre de POI (aeropuerto, Places).
   Future<String?> reverseGeocodeArea({
     required double lat,
     required double lng,
@@ -234,7 +221,7 @@ String? _composeReadableAddressFromComponents(
   void addIfUseful(String? value) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) return;
-    // Evita mostrar niveles administrativos tipo "Departamento de X".
+
     if (_looksLikeDepartmentLabel(trimmed)) return;
     final normalized = trimmed.toLowerCase();
     if (seen.contains(normalized)) return;
@@ -242,10 +229,6 @@ String? _composeReadableAddressFromComponents(
     parts.add(trimmed);
   }
 
-  // Orden UX para destino/origen:
-  // calle -> barrio/zona -> distrito/comuna/municipio
-  // -> provincia/estado -> ciudad.
-  // Se omite explícitamente "departamento de ...".
   if (includeStreet && route != null) {
     addIfUseful(streetNumber != null ? '$route $streetNumber' : route);
   }
@@ -253,9 +236,7 @@ String? _composeReadableAddressFromComponents(
   addIfUseful(sublocality2);
   addIfUseful(sublocality3);
   addIfUseful(admin3);
-  // admin2/adminArea suelen ser provincia/estado (o a veces departamento).
-  // addIfUseful ya filtra "departamento de ...", por lo que aquí sí podemos
-  // incluirlos sin mostrar ese nivel no deseado.
+
   addIfUseful(admin2);
   addIfUseful(adminArea);
   addIfUseful(locality);

@@ -17,7 +17,6 @@ import 'trip_recovery_feedback.dart';
 import 'trip_request_state.dart';
 import '../promotions/passenger_promo_request.dart';
 
-/// Resultado de intentar crear el viaje desde cotización (sheet o barra superior).
 enum PassengerTripSubmitResultKind {
   success,
   recoveredExisting,
@@ -33,7 +32,6 @@ class PassengerTripSubmitResult {
   final String? tripId;
 }
 
-/// Lógica compartida entre el bottom sheet de cotización y el flujo inline.
 Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
   required WidgetRef ref,
   required BuildContext context,
@@ -158,8 +156,7 @@ Future<PassengerTripSubmitResult> submitPassengerTripFromQuote({
         selectedOption: option,
       ),
     );
-    // No disconnect() previo: resetea status y deja la cotización con spinner
-    // mientras el conductor ya recibió la oferta.
+
     unawaited(
       ref.read(passengerRealtimeProvider.notifier).connect(
             tripId: result.tripId,

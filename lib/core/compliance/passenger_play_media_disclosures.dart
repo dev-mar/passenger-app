@@ -3,7 +3,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../gen_l10n/app_localizations.dart';
 
-/// Divulgación Play antes de abrir cámara o galería (Google Play User Data).
 Future<bool> passengerEnsureMediaDisclosureBeforePick(
   BuildContext context,
   AppLocalizations l10n, {

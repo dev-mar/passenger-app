@@ -1,4 +1,3 @@
-/// Respuesta de GET /passengers/nearby-drivers.
 class NearbyDriversResponse {
   const NearbyDriversResponse({required this.drivers});
   final List<NearbyDriver> drivers;
@@ -13,7 +12,6 @@ class NearbyDriversResponse {
   }
 }
 
-/// Un conductor cercano (para marcador en el mapa).
 class NearbyDriver {
   const NearbyDriver({
     required this.driverId,

@@ -10,7 +10,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
-/// Sheet compacto de calificación (pasajero → conductor).
 class PassengerRatingSheetContent extends StatefulWidget {
   const PassengerRatingSheetContent({
     super.key,
@@ -98,9 +97,7 @@ class _PassengerRatingSheetContentState
             .take(4)
             .toList(growable: false);
       });
-    } catch (_) {
-      // Fallback ya visible; no dejar el sheet en spinner.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
   void _applyFallbackCatalogs() {

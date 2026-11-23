@@ -10,7 +10,6 @@ import '../../../gen_l10n/app_localizations.dart';
 
 const Duration kLoginAttemptsLimitOverlayDuration = Duration(seconds: 5);
 
-/// Alerta semitransparente por bloqueo de intentos; se oculta sola y opcionalmente vuelve a login.
 Future<void> showLoginAttemptsLimitDialog(
   BuildContext context, {
   bool navigateToLoginOnDismiss = true,

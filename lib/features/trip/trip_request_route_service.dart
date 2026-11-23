@@ -4,7 +4,6 @@ import '../../core/maps/trip_route_tracking_policy.dart';
 import '../../core/network/directions_service.dart';
 import 'trip_request_trip_phase_helpers.dart';
 
-/// Resultado de planificar ruta borrador O/D con snap opcional a la vía.
 class TripRequestDraftRoutePlan {
   const TripRequestDraftRoutePlan({
     required this.points,
@@ -23,7 +22,6 @@ class TripRequestDraftRoutePlan {
   final bool shouldUpdateDestinationLabel;
 }
 
-/// Directions para borrador y ruta dinámica conductor → destino.
 class TripRequestRouteService {
   TripRequestRouteService({DirectionsService? directions})
       : _directions = directions ?? DirectionsService();

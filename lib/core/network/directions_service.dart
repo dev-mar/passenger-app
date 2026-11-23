@@ -7,8 +7,6 @@ import '../maps/trip_route_tracking_policy.dart';
 import 'passenger_http_resilience.dart';
 import 'request_policy_cache.dart';
 
-/// Decodifica una polyline codificada (formato Google).
-/// https://developers.google.com/maps/documentation/utilities/polylinealgorithm
 List<LatLng> decodePolyline(String encoded) {
   final list = <LatLng>[];
   int index = 0;
@@ -42,7 +40,6 @@ List<LatLng> decodePolyline(String encoded) {
   return list;
 }
 
-/// Resultado de Directions: puntos decodificados + polyline codificada (misma que usa el mapa).
 class DirectionsRouteResult {
   const DirectionsRouteResult({
     required this.points,
@@ -53,8 +50,6 @@ class DirectionsRouteResult {
   final String overviewEncoded;
 }
 
-/// Cliente para Google Directions API.
-/// Requiere habilitar "Directions API" en Google Cloud (mismo proyecto que Maps).
 class DirectionsService {
   DirectionsService() : _dio = passengerGoogleMapsHttpClient();
 
@@ -66,7 +61,6 @@ class DirectionsService {
         defaultTtl: TripRouteTrackingPolicy.directionsHttpCacheTtl,
       );
 
-  /// Misma ruta que dibuja el mapa + string para almacenar y reutilizar en el conductor.
   Future<DirectionsRouteResult?> getRouteWithOverview({
     required double originLat,
     required double originLng,
@@ -118,8 +112,6 @@ class DirectionsService {
     );
   }
 
-  /// Obtiene la ruta por calles entre origen y destino (mejor ruta).
-  /// Devuelve la lista de puntos de la polyline o null si falla.
   Future<List<LatLng>?> getRoutePoints({
     required double originLat,
     required double originLng,

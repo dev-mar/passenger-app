@@ -30,10 +30,6 @@ import 'widgets/passenger_auth_look.dart';
 import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
-/// Tercera pantalla del onboarding:
-/// - Nombre obligatorio
-/// - Foto opcional (se envía en Base64 al endpoint del backend)
-/// - Código de quien te invitó (opcional; no bloquea Continuar)
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({
     super.key,
@@ -148,7 +144,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           else
             'phone_number': fullPhone,
           'alias_name': name,
-          // Foto opcional: si no hay imagen, enviamos null explícito.
+
           'profile_picture': _profileImageBase64,
           if (googleLinkToken != null && googleLinkToken.isNotEmpty)
             'google_link_token': googleLinkToken,

@@ -4,12 +4,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_ui_tokens.dart';
 import 'texi_motion.dart';
 
-/// Tono visual de avisos inline del pasajero (no cambia lógica ni contratos).
 enum PassengerInlineNoticeTone { warning, info, error }
 
-/// Tarjeta de aviso alineada a [showPassengerAuthNotice]: fondo oscuro, borde
-/// suave y texto legible. Por defecto [warning] para no pintar de rojo avisos
-/// operativos (GPS, cotización, datos incompletos).
 class PassengerInlineNotice extends StatelessWidget {
   const PassengerInlineNotice({
     super.key,
@@ -92,8 +88,6 @@ class PassengerInlineNotice extends StatelessWidget {
   }
 }
 
-/// Entrada fade + slide. El aviso **permanece** mientras [message] exista:
-/// no se auto-cierra (el estado del viaje / cotización manda).
 class PassengerAnimatedInlineNotice extends StatefulWidget {
   const PassengerAnimatedInlineNotice({
     super.key,

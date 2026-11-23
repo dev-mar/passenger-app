@@ -71,9 +71,7 @@ Future<void> _persistAndNavigateToTrip(String tripId) async {
         AppRouter.router.goNamed(AppRouter.tripRequest);
         return;
       }
-    } catch (_) {
-      // Sin ProviderScope o error puntual: mismo fallback que antes.
-    }
+    } catch (_) {} // ignore: empty_catches
 
     await TripSessionStorage.saveActiveTripId(tripId);
     _applyTripRequestNavigation(tripId);
@@ -86,7 +84,7 @@ void _applyTripRequestNavigation(String tripId) {
     try {
       final container = ProviderScope.containerOf(ctx, listen: false);
       container.read(tripRequestProvider.notifier).setTripId(tripId);
-      // FCM no abre el socket: alinear estado con REST tras un tick de navegación.
+
       Future<void>.delayed(const Duration(milliseconds: 500), () {
         final ctx2 = AppRouter.navigatorKey.currentContext;
         if (ctx2 == null || !ctx2.mounted) return;
@@ -96,9 +94,7 @@ void _applyTripRequestNavigation(String tripId) {
               .syncTripStatusFromApi(tripId: tripId, force: true);
         } catch (_) {}
       });
-    } catch (_) {
-      // TripRequestScreen hidrata desde [TripSessionStorage] si hace falta.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
   AppRouter.router.goNamed(AppRouter.tripRequest);
 }
@@ -125,7 +121,6 @@ String? _opsCampaignIdFromPayload(String? raw) {
   return id.isEmpty ? null : id;
 }
 
-/// FCM con `event: driver_arrived` y `tripId` (contrato backend).
 Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
   final event = message.data['event']?.toString();
   if (event == 'ops_notice') {
@@ -147,7 +142,6 @@ Future<void> handlePassengerFcmNotificationOpen(RemoteMessage message) async {
   }
 }
 
-/// Tap en notificación local (payload = `tripId`, p. ej. conductor llegó en foreground).
 Future<void> handlePassengerLocalNotificationTripTap(String? payload) async {
   final raw = payload?.trim() ?? '';
   if (raw.startsWith('ops:')) {

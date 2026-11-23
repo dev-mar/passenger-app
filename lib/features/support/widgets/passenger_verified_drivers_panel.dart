@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../gen_l10n/app_localizations.dart';
 
-/// Lista “cómo TEXI verifica conductores” (compartida Operador legacy / Seguridad V2).
 class PassengerVerifiedDriversPanel extends StatelessWidget {
   const PassengerVerifiedDriversPanel({
     super.key,

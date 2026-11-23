@@ -9,17 +9,14 @@ import '../../core/ui/texi_scale_press.dart';
 import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
 
-/// Limpia el seguimiento del SnackBar de recuperación (p. ej. al terminar o cancelar el viaje).
 void clearTripRecoverySnackTracking(WidgetRef ref) {
   ref.read(tripRecoverySnackShownForTripIdProvider.notifier).state = null;
 }
 
-/// Igual que [clearTripRecoverySnackTracking], para uso desde código sin [WidgetRef] (p. ej. apertura FCM).
 void clearTripRecoverySnackTrackingForContainer(ProviderContainer container) {
   container.read(tripRecoverySnackShownForTripIdProvider.notifier).state = null;
 }
 
-/// Muestra el aviso solo una vez por [tripId] mientras siga activo el mismo pedido.
 void showTripRecoveredSnackBarOncePerTrip(
   WidgetRef ref,
   BuildContext context,
@@ -32,7 +29,6 @@ void showTripRecoveredSnackBarOncePerTrip(
   showTripRecoveredSnackBar(context);
 }
 
-/// SnackBar flotante Material 3: mensaje breve, estética sobria y sonido discreto.
 void showTripRecoveredSnackBar(BuildContext context) {
   final cs = Theme.of(context).colorScheme;
   final l10n = AppLocalizations.of(context);

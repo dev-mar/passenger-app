@@ -769,7 +769,6 @@ class _QuickTile extends StatelessWidget {
   }
 }
 
-
 class _ModernSectionTitle extends StatelessWidget {
   const _ModernSectionTitle({required this.label});
 

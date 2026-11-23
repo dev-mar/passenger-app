@@ -4,19 +4,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-/// Asset del marcador del vehículo en mapa (pasajero).
-///
-/// El PNG debe mirar **hacia arriba** (frente del auto = bearing 0).
 const String kPassengerDriverOnTripMapIconAsset =
     'assets/icons/map_driver_car.png';
 
-/// Tamaño lógico del auto en mapa.
-///
-/// Los pines origen/destino se dibujan a 56 px; el auto top-down llena más
-/// el lienzo, así que 48 mantiene paridad visual sin saturar el mapa.
 const double kPassengerDriverOnTripMapIconLogicalSize = 48;
 
-/// Marcador del conductor en viaje: PNG personalizado, orientable con `rotation`.
 Future<BitmapDescriptor> buildPassengerDriverOnTripMapIcon({
   double logicalSize = kPassengerDriverOnTripMapIconLogicalSize,
 }) async {
@@ -33,7 +25,6 @@ Future<BitmapDescriptor> buildPassengerDriverOnTripMapIcon({
   }
 }
 
-/// Fallback vectorial (rombo) si el asset no carga.
 Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
   double logicalSize = kPassengerDriverOnTripMapIconLogicalSize,
   Color fill = const Color(0xFF1565C0),
@@ -46,7 +37,6 @@ Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
   final cx = w * 0.5;
   final cy = h * 0.52;
 
-  // Rombo alargado (punta hacia arriba = frente del vehículo en bearing 0).
   final path = Path()
     ..moveTo(cx, h * 0.12)
     ..lineTo(w * 0.78, cy)
@@ -70,7 +60,6 @@ Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
       ..strokeWidth = 2.2,
   );
 
-  // Franja interior “vidrio”
   final inner = Path()
     ..moveTo(cx, h * 0.22)
     ..lineTo(w * 0.65, cy * 0.96)
@@ -84,7 +73,6 @@ Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
       ..style = PaintingStyle.fill,
   );
 
-  // Punto de mira suave en el frente
   canvas.drawCircle(
     Offset(cx, h * 0.26),
     w * 0.06,
@@ -119,11 +107,9 @@ Future<BitmapDescriptor> _buildPassengerDriverOnTripMapIconFallback({
 
 enum PassengerWaypointPinStyle { pickupPerson, destinationX }
 
-/// Amarillo / negro de marca.
 const Color kPassengerPinBrandYellow = Color(0xFFF9AB00);
 const Color kPassengerPinBrandBlack = Color(0xFF111111);
 
-/// Punta del pin en la textura (0–1). El Marker debe usar el mismo ancla.
 const double kPassengerWaypointPinTipAnchorY = 0.97;
 
 const double kPassengerMapPinPixelRatio = 3;

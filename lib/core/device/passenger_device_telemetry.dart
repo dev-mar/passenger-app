@@ -6,8 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'passenger_device_identity.dart';
 
-/// Misma forma que el conductor (`app_instance_id`, `platform`, etc.) para
-/// `buildClientMeta` en `POST /api/v2/auth/login` y rutas de auth pasajero.
 class PassengerDeviceTelemetry {
   PassengerDeviceTelemetry._();
 

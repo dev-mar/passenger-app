@@ -52,7 +52,6 @@ class _FareBid {
   }
 }
 
-/// Una fila por contraoferta y, si el API repite al mismo conductor, solo la más nueva.
 List<_FareBid> _uniqueFareBids(List<_FareBid> raw) {
   final seenIds = <String>{};
   final indexByDriver = <String, int>{};
@@ -76,7 +75,6 @@ List<_FareBid> _uniqueFareBids(List<_FareBid> raw) {
   return unique;
 }
 
-/// Lista de propuestas mientras se busca conductor. Solo si el viaje es ofertable.
 class PassengerOfferableBidsPanel extends ConsumerStatefulWidget {
   const PassengerOfferableBidsPanel({super.key, required this.tripId});
 

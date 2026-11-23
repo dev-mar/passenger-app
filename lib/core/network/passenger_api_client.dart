@@ -4,11 +4,6 @@ import '../auth/auth_service.dart';
 import '../config/app_config.dart';
 import 'passenger_http_resilience.dart';
 
-/// Cliente HTTP unificado del pasajero: auth (`/api/v2`) y viajes (raíz `/passengers/...`).
-///
-/// - Público: login, verify, registro (sin Bearer).
-/// - Autenticado: Bearer vía [AuthService.getValidToken] + interceptor 401 → logout.
-/// - Retry + telemetría: [requestWithRetry] (espejo conductor).
 class PassengerApiClient {
   PassengerApiClient({
     String? authBaseUrl,
@@ -19,7 +14,6 @@ class PassengerApiClient {
   final String _authBaseUrl;
   final String _tripsBaseUrl;
 
-  /// Dio sin Bearer (login, verify, registro).
   static Dio createPublicDio({
     String? baseUrl,
     Duration connectTimeout = const Duration(seconds: 15),
@@ -52,7 +46,6 @@ class PassengerApiClient {
     return token;
   }
 
-  /// POST público sin Bearer. Sin retry — feedback inmediato al usuario.
   Future<Response<T>> postPublic<T>({
     required String path,
     Object? data,
@@ -67,7 +60,6 @@ class PassengerApiClient {
     return dio.post<T>(path, data: data);
   }
 
-  /// GET público sin Bearer (p. ej. polling challenge-status pre-login).
   Future<Response<T>> getPublic<T>({
     required String path,
     Map<String, dynamic>? queryParameters,
@@ -156,7 +148,6 @@ class PassengerApiClient {
     );
   }
 
-  /// DELETE autenticado (p. ej. eliminación de cuenta). Sin retry — acción destructiva.
   Future<Response<T>> deleteAuth<T>({
     required String path,
     required String flow,
@@ -174,7 +165,6 @@ class PassengerApiClient {
     return dio.delete<T>(path, data: data);
   }
 
-  /// GET autenticado sin retry (p. ej. polling tickets).
   Future<Response<T>> getAuth<T>({
     required String path,
     Map<String, dynamic>? queryParameters,
@@ -191,7 +181,6 @@ class PassengerApiClient {
     return dio.get<T>(path, queryParameters: queryParameters);
   }
 
-  /// POST autenticado sin retry.
   Future<Response<T>> postAuth<T>({
     required String path,
     Object? data,
@@ -208,7 +197,6 @@ class PassengerApiClient {
     return dio.post<T>(path, data: data);
   }
 
-  /// PUT a URL presignada S3 (sin Bearer Texi).
   Future<void> uploadToPresignedUrl({
     required String uploadUrl,
     required List<int> bytes,
@@ -228,7 +216,6 @@ class PassengerApiClient {
     );
   }
 
-  /// Factory para [TripsApi] y otros consumidores del dominio viajes.
   Dio createTripsAuthedDio(String token) {
     return buildPassengerTripsAuthedDio(
       token: token,
@@ -236,7 +223,6 @@ class PassengerApiClient {
     );
   }
 
-  /// Parsea envelope `{ success, data }` o lanza [PassengerApiResponseException].
   static Map<String, dynamic> parseSuccessData(Map<String, dynamic>? root) {
     if (root == null) {
       throw const PassengerApiResponseException('empty_response');

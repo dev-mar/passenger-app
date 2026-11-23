@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import '../config/app_config.dart';
 import '../network/passenger_http_resilience.dart';
 
-/// Resultado de la sonda REST de Google Maps (Places/Geocoding/Directions).
 class PassengerGoogleMapsHealthResult {
   const PassengerGoogleMapsHealthResult({
     required this.ok,
@@ -22,7 +21,6 @@ class PassengerGoogleMapsHealthResult {
       status == 'REQUEST_DENIED' || status == 'OVER_QUERY_LIMIT';
 }
 
-/// Diagnóstico compartido para APIs REST de Google (no el widget nativo del mapa).
 class PassengerGoogleMapsHealth {
   PassengerGoogleMapsHealth._();
 
@@ -52,7 +50,6 @@ class PassengerGoogleMapsHealth {
     );
   }
 
-  /// Sonda ligera vía Geocoding (misma key que Places/Directions).
   static Future<PassengerGoogleMapsHealthResult> probe() async {
     final apiKey = AppConfig.googleMapsRestApiKeyOrNull;
     if (apiKey == null || apiKey.isEmpty) {

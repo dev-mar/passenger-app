@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Tokens de layout, forma, tipografía y elevación para evitar números mágicos duplicados.
-/// Preferir estos valores en UI nueva; alinear gradualmente pantallas existentes.
 class AppRadii {
   AppRadii._();
 
-  /// Puntos de conexión entre paradas (p. ej. 6px con radio 3).
   static const double micro = 3;
   static const double xs = 2;
   static const double sm = 12;
@@ -13,7 +10,7 @@ class AppRadii {
   static const double lg = 16;
   static const double snackBar = 18;
   static const double dialog = 24;
-  /// Esquinas superiores de bottom sheets modales (alineado con [AppTheme]).
+
   static const double sheetTop = 28;
   static const double pill = 999;
 }
@@ -21,7 +18,6 @@ class AppRadii {
 class AppSpacing {
   AppSpacing._();
 
-  /// Separación mínima entre líneas de texto (p. ej. label / valor).
   static const double xxs = 2;
   static const double xs = 4;
   static const double sm = 6;
@@ -34,9 +30,9 @@ class AppSpacing {
   static const double sheetH = 20;
   static const double sheetV = 24;
   static const double section = 28;
-  /// Offset vertical del panel de cotización respecto al botón cerrar.
+
   static const double quoteSheetTopMargin = 26;
-  /// Padding vertical generoso en tarjetas flotantes / overlays.
+
   static const double sheetBodyV = 32;
 }
 
@@ -47,7 +43,7 @@ class AppSizes {
   static const double circleButton = 48;
   static const double iconButtonMin = 40;
   static const double closeOrb = 50;
-  /// Indicador "asa" de arrastre (ancho estándar).
+
   static const double dragHandleW = 36;
   static const double dragHandleQuoteW = 48;
   static const double dragHandleH = 4;
@@ -62,7 +58,7 @@ class AppSizes {
   static const double searchingBase = 80;
   static const double stopConnectorDot = 6;
   static const double connectorLineHeight = 12;
-  /// Altura máxima del panel de cotización como fracción de la pantalla.
+
   static const double quoteSheetMaxHeightFactor = 0.7;
 }
 
@@ -76,7 +72,7 @@ class AppIconSizes {
   static const double xxl = 26;
   static const double hero = 30;
   static const double sheet = 48;
-  /// Icono principal en tarjetas de estado ([PremiumStateView]).
+
   static const double stateHero = 46;
 }
 
@@ -113,7 +109,6 @@ class AppDurations {
   static const Duration searchingPulse = Duration(milliseconds: 2000);
 }
 
-/// Sombras reutilizables (opacidad fija para poder usar `const`).
 class AppShadows {
   AppShadows._();
 

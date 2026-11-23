@@ -7,7 +7,6 @@ import '../router/app_router.dart';
 import '../../features/trip/passenger_realtime_controller.dart';
 import '../../features/trip/trip_request_state.dart';
 
-/// Aplica pushes en foreground al estado realtime (status/chat) sin esperar solo WS.
 void applyPassengerForegroundPushToRealtime(RemoteMessage message) {
   final event = message.data['event']?.toString().trim();
   final tripId =
@@ -67,7 +66,7 @@ void applyPassengerForegroundPushToRealtime(RemoteMessage message) {
     if (body.trim().isNotEmpty) {
       rt.ingestChatFromPush(tripId: tripId, messageText: body);
     }
-    // Si aún estaba en matching, el ingest ya promueve accepted.
+
     unawaited(rt.syncTripStatusFromApi(tripId: tripId, force: true));
     unawaited(rt.ensureSocketConnected(tripId: tripId));
   }

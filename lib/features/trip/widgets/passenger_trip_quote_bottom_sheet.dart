@@ -14,7 +14,6 @@ import '../trip_service_addon_policy.dart';
 import 'quote_bottom_sheet_widgets.dart';
 import 'passenger_offerable_fare_editor.dart';
 
-/// Bottom sheet: opciones de precio y envío directo de la solicitud.
 class PassengerTripQuoteBottomSheet extends ConsumerStatefulWidget {
   const PassengerTripQuoteBottomSheet({
     super.key,

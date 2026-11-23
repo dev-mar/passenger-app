@@ -1,12 +1,9 @@
 import 'package:geolocator/geolocator.dart';
 
-/// Evita `checkPermission` repetido al navegar entre pantallas o reconectar.
 class PassengerGeolocationPermissionCache {
   static DateTime? _cachedAt;
   static LocationPermission? _cachedGranted;
 
-  /// Misma semántica que antes: resuelve permiso y opcionalmente solicita.
-  /// No lanza; el caller valida `denied` / `deniedForever`.
   static Future<LocationPermission> ensureLocationPermission({
     bool requestIfDenied = true,
   }) async {

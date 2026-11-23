@@ -1,6 +1,5 @@
 ﻿part of 'trip_request_screen.dart';
 
-/// Rating, chat del viaje y efectos lifecycle post-frame del build.
 mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
   _TripRequestScreenState get _o => this as _TripRequestScreenState;
 
@@ -52,7 +51,6 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
       ),
     );
 
-    // Si el usuario cerrÃ³ el sheet sin pulsar botones, igual reseteamos para permitir pedir otro viaje.
     final rt = ref.read(passengerRealtimeProvider);
     final providerTripId = ref.read(tripRequestProvider).tripId;
     if (rt.status == 'completed' &&
@@ -177,7 +175,7 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
       return;
     }
     final controller = ref.read(passengerRealtimeProvider.notifier);
-    // Rehidrata canal WS antes de enviar/recibir (evita SOCKET fantasma).
+
     unawaited(
       controller.ensureSocketConnected(
         tripId: tripId,
@@ -614,7 +612,6 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
       return;
     }
 
-    // Cambio de viaje o limpieza del historial en provider: reiniciar contador.
     if (prevTripId != nextTripId || nextLen < prevLen || _o._tripChatReadCursor > nextLen) {
       setState(() {
         _o._tripChatUnreadCount = 0;
@@ -655,7 +652,7 @@ mixin _TripRequestScreenOverlaysMixin on _TripRequestScreenTripOpsMixin {
       _o._chatAttentionController.repeat(reverse: true);
     }
   }
-  /// Efectos post-frame: rating, reset completado stale, cancelado/expirado.
+
   void scheduleActiveTripLifecycleEffects({
     required String? tripId,
     required PassengerRealtimeState rtState,

@@ -118,9 +118,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     _d._tripEndResetInProgress = true;
     _d._routeRequestToken++;
     _d._passengerEnRouteRouteDebounce?.cancel();
-    // Como el backend no persiste rating (pending/submitted/skipped),
-    // lo guardamos en el almacenamiento local para poder recordar
-    // el recordatorio al reabrir la app.
+
     await TripSessionStorage.setRatingDone(tripId, true);
     await TripSessionStorage.clearActiveTripId();
     PassengerNotificationService.clearArrivedNotificationDedupe(tripId);
@@ -165,7 +163,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
         _d._matchingRetryDestinationLabel = null;
         _d._matchingRetryRouteEncoded = null;
         if (_d._origin != null) {
-          // Para el siguiente viaje, empezamos forzando confirmación del origen.
+
           _d._pickingOrigin = true;
           _d._activeStop = ActiveStop.none;
         }
@@ -176,7 +174,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     unawaited(_loadRecentPlaces());
   }
 
-  /// Reset tras cancelación/expiración (sin rating): vuelve al borrador limpio.
   Future<void> _resetTripSessionToDraftHome({String? tripIdForGuard}) async {
     if (!mounted) return;
     if (_d._keepDraftAfterMatchingCancel ||
@@ -241,8 +238,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     unawaited(_loadRecentPlaces());
   }
 
-  /// Tras [clearPassengerTripSessionFromContainer] (p. ej. tap en notificaci├│n con viaje ya terminal):
-  /// los providers ya est├ín limpios; esto alinea pines, polil├¡nea y flags que viven solo en este State.
   void _resetLocalMapAfterExternalTripSessionClear() {
     _d._routeRequestToken++;
     _d._passengerEnRouteRouteDebounce?.cancel();
@@ -286,7 +281,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     });
   }
 
-  /// Margen inferior cuando hay barra de borrador fija (~25–30% de la pantalla).
   double _snackBarBottomMarginForOverlay() {
     if (!mounted) return 24;
     final h = MediaQuery.sizeOf(context).height;
@@ -300,7 +294,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
     messenger.clearSnackBars();
-    // Elevar el SnackBar para que no quede tapado por PassengerTripDraftBottomBar.
+
     final bottomMargin = _snackBarBottomMarginForOverlay();
     messenger.showSnackBar(
       SnackBar(
@@ -468,12 +462,10 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     }
   }
 
-  /// Stage 3: invalida ofertas en servidor y mantiene el overlay (Continuar / Cancelar).
-  /// No cancela si el viaje ya fue aceptado (GET previo + cancelScope=matching).
   Future<void> _onSearchingStage3Reached() async {
     if (_d._searchingStage3CancelInFlight || _d._searchingHoldUi) return;
     _captureMatchingRetryDraft();
-    // Hold UI ANTES de limpiar tripId: evita un frame sin overlay (remount → reinicio visual).
+
     setState(() {
       _d._searchingHoldUi = true;
       _d._keepDraftAfterMatchingCancel = true;
@@ -552,8 +544,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     } catch (_) {}
   }
 
-  /// Sube la oferta y pide de nuevo: anula el matching vigente y crea otra
-  /// solicitud con el mismo origen, destino y ajustes.
   Future<void> _resubmitSearchWithHigherOffer(double amount) async {
     if (_d._submittingTrip || _d._searchingStage3CancelInFlight) return;
     if (ref.read(passengerSearchLockProvider) != PassengerSearchLock.idle) {
@@ -649,7 +639,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     await _restartSearchingTripAfterTimeout(offerAmount: amount);
   }
 
-  /// Continuar: nueva petición de matching + overlay reiniciado en etapa 1.
   Future<void> _restartSearchingTripAfterTimeout({double? offerAmount}) async {
     _captureMatchingRetryDraft();
     final keptOffer = ref.read(tripRequestProvider).passengerOfferAmount;
@@ -678,7 +667,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       return;
     }
 
-    // Por si aún hubiera tripId (race antes de stage3 cancel).
     final lingeringId = tripState.tripId;
     if (lingeringId != null && lingeringId.isNotEmpty) {
       final token = await AuthService.getValidToken();
@@ -760,8 +748,7 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
       if (result.kind == PassengerTripSubmitResultKind.success ||
           result.kind == PassengerTripSubmitResultKind.recoveredExisting) {
         _d._searchingHoldUi = false;
-        // Sigue true hasta accepted: un `cancelled` tardío del viaje anterior
-        // no debe borrar la nueva búsqueda.
+
         _d._keepDraftAfterMatchingCancel = true;
         _d._searchingOriginCameraDone = false;
       } else {
@@ -848,18 +835,15 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     }
     _ensureSearchingCameraOnOrigin();
     if (_d._searchingNearbyTimer != null) return;
-    unawaited(_refreshSearchingNearbyDrivers()); // defined on map mixin
+    unawaited(_refreshSearchingNearbyDrivers());
     _d._searchingNearbyTimer = Timer.periodic(
       const Duration(seconds: 12),
       (_) => unawaited(_refreshSearchingNearbyDrivers()),
     );
   }
 
-  /// Cancela la búsqueda: **POST /passengers/trips/:id/cancel** para invalidar ofertas en servidor
-  /// y que los conductores no sigan viendo la solicitud. Si falla la red, no limpiamos estado.
-  /// Nunca cancela un viaje ya aceptado/en curso (protección ante overlay erróneo).
   Future<void> _cancelSearchingTrip() async {
-    // Cancelar explícito: no conservar overlay/borrador del timeout (Continuar).
+
     _d._keepDraftAfterMatchingCancel = false;
     final tripId = ref.read(tripRequestProvider).tripId;
     final holdOnly =
@@ -913,8 +897,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
   }
 
-  /// Escape de recuperación: cancela solo matching. Si el viaje ya está
-  /// asignado, rehidrata. Si no existe, limpia el estado local.
   Future<void> _cancelMatchingFromRecovery(String tripId) async {
     final rtStatus = ref.read(passengerRealtimeProvider).status;
     if (passengerTripIsTrackingDriver(rtStatus) || rtStatus == 'completed') {
@@ -972,7 +954,6 @@ mixin _TripRequestScreenTripOpsMixin on _TripRequestScreenMapMixin {
     await _resetTripSessionToDraftHome(tripIdForGuard: tripId);
   }
 
-  /// Cancelar viaje ya asignado (`accepted`/`arrived`). No usa overlay ni `cancelScope=matching`.
   Future<void> _cancelAssignedTrip() async {
     final tripId = ref.read(tripRequestProvider).tripId ??
         ref.read(passengerRealtimeProvider).activeTripId;

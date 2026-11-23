@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_assets.dart';
 
-/// Logo de la app (PNG amarillo sobre fondo oscuro).
 class AppLogo extends StatelessWidget {
   const AppLogo({
     super.key,

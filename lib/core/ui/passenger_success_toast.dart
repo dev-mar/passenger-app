@@ -7,7 +7,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_ui_tokens.dart';
 import 'texi_motion.dart';
 
-/// Aviso flotante de confirmación: entra de derecha a izquierda, centro de pantalla.
 abstract final class PassengerSuccessToast {
   static OverlayEntry? _entry;
   static Timer? _timer;

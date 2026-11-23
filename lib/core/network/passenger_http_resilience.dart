@@ -60,7 +60,6 @@ bool isRetryableDioFailure(DioException error) {
       error.type == DioExceptionType.unknown;
 }
 
-/// Códigos estables para UI de login/verify (sin depender del mensaje Dio).
 String? networkErrorCodeFromDio(DioException error) {
   if (error.type == DioExceptionType.connectionTimeout ||
       error.type == DioExceptionType.sendTimeout ||
@@ -73,7 +72,6 @@ String? networkErrorCodeFromDio(DioException error) {
   return null;
 }
 
-/// 502/503/504 sin envelope de negocio (p. ej. HTML de Azure App Service).
 String? unavailableBackendCodeFromDio(DioException error) {
   final status = error.response?.statusCode ?? 0;
   if (status != 502 && status != 503 && status != 504) return null;
@@ -91,14 +89,13 @@ String? unavailableBackendCodeFromDio(DioException error) {
   return 'BACKEND_UNAVAILABLE';
 }
 
-/// Evita mostrar ensayos técnicos de Dio / HTML de gateway al usuario.
 String? safeAuthErrorMessage({
   String? backendMessage,
   String? dioMessage,
 }) {
   final fromBackend = TexiBackendError.userSafeMessage(backendMessage);
   if (fromBackend != null) return fromBackend;
-  // Los mensajes de Dio (status code, timeouts crudos) no van a la UI.
+
   return null;
 }
 
@@ -236,7 +233,6 @@ Dio buildPassengerTripsAuthedDio({
 
 Dio? _passengerAuthPublicDio;
 
-/// Dio compartido contra `AppConfig.baseUrlAuth` sin Bearer (refresh, telemetría, push).
 Dio passengerAuthPublicHttpClient({
   Duration connectTimeout = const Duration(seconds: 15),
   Duration receiveTimeout = const Duration(seconds: 15),
@@ -260,7 +256,6 @@ Dio passengerAuthPublicHttpClient({
 
 Dio? _passengerGoogleMapsDio;
 
-/// Dio compartido para APIs externas Google (Geocoding, Directions, Places).
 Dio passengerGoogleMapsHttpClient({
   Duration connectTimeout = const Duration(seconds: 12),
   Duration receiveTimeout = const Duration(seconds: 12),
@@ -277,7 +272,6 @@ Dio passengerGoogleMapsHttpClient({
   return dio;
 }
 
-/// PUT a URL presignada S3 (sin base URL Texi ni Bearer).
 Dio buildPassengerPresignedUploadDio({
   required String contentType,
   Duration connectTimeout = const Duration(seconds: 30),

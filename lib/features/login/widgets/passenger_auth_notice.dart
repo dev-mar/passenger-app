@@ -4,7 +4,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'login_auth_info_button.dart';
 
-/// Aviso flotante de 5 s para errores de auth (visible, sin empujar la pantalla).
 void showPassengerAuthNotice(
   BuildContext context, {
   String? title,

@@ -21,7 +21,7 @@ class TripQuickPickRow extends StatelessWidget {
   final VoidCallback onGps;
   final VoidCallback onSearch;
   final VoidCallback onMap;
-  /// Si es false, la búsqueda por texto vive fuera (barra superior).
+
   final bool showSearch;
   final VoidCallback? onSavedPlaces;
   final String? gpsLabel;

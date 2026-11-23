@@ -1,8 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Acceso serializado a KeyStore/EncryptedSharedPreferences (Android release).
-///
-/// Varias instancias de [FlutterSecureStorage] en paralelo pueden bloquear el arranque.
 class PassengerSecureStorage {
   PassengerSecureStorage._();
 

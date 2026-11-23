@@ -8,8 +8,6 @@ import '../../../core/theme/app_ui_tokens.dart';
 import '../../../core/network/trips_api.dart';
 import 'passenger_home_look.dart';
 
-/// Carrusel de anuncios con transición vertical.
-/// Automático: de abajo hacia arriba. Con el dedo: ambos sentidos.
 class PassengerHomeBannerCarousel extends StatefulWidget {
   const PassengerHomeBannerCarousel({
     super.key,

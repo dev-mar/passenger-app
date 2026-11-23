@@ -4,10 +4,8 @@ import '../../gen_l10n/app_localizations.dart';
 import '../network/passenger_http_resilience.dart';
 import '../network/texi_backend_error.dart';
 
-/// Contexto de fallo en el flujo pedir viaje (copy distinto: precio vs enviar).
 enum PassengerTripFailureContext { quote, create }
 
-/// Mensajes amigables para códigos de API/socket (RBAC, sesión, etc.).
 String localizedTripApiError (
   AppLocalizations l10n,
   String? code, {
@@ -72,7 +70,6 @@ String localizedTripApiError (
   return l10n.commonError;
 }
 
-/// Copy de usuario para cotizar o crear viaje. No expone textos técnicos.
 String localizedPassengerTripFailure (
   AppLocalizations l10n, {
   required PassengerTripFailureContext failureContext,
@@ -120,7 +117,6 @@ String localizedPassengerTripFailure (
   return unavailableMessage;
 }
 
-/// Errores del realtime pasajero (`PassengerRealtimeState.errorCode`).
 String localizedPassengerRealtimeError (
   AppLocalizations l10n,
   String? code,

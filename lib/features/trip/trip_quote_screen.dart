@@ -10,7 +10,6 @@ import '../../gen_l10n/app_localizations.dart';
 import 'trip_request_state.dart';
 import 'trip_service_addon_policy.dart';
 
-/// Pantalla Cotización: lista de tipos de servicio y precios.
 class TripQuoteScreen extends ConsumerWidget {
   const TripQuoteScreen({super.key});
 

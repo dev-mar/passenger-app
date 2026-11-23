@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:texi_passenger_app/gen_l10n/app_localizations.dart';
 
-/// Envuelve widgets bajo prueba con Riverpod + l10n (sin depender de strings fijos).
 Widget wrapPassengerApp({
   required Widget child,
   List<Override> overrides = const [],

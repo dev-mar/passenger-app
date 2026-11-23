@@ -2,7 +2,6 @@ import 'dart:math';
 
 import '../storage/passenger_secure_storage.dart';
 
-/// UUID estable por instalación para gestión de sesión (no vinculación permanente).
 class PassengerDeviceIdentity {
   PassengerDeviceIdentity._();
 

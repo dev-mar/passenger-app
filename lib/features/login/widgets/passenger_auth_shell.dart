@@ -10,7 +10,6 @@ import '../../../core/ui/app_safe_scrolling.dart';
 import '../../../core/ui/texi_brand_loader.dart';
 import 'passenger_auth_look.dart';
 
-/// Fondo + gradiente compartido del embudo login / OTP / perfil.
 class PassengerAuthShell extends StatelessWidget {
   const PassengerAuthShell({
     super.key,
@@ -111,7 +110,6 @@ class PassengerAuthShell extends StatelessWidget {
   }
 }
 
-/// Tarjeta glass para formularios de auth.
 class PassengerAuthGlassCard extends StatelessWidget {
   const PassengerAuthGlassCard({super.key, required this.child});
 
@@ -139,7 +137,6 @@ class PassengerAuthGlassCard extends StatelessWidget {
   }
 }
 
-/// Animación de entrada suave (fade + slide).
 class PassengerAuthEntrance extends StatefulWidget {
   const PassengerAuthEntrance({super.key, required this.child});
 
@@ -223,7 +220,6 @@ InputDecoration passengerAuthFieldDecoration({
   );
 }
 
-/// Campo dentro de [PassengerAuthFieldPanel]: guía solo como hint, nunca label flotante.
 InputDecoration passengerAuthInlineFieldDecoration({
   String? hint,
   Widget? suffixIcon,

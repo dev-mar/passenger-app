@@ -31,8 +31,6 @@ class PlaceDetailsResult {
   final String formattedAddress;
 }
 
-/// Cliente para Google Places Autocomplete + Place Details.
-/// Requiere habilitar "Places API" (legacy) en Google Cloud.
 class PlacesAutocompleteService {
   PlacesAutocompleteService() : _dio = passengerGoogleMapsHttpClient();
 
@@ -50,7 +48,6 @@ class PlacesAutocompleteService {
   static const _detailsUrl =
       'https://maps.googleapis.com/maps/api/place/details/json';
 
-  /// Mínimo de caracteres antes de consultar Places (control de peticiones).
   static const int minQueryLength = 3;
 
   Future<List<PlaceSuggestion>> fetchSuggestions({
@@ -79,15 +76,14 @@ class PlacesAutocompleteService {
             'key': apiKey,
             'language': 'es',
             'sessiontoken': sessionToken,
-            // Bolivia; el bias de ubicación prioriza la zona del mapa.
+
             'components': 'country:bo',
           };
           if (nearLat != null && nearLng != null) {
             params['location'] = '$nearLat,$nearLng';
-            // Bias suave (sin strictbounds): ranking local sin descartar POIs útiles.
+
             params['radius'] = 50000;
           }
-          // Sin `types=geocode`: permite direcciones + establecimientos / puntos.
 
           final response = await _dio.get<Map<String, dynamic>>(
             _autocompleteUrl,
@@ -127,7 +123,7 @@ class PlacesAutocompleteService {
               })
               .where((e) => e.placeId.isNotEmpty)
               .where((e) {
-                // Filtro suave: al menos un token relevante (Google ya rankea).
+
                 final hay =
                     '${e.mainText} ${e.secondaryText} ${e.fullText}'
                         .toLowerCase();

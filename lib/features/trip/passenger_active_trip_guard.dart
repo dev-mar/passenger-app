@@ -8,12 +8,10 @@ import 'trip_recovery_feedback.dart';
 import 'trip_request_state.dart';
 import 'trip_request_trip_phase_helpers.dart';
 
-/// Resultado de comprobar si ya hay un viaje activo antes de crear otro.
 enum ActiveTripGuardResult {
-  /// No hay viaje pendiente en servidor (o era inválido): se puede llamar a `POST /passengers/trips`.
+
   allowCreateNew,
 
-  /// Había un viaje aún vigente: se rehidrató `tripId`, quote mínimo y socket; no crear otro viaje.
   recoveredExisting,
 }
 
@@ -39,13 +37,6 @@ Future<void> _recoverExistingPassengerTrip({
       );
 }
 
-/// Evita un segundo `POST /passengers/trips` cuando el pasajero ya tiene un viaje en curso
-/// (p. ej. cerró la app en "buscando conductor" y el `tripId` sigue en almacenamiento).
-///
-/// - Si `GET /passengers/trips/:id` indica estado final, limpia almacenamiento y provider.
-/// - Cualquier otro estado no final → [recoveredExisting] (reconectar socket, no duplicar).
-/// - Error de red/5xx/404 → [allowCreateNew] y limpia storage. Un viaje realmente
-///   activo lo recupera el `409 PASSENGER_ACTIVE_TRIP_EXISTS` del POST.
 Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
   required WidgetRef ref,
   required TripsApi api,
@@ -68,7 +59,7 @@ Future<ActiveTripGuardResult> reconcileActiveTripBeforeCreateTrip({
     if (passengerTripIsFinalStatus(s)) {
       await TripSessionStorage.clearActiveTripId();
       clearTripRecoverySnackTracking(ref);
-      // No reset() de origen/destino/quote: Continuar tras timeout reusa la ruta.
+
       ref.read(tripRequestProvider.notifier).clearTripIdKeepingRoute();
       ref.read(passengerRealtimeProvider.notifier).disconnect();
       return ActiveTripGuardResult.allowCreateNew;

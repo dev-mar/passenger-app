@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-/// Extrae `code` de respuestas tipo envelope OK/fail del backend unificado.
 class TexiBackendError {
   static String? codeFromDio (Object? e) {
     if (e is! DioException) return null;
@@ -51,7 +50,6 @@ class TexiBackendError {
     return null;
   }
 
-  /// True si el texto parece nota interna, HTML de gateway o error de red crudo.
   static bool looksInternal (String? raw) {
     final s = raw?.trim() ?? '';
     if (s.isEmpty) return true;
@@ -102,7 +100,6 @@ class TexiBackendError {
     return false;
   }
 
-  /// Mensaje del backend apto para UI; null si es técnico.
   static String? userSafeMessage (String? raw) {
     final s = raw?.trim();
     if (s == null || s.isEmpty || looksInternal(s)) return null;

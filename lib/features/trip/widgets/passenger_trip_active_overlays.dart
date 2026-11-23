@@ -6,7 +6,6 @@ import '../../../gen_l10n/app_localizations.dart';
 import '../trip_request_trip_phase_helpers.dart';
 import 'trip_tracking_widgets.dart';
 
-/// Chip superior con el estado del viaje activo.
 class PassengerTripActiveStatusChip extends StatelessWidget {
   const PassengerTripActiveStatusChip({
     super.key,
@@ -60,7 +59,6 @@ class PassengerTripActiveStatusChip extends StatelessWidget {
   }
 }
 
-/// FAB flotante con badge de mensajes no leídos del chat del viaje.
 class PassengerTripChatUnreadFab extends StatelessWidget {
   const PassengerTripChatUnreadFab({
     super.key,
@@ -137,7 +135,6 @@ class PassengerTripChatUnreadFab extends StatelessWidget {
   }
 }
 
-/// Banner inferior mientras se rehidrata un viaje activo desde storage/API.
 class PassengerTripRecoveringBanner extends StatelessWidget {
   const PassengerTripRecoveringBanner({super.key, required this.title});
 
@@ -183,7 +180,6 @@ class PassengerTripRecoveringBanner extends StatelessWidget {
   }
 }
 
-/// Panel deslizable del viaje activo (estado, conductor, chat).
 class PassengerTripActiveTrackingSheet extends StatelessWidget {
   const PassengerTripActiveTrackingSheet({
     super.key,

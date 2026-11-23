@@ -3,7 +3,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 import '../../firebase_options.dart';
 
-/// Firebase Phone Auth — Fase 4 pasajero (SMS enviado por Firebase en el cliente).
 class PassengerSmsFirebaseAuth {
   PassengerSmsFirebaseAuth._();
 

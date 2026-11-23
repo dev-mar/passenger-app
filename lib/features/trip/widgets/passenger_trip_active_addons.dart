@@ -8,7 +8,6 @@ import '../trip_passenger_extras.dart';
 import '../trip_passenger_specials.dart';
 import '../trip_payment_method.dart';
 
-/// Chip de pago del viaje activo (efectivo / QR).
 class PassengerTripPaymentChip extends StatelessWidget {
   const PassengerTripPaymentChip({
     super.key,
@@ -56,7 +55,6 @@ class PassengerTripPaymentChip extends StatelessWidget {
   }
 }
 
-/// Iconos compactos de extras/requerimientos. Tap abre el detalle.
 class PassengerTripAddonsStrip extends StatelessWidget {
   const PassengerTripAddonsStrip({
     super.key,

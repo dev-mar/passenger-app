@@ -16,7 +16,6 @@ final _meProfileCache = RequestPolicyCache<Map<String, dynamic>>(
   defaultTtl: const Duration(seconds: 15),
 );
 
-/// Perfil plano `GET /api/v2/auth/me` → `data` (cache 15 s).
 class PassengerMeProfileService {
   PassengerMeProfileService(this._client);
 

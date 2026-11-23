@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Aguja tipo alfiler (punta fina) mientras se mueve el mapa para confirmar un punto.
-///
-/// La **punta** debe coincidir con el centro del mapa (el lat/lng real). El
-/// overlay se desplaza con [tipOffsetFromCenter] para no marcar el centro del widget.
 class PassengerMapPickingNeedle extends StatelessWidget {
   const PassengerMapPickingNeedle({
     super.key,
@@ -15,10 +11,8 @@ class PassengerMapPickingNeedle extends StatelessWidget {
   static const double pinWidth = 40;
   static const double pinHeight = 76;
 
-  /// Fracción vertical de la punta dentro del lienzo (0–1).
   static const double tipYFraction = 0.96;
 
-  /// Cuánto subir el widget para que la punta quede en el centro del mapa.
   static double get tipOffsetFromCenter =>
       pinHeight * (tipYFraction - 0.5);
 

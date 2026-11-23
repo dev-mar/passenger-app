@@ -7,7 +7,6 @@ import '../../../core/utils/money_formatter.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../trip_request_state.dart';
 
-/// Editor de monto solo cuando la cotización viene en modo ofertable.
 class PassengerOfferableFareEditor extends ConsumerWidget {
   const PassengerOfferableFareEditor({super.key});
 

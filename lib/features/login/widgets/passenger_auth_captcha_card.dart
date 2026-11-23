@@ -5,7 +5,6 @@ import '../../../core/theme/app_ui_tokens.dart';
 import 'passenger_auth_shell.dart';
 import 'passenger_turnstile_widget.dart';
 
-/// Marco visual unificado para Turnstile en login y step-up.
 class PassengerAuthCaptchaCard extends StatelessWidget {
   const PassengerAuthCaptchaCard({
     super.key,

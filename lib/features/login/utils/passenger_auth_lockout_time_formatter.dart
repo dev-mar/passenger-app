@@ -1,7 +1,3 @@
-/// Formato de cuenta regresiva según tier de bloqueo.
-/// Tier 1: solo segundos (ej. 120).
-/// Tier 2: minutos:segundos (ej. 10:00).
-/// Tier 3+: horas:minutos:segundos (ej. 2:00:00).
 class PassengerAuthLockoutTimeFormatter {
   PassengerAuthLockoutTimeFormatter._();
 

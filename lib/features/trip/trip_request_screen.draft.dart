@@ -28,7 +28,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         : PassengerDraftSearchRole.origin;
   }
 
-  /// Oculta buscador + acciones cuando ya hay origen y destino (salvo modo ediciÃÂÃÂÃÂÃÂ³n).
   bool get _draftLocationSearchChromeVisible {
     if (!_d._originConfirmed) return true;
     if (_d._destination == null) return true;
@@ -36,8 +35,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     return false;
   }
 
-  /// BÃÂÃÂÃÂÃÂºsqueda, GPS o guardados fijan el origen al momento. Si aÃÂÃÂÃÂÃÂºn no hay destino,
-  /// el mapa puede seguir moviendo ese origen. Con destino ya puesto, queda cerrado.
   void _assignOriginFollowState() {
     _d._originEditAnchor = null;
     _d._originPinAdjusted = true;
@@ -54,8 +51,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  /// Texto del slot de origen. Mientras el pin de origen estÃÂÃÂÃÂÃÂ¡ activo, la calle
-  /// en vivo sustituye al nombre solo si el mapa se alejÃÂÃÂÃÂÃÂ³ del punto ya elegido.
   String _resolveDraftOriginDisplayLine(AppLocalizations l10n) {
     final followPin =
         _d._pickingOrigin || (!_d._originConfirmed && _d._destination == null);
@@ -81,8 +76,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     return _d._originDisplayLabel ?? l10n.tripYourLocation;
   }
 
-  /// Texto del slot de destino. Mientras se estÃÂÃÂÃÂÃÂ¡ apuntando con el pin, tambiÃÂÃÂÃÂÃÂ©n
-  /// usamos `_d._mapNeedleAddressPreview` para mostrar la direcciÃÂÃÂÃÂÃÂ³n en tiempo real.
   String _resolveDraftDestinationDisplayLine(AppLocalizations l10n) {
     final isPickingDest =
         _d._pickingDestination ||
@@ -101,7 +94,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     return l10n.tripTapMapDestination;
   }
 
-  /// Abre la lupa apuntando a origen (sin modo aguja del botÃÂÃÂÃÂÃÂ³n Editar).
   void _onDraftOpenSearchForOrigin() {
     TexiUiFeedback.lightTap();
     if (!mounted) return;
@@ -114,7 +106,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     });
   }
 
-  /// Si ya hay origen y destino, el buscador no cierra «Confirmar».
   void _holdSettledMapConfirm(PassengerDraftEditTarget target) {
     final bothReady = _d._originConfirmed && _d._destination != null;
     if (!bothReady) {
@@ -128,8 +119,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _d._activeStop = ActiveStop.none;
   }
 
-  /// Primer toque en ÃÂ«ÃÂ¿A dÃÂ³nde vas?ÃÂ»: fija el origen y abre el buscador juntos.
-  /// El pin de destino queda para ÃÂ«Buscar en el mapaÃÂ».
   void _onDraftDestinationSectionPressed() {
     if (!mounted) return;
     if (_d._originConfirmed && _d._destination != null) {
@@ -147,7 +136,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     _onDraftOpenSearchForDestination();
   }
 
-  /// Sale del buscador y habilita el pin de destino. Confirmar destino no cambia.
   void _onDraftChooseDestinationOnMap() {
     TexiUiFeedback.lightTap();
     if (!mounted || !_d._originConfirmed) return;
@@ -171,7 +159,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  /// Abre la lupa apuntando a destino (requiere origen confirmado).
   void _onDraftOpenSearchForDestination() {
     TexiUiFeedback.lightTap();
     if (!mounted || !_d._originConfirmed) return;
@@ -250,7 +237,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     });
   }
 
-  /// Backend exige label 2ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ60 y address 3ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ180 caracteres.
   String _ensureSavedPlaceLabel(
     String primary,
     String backupMin2,
@@ -481,7 +467,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     if (!mounted) return;
     setState(() {
       _d._draftSearchCollapseToken++;
-      // Libera el target de lupa (fila origen/destino) para el siguiente paso.
+
       _d._draftEditTarget = PassengerDraftEditTarget.none;
       _d._draftSuggestions = const <PlaceSuggestion>[];
       _d._loadingDraftSuggestions = false;
@@ -673,9 +659,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     final composedLabel = details.formattedAddress.isNotEmpty
         ? _composePlaceLabel(suggestion, details.formattedAddress)
         : suggestion.fullText;
-    // Si el label compuesto incluye nombre de POI (formato "Nombre \u00B7 DirecciÃÂÃÂÃÂÃÂ³n"),
-    // ya tenemos el dato mÃÂÃÂÃÂÃÂ¡s rico desde Places y NO disparamos reverse-geocode
-    // (que sobrescribirÃÂÃÂÃÂÃÂ­a el nombre del POI con la calle).
+
     final hasPoiName = composedLabel.contains(' \u00B7 ');
     setState(() {
       _d._origin = LatLng(details.lat, details.lng);
@@ -801,10 +785,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
 
   Future<void> _setOriginFromCurrentLocation() async {
     setState(() => _d._loadingOrigin = true);
-    // Estrategia de fix: 1) lectura precisa con timeout corto; 2) fallback a la
-    // ÃÂÃÂÃÂÃÂºltima posiciÃÂÃÂÃÂÃÂ³n conocida del SO. Esto evita el banner rojo cuando el GPS
-    // del sistema sÃÂÃÂÃÂÃÂ­ tiene fix (pin azul visible) pero `getCurrentPosition` con
-    // `LocationAccuracy.high` no logra cerrar una nueva muestra a tiempo.
+
     Position? position;
     try {
       position = await Geolocator.getCurrentPosition(
@@ -874,8 +855,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     }
   }
 
-  /// Prioriza salir de la app (sesiÃÂÃÂÃÂÃÂ³n permanece vÃÂÃÂÃÂÃÂ­a refresh token).
-  /// Cerrar sesiÃÂÃÂÃÂÃÂ³n abre una segunda confirmaciÃÂÃÂÃÂÃÂ³n; Volver regresa al paso anterior.
   Future<void> _confirmLeaveOrLogout(BuildContext context) async {
     while (context.mounted) {
       final choice = await _showLeaveAppSheet(context);
@@ -913,7 +892,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       message: l10n.menuLeaveAppMessage,
       primaryLabel: l10n.menuLeaveAppConfirm,
       primaryValue: 'exit',
-      // X cierra el sheet (antes: cancelar abajo).
+
       headerControl: _PassengerLeaveSheetHeader.close,
       secondaryLabel: l10n.menuLeaveAppLogout,
       secondaryValue: 'logout',
@@ -930,7 +909,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
       primaryLabel: l10n.menuLogoutConfirmAction,
       primaryValue: 'logout',
       primaryDanger: true,
-      // Flecha atrÃÂÃÂÃÂÃÂ¡s reemplaza el TextButton "Volver".
+
       headerControl: _PassengerLeaveSheetHeader.back,
       headerBackValue: 'back',
     );
@@ -1173,9 +1152,7 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
   }
 
   Future<void> _setDestinationFromCurrentLocation() async {
-    // Misma estrategia que `_setOriginFromCurrentLocation`: si `getCurrentPosition`
-    // con alta precisiÃÂÃÂÃÂÃÂ³n falla (timeout/ruido), usar `getLastKnownPosition` antes
-    // de renderizar el banner rojo.
+
     Position? position;
     try {
       position = await Geolocator.getCurrentPosition(
@@ -1350,16 +1327,13 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
         ensureDeviceGpsForNewTrip: _ensureDeviceGpsForNewTrip,
         onClose: () => Navigator.of(ctx).pop(),
         onSuccess: () {
-          // Solo cerrar el sheet: volver a montar `trip_request` con goNamed
-          // recrea TripRequestScreen, pierde estado local del mapa y dispara initState
-          // como "viaje persistido" (snack "Solicitud recuperada" + UI rota).
+
           Navigator.of(ctx).pop();
         },
       ),
     ).whenComplete(() {
       if (!mounted) return;
-      // Si el sheet se cerrÃÂÃÂÃÂÃÂ³ sin llegar a solicitar conductor (tripId sigue null),
-      // limpiamos cotizaciÃÂÃÂÃÂÃÂ³n, ruta y destino para poder rearmar el viaje.
+
       final s = ref.read(tripRequestProvider);
       if (s.tripId == null && s.quote != null) {
         _cancelQuoteDraft();
@@ -1367,8 +1341,6 @@ mixin _TripRequestScreenDraftMixin on _TripRequestScreenOverlaysMixin {
     });
   }
 
-  /// Solo antes de solicitar conductor: quita cotizaciÃÂÃÂÃÂÃÂ³n, ruta y destino del mapa.
-  /// No aplica a viaje ya creado / en curso (tripId != null).
   void _cancelQuoteDraft() {
     if (!mounted) return;
     if (ref.read(tripRequestProvider).tripId != null) return;

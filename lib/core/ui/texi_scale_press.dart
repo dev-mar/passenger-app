@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'texi_motion.dart';
 
-/// Envuelve botones o tarjetas con una **ligera escala al presionar** (estilo apps modernas).
-///
-/// No intercepta el tap: el hijo (p. ej. [FilledButton]) sigue recibiendo gestos.
-/// Usar en CTAs principales para mantener la misma “línea” de micro-interacción.
 class TexiScalePress extends StatefulWidget {
   const TexiScalePress({
     super.key,

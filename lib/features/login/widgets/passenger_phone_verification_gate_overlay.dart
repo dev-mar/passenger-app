@@ -11,7 +11,6 @@ import '../../../core/ui/texi_scale_press.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import '../passenger_phone_link_navigation.dart';
 
-/// Sesión limitada (p. ej. solo email/Google) sin teléfono verificado.
 Future<bool> isPassengerEmailOnlyLimitedSession(WidgetRef ref) async {
   try {
     final loginPhone = await AuthService.readLoginPhoneE164Digits();
@@ -27,7 +26,6 @@ Future<bool> isPassengerEmailOnlyLimitedSession(WidgetRef ref) async {
   }
 }
 
-/// Pantalla flotante cuando un usuario email-only intenta solicitar un viaje.
 Future<void> showPassengerPhoneVerificationGateOverlay(
   BuildContext context, {
   String? returnTo,

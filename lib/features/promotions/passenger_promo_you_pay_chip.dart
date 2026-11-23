@@ -4,7 +4,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/money_formatter.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Chip aditivo: “Tú pagas X”. El precio grande sigue siendo la tarifa bruta.
 class PassengerPromoYouPayChip extends StatelessWidget {
   const PassengerPromoYouPayChip({
     super.key,

@@ -1,6 +1,5 @@
 enum PassengerProfileLoadError { noSession, empty, badFormat }
 
-/// Error con código de negocio del backend (`code` en JSON).
 class PassengerProfileApiException implements Exception {
   PassengerProfileApiException(this.apiCode, this.message);
 
@@ -36,7 +35,7 @@ class PassengerProfileVm {
   final bool biometricsEnabled;
   final DateTime? lastAccessAt;
   final bool phoneVerified;
-  /// `full` | `limited`
+
   final String authLevel;
 
   bool get canRequestTrip => phoneVerified || authLevel == 'full';

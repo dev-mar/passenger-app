@@ -13,7 +13,6 @@ import '../trip/widgets/passenger_map_picking_needle.dart';
 import 'home_quick_slots.dart';
 import 'widgets/passenger_home_look.dart';
 
-/// Mapa con pin central para guardar destino de trabajo / casa / favorito.
 class HomeQuickPlacePickerScreen extends StatefulWidget {
   const HomeQuickPlacePickerScreen({
     super.key,
@@ -29,7 +28,6 @@ class HomeQuickPlacePickerScreen extends StatefulWidget {
   final double? initialLng;
   final String? titleOverride;
 
-  /// Si es true, al guardar adjunta la calle (búsqueda o geocodificación).
   final bool captureAddress;
 
   @override

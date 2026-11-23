@@ -6,10 +6,6 @@ import 'package:flutter/material.dart';
 import '../constants/app_assets.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Recreación nativa del loader de mapa de la landing (radar, ruta, pines y logo).
-///
-/// No embebe WebView: CustomPaint + animaciones Flutter equivalentes a
-/// `landing-page-tx` TexiLoader (grid, radar, ruta cúbica, pines, logo central).
 class TexiBrandLoader extends StatefulWidget {
   const TexiBrandLoader({
     super.key,
@@ -18,10 +14,8 @@ class TexiBrandLoader extends StatefulWidget {
     this.showPinLabels = true,
   });
 
-  /// Texto opcional bajo la escena (login / OTP).
   final String? message;
 
-  /// Wordmark TEXI sobre fondo oscuro.
   final String logoAsset;
 
   final bool showPinLabels;

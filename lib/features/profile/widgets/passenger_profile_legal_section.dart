@@ -165,14 +165,12 @@ Future<void> _runPassengerAccountDeletionCancel(
   }
 }
 
-/// Documentos legales del perfil (privacidad y términos). La eliminación de cuenta está en Ajustes.
 class PassengerProfileLegalSection extends StatelessWidget {
   const PassengerProfileLegalSection({
     super.key,
     this.showTitle = true,
   });
 
-  /// Si el padre ya muestra el título de sección, pasar `false`.
   final bool showTitle;
 
   @override
@@ -299,7 +297,6 @@ class _LegalDocTile extends StatelessWidget {
   }
 }
 
-/// Eliminación de cuenta: solo Ajustes (no perfil).
 class PassengerAccountDeletionSettingsBlock extends ConsumerWidget {
   const PassengerAccountDeletionSettingsBlock({super.key});
 

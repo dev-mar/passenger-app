@@ -3,7 +3,6 @@ import 'dart:convert';
 import '../../features/login/models/passenger_auth_lockout.dart';
 import 'passenger_secure_storage.dart';
 
-/// Persiste bloqueo auth para reanudar countdown al cerrar/reabrir la app.
 class PassengerAuthLockoutStorage {
   PassengerAuthLockoutStorage._();
 

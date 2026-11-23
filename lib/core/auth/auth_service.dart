@@ -10,37 +10,26 @@ import '../notifications/passenger_push_token_service.dart';
 import '../storage/passenger_secure_storage.dart';
 import '../storage/trip_session_storage.dart';
 
-/// Claves de almacenamiento seguro.
 const String _keyAuthToken = 'auth_token';
 const String _keyRefreshToken = 'refresh_token';
 const String _keyExpiresAt = 'auth_token_expires_at';
 const String _keyPassengerDisplayName = 'passenger_display_name';
 const String _keyPassengerPrefNotifications = 'passenger_pref_notifications';
 const String _keyPassengerPrefDarkMode = 'passenger_pref_dark_mode';
-/// Dígitos E.164 (sin `+`) para allowlist QA / labs (misma heurística que conductor).
+
 const String _keyPassengerLoginPhoneE164 = 'passenger_login_phone_e164';
 
-/// Margen en segundos para considerar el token "por vencer" y refrescarlo antes.
-const int _expiryMarginSeconds = 300; // 5 minutos
+const int _expiryMarginSeconds = 300;
 
-/// Servicio centralizado de autenticación: token de acceso, refresh y sesión persistente.
-/// - Si el backend devuelve [refresh_token] y [expires_in] en login, se guardan.
-/// - [getValidToken()] devuelve el token actual o refresca con [refresh_token] si está por vencer/vencido.
-/// - Si no hay refresh en el backend, el comportamiento es el de antes (solo token, sin refresh).
-/// - Si una petición devuelve 401, se llama [logout] y [onSessionExpired] para desloguear y llevar a login.
 class AuthService {
   AuthService._();
 
-  /// Callback que la app debe asignar al arrancar (main). Se invoca cuando el backend
-  /// responde 401 (token expirado/inválido) para cerrar sesión y redirigir a login.
   static void Function()? onSessionExpired;
   static void Function()? onSessionSuperseded;
   static Future<void> Function()? onSessionEstablished;
 
   static Dio get _dio => passengerAuthPublicHttpClient();
 
-  /// Devuelve un token válido para usar en APIs. Si hay refresh_token y el token
-  /// está vencido o por vencer, intenta refrescar. Retorna null si no hay sesión o el refresh falla.
   static Future<String?> _readSecure(String key) async {
     try {
       return await PassengerSecureStorage.read(key);
@@ -67,10 +56,9 @@ class AuthService {
       return newToken;
     }
 
-    return token; // puede estar vencido pero no hay refresh; el backend devolverá 401
+    return token;
   }
 
-  /// Guarda token (y opcionalmente refresh_token y expires_in) tras login o refresh.
   static Future<void> saveSession({
     required String token,
     String? refreshToken,
@@ -95,7 +83,6 @@ class AuthService {
     }
   }
 
-  /// Cierra sesión: revoca refresh en servidor (best-effort) y borra tokens locales.
   static Future<void> logout() async {
     try {
       final refresh = await PassengerSecureStorage.read(_keyRefreshToken);
@@ -122,20 +109,17 @@ class AuthService {
             )
             .timeout(const Duration(seconds: 5));
       }
-    } catch (_) {
-      // El cierre local no debe fallar por red.
-    }
+    } catch (_) {} // ignore: empty_catches
     await PassengerPushTokenService.instance.revokeAllOnServerIfPossible();
     await PassengerSecureStorage.delete(_keyAuthToken);
     await PassengerSecureStorage.delete(_keyRefreshToken);
     await PassengerSecureStorage.delete(_keyExpiresAt);
     await PassengerSecureStorage.delete(_keyPassengerDisplayName);
     await PassengerSecureStorage.delete(_keyPassengerLoginPhoneE164);
-    // Viaje activo vive en secure storage aparte; si no se limpia, al volver a entrar se rehidrata el card colgado.
+
     await TripSessionStorage.clearActiveTripId();
   }
 
-  /// Guarda el teléfono de login (solo dígitos, p. ej. `591710011234`) para gating beta/QA.
   static Future<void> persistLoginPhoneE164(String rawPhone) async {
     final d = rawPhone.replaceAll(RegExp(r'\D'), '');
     if (d.length < 8) return;
@@ -146,7 +130,6 @@ class AuthService {
     return PassengerSecureStorage.read(_keyPassengerLoginPhoneE164);
   }
 
-  /// Guarda el nombre visible del pasajero localmente (simulación de perfil).
   static Future<void> savePassengerDisplayName(String name) async {
     await PassengerSecureStorage.write(_keyPassengerDisplayName, name);
   }
@@ -180,7 +163,6 @@ class AuthService {
     );
   }
 
-  /// Indica si hay al menos un token guardado (puede estar vencido).
   static Future<bool> hasStoredSession() async {
     final token = await _readSecure(_keyAuthToken);
     return token != null && token.isNotEmpty;

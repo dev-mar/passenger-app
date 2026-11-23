@@ -5,10 +5,6 @@ class _CacheEntry<T> {
   final DateTime expiresAt;
 }
 
-/// Cache en memoria con deduplicación de requests en vuelo.
-///
-/// Útil para consultas no-realtime de alto tráfico (autocomplete, geocoding,
-/// rutas, catálogos), evitando ráfagas innecesarias al backend/terceros.
 class RequestPolicyCache<T> {
   RequestPolicyCache({required this.defaultTtl});
 

@@ -1,8 +1,5 @@
 import '../../features/trip/passenger_trip_vehicle_info.dart';
 
-/// Respuesta de sincronización del estado de un trip para pasajero.
-///
-/// La estructura real puede variar, por eso el parsing es defensivo.
 class PassengerTripSyncResponse {
   const PassengerTripSyncResponse({
     required this.tripId,
@@ -37,7 +34,6 @@ class PassengerTripSyncResponse {
     final estimatedPrice =
         agreedPrice ?? readPrice(json['estimatedPrice'] ?? json['estimated_price']);
 
-    // Algunos endpoints devuelven driver/vehicle anidado o campos planos.
     final driver = json['driver'] as Map<String, dynamic>?;
 
     final driverName = (driver?['fullName'] ?? driver?['driverName'] ?? json['fullName'] ?? json['driverName'])?.toString();

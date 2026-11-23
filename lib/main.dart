@@ -63,7 +63,6 @@ Future<void> main() async {
     ),
   );
 
-  // Firebase no debe bloquear el primer frame (release prod en algunos devices).
   unawaited(_initializeFirebaseCore());
 }
 
@@ -103,31 +102,22 @@ class _TexiAppState extends ConsumerState<TexiApp> with WidgetsBindingObserver {
     });
   }
 
-  /// Inicialización diferida tras el primer frame: canal de notificaciones local,
-  /// permisos/listeners de FCM. No bloquea la primera renderización.
   Future<void> _bootstrapDeferredServices() async {
     try {
       await PassengerNotificationService.instance.initialize();
-    } catch (_) {
-      // Falla silenciosa: la app sigue usable sin canal local; FCM puede reintentar más tarde.
-    }
+    } catch (_) {} // ignore: empty_catches
     try {
       await setupPassengerFirebaseMessaging();
-    } catch (_) {
-      // Permisos o listeners pueden completarse en sesiones siguientes; no bloquea login.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
-  /// App cerrada: el usuario abre desde el toque en la notificación (p. ej. conductor llegó).
   Future<void> _consumeInitialPassengerFcmMessage() async {
     try {
       if (Firebase.apps.isEmpty) return;
       final msg = await FirebaseMessaging.instance.getInitialMessage();
       if (msg == null) return;
       await handlePassengerFcmNotificationOpen(msg);
-    } catch (_) {
-      // Widget tests y arranques sin `Firebase.initializeApp` (no pasan por main).
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
   @override

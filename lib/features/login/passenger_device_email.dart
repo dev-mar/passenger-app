@@ -5,9 +5,6 @@ import 'services/passenger_google_sign_in_service.dart';
 
 const _deviceEmailChannel = MethodChannel('texi_passenger/device_email');
 
-/// Correo de una cuenta del dispositivo.
-/// Android: selector nativo de cuentas Google (igual que conductor).
-/// iOS: Google Sign-In si el build tiene `GOOGLE_OAUTH_SERVER_CLIENT_ID`; si no, Autofill del teclado.
 Future<String?> pickPassengerDeviceEmail() async {
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     final native = await _pickAndroidAccountEmail();

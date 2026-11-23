@@ -33,16 +33,13 @@ class PassengerFanMenuItem {
   final bool danger;
 }
 
-/// Menú en abanico denso hacia la izquierda.
-/// El último ítem es la referencia (casi a la altura del FAB, un poco más abajo);
-/// el resto se reparte uniformemente hacia arriba.
 Future<PassengerFanMenuAction?> showPassengerFanMenu({
   required BuildContext context,
   required Offset anchorGlobal,
   bool showHome = false,
 }) {
   final l10n = AppLocalizations.of(context)!;
-  // Orden (arriba → abajo): Inicio, Seguridad, Perfil, Operador, Mis viajes, Cerrar sesión.
+
   final items = <PassengerFanMenuItem>[
     if (showHome)
       PassengerFanMenuItem(
@@ -129,12 +126,11 @@ class _PassengerFanMenuOverlay extends StatelessWidget {
 
     const itemSize = 48.0;
     const fabSize = 56.0;
-    // Separación entre centros > tamaño del círculo para que se lean como opciones distintas.
-    // El último ítem queda fijo (endAngle); el resto se reparte hacia arriba desde ahí.
-    const itemArcSpacing = itemSize + AppSpacing.xl; // 48 + 12 = 60
+
+    const itemArcSpacing = itemSize + AppSpacing.xl;
     const radius = 128.0;
     final arcStepRad = itemArcSpacing / radius;
-    // Último ítem (referente): un poco más abajo que el FAB ancla — no mover.
+
     final endAngle = math.pi + 0.22;
     final n = items.length;
     final startAngle = endAngle - arcStepRad * (n - 1);
@@ -174,7 +170,7 @@ class _PassengerFanMenuOverlay extends StatelessWidget {
                   final t = Curves.easeOutBack.transform(
                     animation.value.clamp(0.0, 1.0),
                   );
-                  // i=0 arriba … i=n-1 último (referente, un poco bajo el FAB).
+
                   final angle = endAngle - arcStepRad * (n - 1 - i);
                   final r = radius * t;
                   final cx = anchor.dx + math.cos(angle) * r;
@@ -361,7 +357,6 @@ class _FanArcPainter extends CustomPainter {
   }
 }
 
-/// FAB circular del abanico (misma pieza en mapa e inicio).
 class PassengerFanMenuFab extends StatelessWidget {
   const PassengerFanMenuFab({
     super.key,

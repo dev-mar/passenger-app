@@ -1,5 +1,3 @@
-/// Credenciales documentadas para revisión Google Play (anti-bloqueo en cliente).
-/// Deben coincidir con `passenger-play-review-allowlist.service.js` en backend.
 class PassengerPlayReviewCredentials {
   PassengerPlayReviewCredentials._();
 

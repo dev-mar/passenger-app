@@ -6,7 +6,6 @@ import '../../../core/ui/texi_scale_press.dart';
 import 'login_auth_info_button.dart';
 import 'passenger_auth_look.dart';
 
-/// Fila compacta de acción en auth: icono, etiqueta, (i) y toda la fila es presionable.
 class LoginAuthActionRow extends StatelessWidget {
   const LoginAuthActionRow({
     super.key,

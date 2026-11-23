@@ -40,12 +40,9 @@ class PassengerPushTokenService {
       if (e.response?.statusCode == 401) {
         passengerSessionSyncBlocked = true;
       }
-    } catch (_) {
-      // No bloquea login/sesión si FCM o backend no están listos.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
-  /// Logout: deja de enviar FCM a este dispositivo/cuenta hasta el próximo login + sync.
   Future<void> revokeAllOnServerIfPossible() async {
     try {
       final bearer = await AuthService.getValidToken();
@@ -54,9 +51,7 @@ class PassengerPushTokenService {
         '/auth/push-token',
         options: Options(headers: {'Authorization': 'Bearer $bearer'}),
       );
-    } catch (_) {
-      // Cierre de sesión no debe fallar por red.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 }
 

@@ -7,7 +7,6 @@ import '../models/passenger_auth_lockout.dart';
 import 'login_attempts_limit_dialog.dart';
 import 'passenger_play_review_credentials.dart';
 
-/// Códigos de bloqueo duro (pantalla persistente o diálogo legacy).
 bool isLoginAuthRateLimitCode(String? code) {
   return PassengerAuthLockout.isLockoutCode(code);
 }
@@ -52,7 +51,6 @@ PassengerAuthLockout? lockoutFromAuthResponse({
   );
 }
 
-/// Muestra pantalla de lockout o overlay legacy; devuelve `true` si aplicó.
 Future<bool> showLoginAuthRateLimitIfNeeded(
   BuildContext context, {
   required String? code,

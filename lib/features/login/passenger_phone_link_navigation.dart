@@ -6,7 +6,6 @@ import '../../core/router/app_router.dart';
 import '../trip/passenger_trip_submit_helper.dart';
 import 'widgets/passenger_phone_verification_gate_overlay.dart';
 
-/// Navega al flujo de vincular/verificar teléfono (Fase 7).
 void navigateToPassengerPhoneLink(
   BuildContext context, {
   String? returnTo,
@@ -19,8 +18,6 @@ void navigateToPassengerPhoneLink(
   );
 }
 
-/// Maneja resultado de crear viaje cuando falta teléfono verificado.
-/// Sesión email-only → overlay elegante; resto → navegación directa al flujo.
 Future<bool> handlePassengerTripPhoneRequired(
   BuildContext context,
   WidgetRef ref,

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_ui_tokens.dart';
 
-/// Tema único de la app: Material 3, SnackBars/diálogos/sheets coherentes con la marca Texi.
 class AppTheme {
   AppTheme._();
 

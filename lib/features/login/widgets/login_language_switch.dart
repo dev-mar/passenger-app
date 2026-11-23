@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../gen_l10n/app_localizations.dart';
 import 'passenger_auth_look.dart';
 
-/// ES | EN en el login. Si nadie eligió, sigue el idioma del teléfono.
 class LoginLanguageSwitch extends ConsumerWidget {
   const LoginLanguageSwitch({super.key});
 

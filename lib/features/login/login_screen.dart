@@ -32,7 +32,6 @@ enum LoginScreenStep {
   googleUnified,
 }
 
-/// Login pasajero unificado: una pantalla por método (teléfono o Google).
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({
     super.key,
@@ -80,7 +79,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _step == LoginScreenStep.phoneUnified ||
       _step == LoginScreenStep.googleUnified;
 
-  /// Flavor/dev (`TEXI_APP_ENV=dev`), incluido APK release. Prod no entra aquí.
   bool get _usesClassicPhoneOtp => PassengerAppEnvironment.usesClassicPhoneOtp;
 
   @override

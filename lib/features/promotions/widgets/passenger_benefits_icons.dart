@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../home/widgets/passenger_home_look.dart';
 
-/// Iconos dibujados (no Material) para el hub de beneficios.
 class BenefitsCanvasIcon extends StatelessWidget {
   const BenefitsCanvasIcon({
     super.key,

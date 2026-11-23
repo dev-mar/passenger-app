@@ -1,4 +1,3 @@
-/// Requerimientos especiales. Cada ítem marcado aplica recargo % sobre el precio base de quote.
 abstract final class TripPassengerSpecial {
   static const String seats6 = 'seats_6';
   static const String roofRack = 'roof_rack';

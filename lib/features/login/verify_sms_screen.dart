@@ -28,7 +28,6 @@ import 'widgets/passenger_auth_shell.dart';
 
 enum _VerifySmsPhase { googleGate, sendingSms, codeEntry }
 
-/// Flujo SMS premium: Google del dispositivo → Firebase Phone → código.
 class VerifySmsScreen extends ConsumerStatefulWidget {
   const VerifySmsScreen({
     super.key,

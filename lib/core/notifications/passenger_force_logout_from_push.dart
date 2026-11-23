@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import '../auth/auth_service.dart';
 import '../auth/passenger_session_expulsion.dart';
 
-/// True si el push indica cierre forzado de sesión / cuenta eliminada.
 bool isPassengerForceLogoutPush(RemoteMessage message) {
   final event = message.data['event']?.toString().trim().toLowerCase() ?? '';
   final code = message.data['code']?.toString().trim().toUpperCase() ?? '';
@@ -16,7 +15,6 @@ bool isPassengerForceLogoutPush(RemoteMessage message) {
       code == 'SESSION_SUPERSEDED';
 }
 
-/// Limpia sesión local y navega a login (si hay UI). Seguro en foreground.
 Future<void> handlePassengerForceLogoutFromPush(RemoteMessage message) async {
   if (!isPassengerForceLogoutPush(message)) return;
   if (kDebugMode) {
@@ -31,7 +29,6 @@ Future<void> handlePassengerForceLogoutFromPush(RemoteMessage message) async {
   AuthService.onSessionExpired?.call();
 }
 
-/// Variante para isolate de background: solo limpia tokens locales.
 Future<void> clearPassengerSessionFromBackgroundPush(RemoteMessage message) async {
   if (!isPassengerForceLogoutPush(message)) return;
   markPassengerSessionExpelled();

@@ -11,8 +11,6 @@ import 'passenger_force_logout_from_push.dart';
 import 'passenger_notification_service.dart';
 import 'passenger_push_token_service.dart';
 
-/// Registrado antes de `runApp`. Ejecuta en isolate propio cuando la app está
-/// en segundo plano o cerrada (mensajes data-only o sin presentación del sistema).
 @pragma('vm:entry-point')
 Future<void> passengerFirebaseMessagingBackgroundHandler(
   RemoteMessage message,
@@ -23,13 +21,12 @@ Future<void> passengerFirebaseMessagingBackgroundHandler(
     return;
   }
   if (message.notification != null) {
-    // Con payload `notification`, Android suele mostrar la notificación del sistema.
+
     return;
   }
   await PassengerNotificationService.showFcmDataOnlyMessage(message);
 }
 
-/// Permisos, listeners y refresco de token (llamar tras [Firebase.initializeApp]).
 Future<void> setupPassengerFirebaseMessaging() async {
   if (Firebase.apps.isEmpty) return;
 
@@ -42,8 +39,6 @@ Future<void> setupPassengerFirebaseMessaging() async {
       sound: true,
     );
   }
-
-  // POST_NOTIFICATIONS / FCM: solo tras divulgación in-app (ver compliance).
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     if (isPassengerForceLogoutPush(message)) {
@@ -86,7 +81,7 @@ Future<void> _showForegroundFcmDeduped(RemoteMessage message) async {
       (_, t) => now.difference(t) > const Duration(minutes: 2),
     );
   }
-  // Hidrata status/chat aunque el WS vaya atrasado o desconectado.
+
   applyPassengerForegroundPushToRealtime(message);
   await PassengerNotificationService.instance.showFcmForegroundMessage(message);
 }

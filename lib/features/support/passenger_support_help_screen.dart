@@ -12,7 +12,6 @@ import 'passenger_account_views_flags.dart';
 import 'widgets/passenger_support_center_sheet.dart';
 import 'widgets/passenger_verified_drivers_panel.dart';
 
-/// Seguridad (ex Soporte): emergencia 110 + contacto + (V2) conductores verificados.
 class PassengerSupportHelpScreen extends ConsumerStatefulWidget {
   const PassengerSupportHelpScreen({super.key});
 

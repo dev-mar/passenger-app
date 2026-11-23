@@ -8,7 +8,6 @@ import '../../../core/ui/texi_scale_press.dart';
 import '../../home/widgets/passenger_home_look.dart';
 import 'passenger_benefits_icons.dart';
 
-/// Paleta local alineada al hub de inicio.
 abstract final class BenefitsVisual {
   BenefitsVisual._();
 

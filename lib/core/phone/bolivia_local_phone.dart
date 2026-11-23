@@ -2,10 +2,8 @@ import 'package:flutter/services.dart';
 
 import 'passenger_phone_countries.dart';
 
-/// Código de discado de Bolivia (sin `+`).
 const String kBoliviaDialDigits = '591';
 
-/// Largo del número local boliviano (sin código de país).
 const int kBoliviaLocalPhoneLength = 8;
 
 final _nonDigits = RegExp(r'\D');
@@ -15,13 +13,11 @@ bool isBoliviaDialCode(String? dialCode) {
   return (dialCode ?? '').replaceAll(_nonDigits, '') == kBoliviaDialDigits;
 }
 
-/// Número local BO: exactamente 8 dígitos e inicia en 5, 6 o 7.
 bool isValidBoliviaLocalMobile(String raw) {
   final d = raw.replaceAll(_nonDigits, '');
   return _boliviaLocalMobile.hasMatch(d);
 }
 
-/// Validación del campo de login/vínculo según el país elegido.
 bool isValidPassengerLocalPhone({
   required String dialCode,
   required String localNumber,
@@ -43,7 +39,6 @@ bool isValidPassengerLocalPhone({
   return true;
 }
 
-/// Solo dígitos; en Bolivia recorta a 8 y, si pegan `591` + local, deja el local.
 class BoliviaLocalPhoneInputFormatter extends TextInputFormatter {
   const BoliviaLocalPhoneInputFormatter();
 
@@ -88,7 +83,6 @@ List<TextInputFormatter> passengerLocalPhoneFormatters(String dialCode) {
   ];
 }
 
-/// Recorta al largo del país y, si pegan el prefijo internacional, deja el local.
 class PassengerLocalPhoneInputFormatter extends TextInputFormatter {
   const PassengerLocalPhoneInputFormatter(this.dialCode);
 
@@ -125,8 +119,6 @@ class PassengerLocalPhoneInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Número completo `+591 71234567` (sin máscara).
-/// No altera el valor enviado al backend.
 String formatPassengerPhoneDisplay({
   required String dialCode,
   required String localNumber,

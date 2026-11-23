@@ -6,7 +6,6 @@ import '../../core/session/passenger_internal_tools_gate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Pantalla de pruebas internas; acceso por allowlist de teléfono o `TEXI_PASSENGER_INTERNAL_TOOLS`.
 class PassengerLabsScreen extends ConsumerWidget {
   const PassengerLabsScreen({super.key});
 

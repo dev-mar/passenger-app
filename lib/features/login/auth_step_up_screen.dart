@@ -22,7 +22,6 @@ import 'widgets/passenger_auth_shell.dart';
 import 'widgets/passenger_turnstile_widget.dart';
 import 'passenger_device_email.dart';
 
-/// Fase 2 — verificación adicional (email + captcha) para desbloquear login.
 class AuthStepUpScreen extends ConsumerStatefulWidget {
   const AuthStepUpScreen({
     super.key,

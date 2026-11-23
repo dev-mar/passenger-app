@@ -58,7 +58,6 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     }
     _d._lastPassengerEnRouteCameraFitAt = now;
 
-    // La ruta no cambia. Si el pasajero ya va a bordo, la cámara sigue su auto.
     final cameraTarget = _d._passengerAboardLatLng ?? from;
     unawaited(
       c.animateCamera(
@@ -79,9 +78,7 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
       if (!mounted) return;
       if (_d._batteryLevel == level) return;
       setState(() => _d._batteryLevel = level);
-    } catch (_) {
-      // Fallo silencioso: no bloquea flujo del mapa.
-    }
+    } catch (_) {} // ignore: empty_catches
   }
 
   String _currentOptimizationMode() {
@@ -117,16 +114,14 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     final rt = ref.read(passengerRealtimeProvider);
     final trackingDriver = passengerTripIsTrackingDriver(rt.status);
     final awaitingMatch = passengerTripIsAwaitingDriverMatch(rt.status);
-    // Si la URL firmada de la foto está por expirar o ya expiró, refrescamos
-    // el GET de inmediato para evitar avatar roto al cargar de red.
+
     final expiresAt = rt.driverPhotoExpiresAt;
     final photoExpiryBuffer = const Duration(seconds: 45);
     final mustRefreshPhotoNow =
         trackingDriver &&
         expiresAt != null &&
         !now.isBefore(expiresAt.subtract(photoExpiryBuffer));
-    // Matching: poll corto (WS sin replay de accept). Tracking: holgado;
-    // GPS/status van por socket y el GET firma foto.
+
     final Duration minGap;
     if (awaitingMatch) {
       minGap = const Duration(seconds: 3);
@@ -139,7 +134,7 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
         now.difference(_d._lastTripStatusSyncAt) < minGap) {
       return;
     }
-    // No bloquear si un GET lento (firma foto) sigue en vuelo.
+
     if (_d._tripStatusSyncInFlight) return;
     _d._tripStatusSyncInFlight = true;
     _d._lastTripStatusSyncAt = now;
@@ -148,8 +143,7 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
           .read(passengerRealtimeProvider.notifier)
           .syncTripStatusFromApi(tripId: tripId, force: true)
           .timeout(const Duration(seconds: 9));
-    } catch (_) {
-      // Timeout/red: el próximo tick reintenta; no congelar UI.
+    } catch (_) { // ignore: empty_catches
     } finally {
       _d._tripStatusSyncInFlight = false;
     }
@@ -169,7 +163,6 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     _d._tripStatusSyncTimerTripId = tripId;
     _d._tripStatusSyncInterval = interval;
 
-    // No GET extra al pasar matching→tracking: trip:accepted ya pintó UI.
     final sinceLast = DateTime.now().difference(_d._lastTripStatusSyncAt);
     if (sinceLast >= const Duration(seconds: 8)) {
       unawaited(_syncTripStatusOnceThrottled(tripId));
@@ -203,7 +196,7 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
     }
 
     unawaited(() async {
-      // Recargamos el status por REST para compensar la falta de replay por WS.
+
       await ref
           .read(passengerRealtimeProvider.notifier)
           .syncTripStatusFromApi(tripId: tripId, force: true);
@@ -238,7 +231,6 @@ mixin _TripRequestScreenSyncMixin on _TripRequestScreenDraftMixin {
 
       unawaited(_refreshPassengerGpsDot(preserveTripGeometry: true));
 
-      // Cargamos flag local de rating para que la sheet decida bien.
       if (_d._ratingDoneTripId != tripId) {
         final done = await TripSessionStorage.isRatingDone(tripId);
         if (!mounted) return;

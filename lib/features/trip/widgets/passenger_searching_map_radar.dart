@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Radar de matching anclado al pin de origen (coords de pantalla del mapa).
-/// Solo reconstruye este overlay; no hace setState del [GoogleMap].
 class PassengerSearchingMapRadarOverlay extends StatelessWidget {
   const PassengerSearchingMapRadarOverlay({
     super.key,

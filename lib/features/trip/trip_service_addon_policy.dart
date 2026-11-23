@@ -71,7 +71,6 @@ List<String> allowedSpecialsForFamily(TripPassengerServiceFamily family) {
   }
 }
 
-/// Precio a mostrar en cotización: aplica recargo solo en Estándar/Confort.
 double displayQuotedPriceForOption({
   required double basePrice,
   required int? serviceTypeId,

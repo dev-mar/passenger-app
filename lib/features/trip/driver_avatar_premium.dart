@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
 
-/// Imagen embebida `data:image/...;base64,...` (foto de perfil desde backend sin S3).
 Uint8List? _decodeDataImageUrl(String url) {
   final u = url.trim();
   if (!u.startsWith('data:image')) return null;
@@ -23,7 +22,6 @@ Uint8List? _decodeDataImageUrl(String url) {
   }
 }
 
-/// Avatar circular con anillo degradado, foto de red o iniciales; animación de entrada suave.
 class DriverAvatarPremium extends StatefulWidget {
   const DriverAvatarPremium({
     super.key,

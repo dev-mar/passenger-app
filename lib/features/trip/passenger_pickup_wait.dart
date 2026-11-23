@@ -7,8 +7,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_ui_tokens.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Reloj de recojo: usa `arrivedAt` del servidor + duraciones. La elegibilidad de
-/// cancelar (más adelante) no se decide aquí.
 enum PickupWaitPhase { waiting, grace, eligible }
 
 class TripPickupWaitSpec {

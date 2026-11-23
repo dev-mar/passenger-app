@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// Logo multicolor oficial de Google (asset SVG vectorial).
 class LoginGoogleBrandIcon extends StatelessWidget {
   const LoginGoogleBrandIcon({super.key, this.size = 22});
 

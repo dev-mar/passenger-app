@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 
 import '../../gen_l10n/app_localizations.dart';
 
-/// Locale activo de la app (MaterialApp) para servicios sin [BuildContext].
 class PassengerLocaleHolder {
   PassengerLocaleHolder._();
 

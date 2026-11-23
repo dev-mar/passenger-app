@@ -28,7 +28,6 @@ import 'trip_recovery_feedback.dart';
 import '../promotions/passenger_promo_request.dart';
 import '../promotions/passenger_promo_you_pay_chip.dart';
 
-/// Pantalla Confirmar viaje: resumen y botón Solicitar.
 class TripConfirmScreen extends ConsumerStatefulWidget {
   const TripConfirmScreen({super.key});
 
@@ -129,8 +128,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
             originLng: origin.lng,
             destinationLat: destination.lat,
             destinationLng: destination.lng,
-            // Enviamos también textos para que backend/conductor muestren
-            // origen/destino en formato humano.
+
             originAddress:
                 '${origin.lat.toStringAsFixed(6)},${origin.lng.toStringAsFixed(6)}',
             destinationAddress:
@@ -177,7 +175,7 @@ class _TripConfirmScreenState extends ConsumerState<TripConfirmScreen> {
         quote: quote,
         selectedOption: option,
       );
-      // Conectar realtime para escuchar trip:accepted / trip:status para este trip.
+
       ref.read(passengerRealtimeProvider.notifier).connect(
             tripId: result.tripId,
             quote: quote,

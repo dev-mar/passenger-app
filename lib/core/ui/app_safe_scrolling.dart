@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Padding inferior que respeta la barra de navegación del sistema (Android/iOS).
-/// Usar en [ListView] / scrolls con acciones al final para evitar solapes.
 abstract final class AppSafeScrolling {
   static double systemNavBottom(BuildContext context) =>
       MediaQuery.viewPaddingOf(context).bottom;

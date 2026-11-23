@@ -1,16 +1,9 @@
-﻿// Generado por scripts/generate-firebase-options.ps1
-// Fuentes: android/app/src/{dev|prod}/google-services.json
-//
-// Dev:  texi-prod - com.taxitexi.texi_passenger_app.dev
-// Prod: prodtexiappgm - com.taxitexi.texi_passenger_app
-
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 import 'core/config/passenger_app_environment.dart';
 
-/// Configuracion Firebase â€” app pasajero.
 class DefaultFirebaseOptions {
   DefaultFirebaseOptions._();
 

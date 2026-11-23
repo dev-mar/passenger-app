@@ -1,9 +1,7 @@
 import 'package:flutter/services.dart';
 
-/// Máximo RFC 5321 para una dirección de correo.
 const int kPassengerEmailMaxLength = 254;
 
-/// Nombre visible (un solo campo): suficiente para nombre y apellido.
 const int kPassengerDisplayNameMaxLength = 80;
 
 String clampPassengerText(String value, int maxLength) {

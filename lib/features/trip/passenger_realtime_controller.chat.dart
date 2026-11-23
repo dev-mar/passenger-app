@@ -142,9 +142,6 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
     }
   }
 
-  /// Hidrata chat desde FCM solo si el WS no puede entregar `trip:chat:new`.
-  /// Con socket vivo no insertamos: el push y el WS llegaban a la vez con ids
-  /// distintos (`fcm-…` vs UUID) y se veían dos burbujas con horas desfasadas.
   void ingestChatFromPush({
     required String tripId,
     required String messageText,
@@ -207,7 +204,6 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
 
   bool _isSyntheticFcmChatId(String id) => id.startsWith('fcm-');
 
-  /// Misma burbuja lógica aunque FCM y WS usen ids distintos.
   bool _isSameTripChatContent(TripChatMessage a, {
     required String tripId,
     required String senderRole,
@@ -222,7 +218,7 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
         ? codeA == codeB
         : a.messageText.trim() == messageText.trim();
     if (!textMatch) return false;
-    // Ventana corta: evita colapsar dos “ok” legítimos minutos después.
+
     final aAt = a.createdAt;
     final bAt = createdAt;
     if (aAt == null || bAt == null) return true;
@@ -234,8 +230,6 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       final eventTripId = data['tripId']?.toString();
       if (eventTripId == null || eventTripId != tripId) return;
 
-      // No descartar por lag de status: FCM puede llegar mientras el UI sigue en
-      // "searching". Un mensaje de chat implica viaje operativo (accepted+).
       if (!passengerTripChatPhaseActive(state.status)) {
         if (passengerTripIsAwaitingDriverMatch(state.status) ||
             state.status == null) {
@@ -248,10 +242,10 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
           );
           unawaited(_rt.syncTripStatusFromApi(tripId: eventTripId, force: true));
         } else if (!passengerTripIsTrackingDriver(state.status)) {
-          // completed/cancelled/expired: no acumular chat.
+
           return;
         }
-        // started/in_trip: aún se muestra historial si llega retraso de WS.
+
       }
 
       final id =
@@ -263,7 +257,6 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       final messageText = data['messageText']?.toString().trim() ?? '';
       if (messageText.isEmpty) return;
 
-      // Deduplicar por id (reentregas WS).
       if (state.chatMessages.any((m) => m.id == id)) return;
 
       final createdAt = _parseTripChatCreatedAt(data['createdAt']);
@@ -279,7 +272,7 @@ mixin _PassengerRealtimeChatMixin on StateNotifier<PassengerRealtimeState> {
       );
       if (dupIndex >= 0) {
         final existing = state.chatMessages[dupIndex];
-        // Preferir UUID del WS sobre id sintético FCM; actualizar createdAt del server.
+
         final upgrade =
             _isSyntheticFcmChatId(existing.id) && !_isSyntheticFcmChatId(id);
         if (!upgrade) return;

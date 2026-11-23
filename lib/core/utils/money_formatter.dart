@@ -9,14 +9,6 @@ String currencyDisplaySymbol(String code) {
   return code;
 }
 
-/// Redondeo de tarifas de viaje: el único decimal válido es **0.5**.
-///
-/// Trabaja en céntimos para evitar errores de punto flotante.
-/// - Entero exacto → se queda (12.00 → 12.0).
-/// - Hasta 0.54 inclusive → .5 (12.36 → 12.5, 12.53 → 12.5).
-/// - 0.55 o más → entero siguiente (12.67 → 13.0).
-///
-/// Misma regla que la app conductor. Créditos/Club no usan esto.
 double roundTripAmount(double amount) {
   if (amount.isNaN || amount.isInfinite) return amount;
   final sign = amount < 0 ? -1.0 : 1.0;
@@ -40,7 +32,6 @@ String formatMoney(
   return '$symbol ${amount.toStringAsFixed(decimals)}';
 }
 
-/// Precio de viaje (cotización, oferta, activo, “tú pagas”): 1 decimal y redondeo .0/.5.
 String formatTripMoney(
   double? amount, {
   String? currencyCode,

@@ -58,7 +58,6 @@ class PassengerLegalConfig {
   static const String _servicesGuideEnDefault =
       'https://www.taxitexi.com/en/services/';
 
-  /// Guía pública de tipos de servicio, preferencias y requerimientos.
   static String servicesGuideUrl(Locale locale) {
     final override = _servicesGuideUrlRaw.trim();
     if (override.isNotEmpty) return override;
@@ -76,7 +75,6 @@ class PassengerLegalConfig {
   static const String _announcementsEnDefault =
       'https://www.taxitexi.com/en/novedades/';
 
-  /// Destino único del carrusel de inicio (landing, no por imagen).
   static String announcementsUrl(Locale locale) {
     final override = _announcementsUrlRaw.trim();
     if (override.isNotEmpty) return override;

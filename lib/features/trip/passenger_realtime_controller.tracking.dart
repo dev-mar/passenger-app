@@ -9,8 +9,6 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     return raw > 180.0 ? 360.0 - raw : raw;
   }
 
-  /// Un solo write de GPS: el mapa interpola el pin. Un lerp aquí
-  /// reconstruía todo el GoogleMap ~6 veces por tick y colgaba Android.
   void _commitDriverMarkerTarget({
     required double targetLat,
     required double targetLng,
@@ -23,7 +21,6 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     );
   }
 
-  /// Aplica status desde push FCM de inmediato (sin esperar REST lento).
   void applyStatusHintFromPush({
     required String tripId,
     required String status,
@@ -43,7 +40,6 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     );
   }
 
-  /// Sincroniza estado REST. `null` = OK o throttle; código si falló (`TRIP_NOT_FOUND`, etc.).
   Future<String?> syncTripStatusFromApi({
     required String tripId,
     bool force = false,
@@ -59,7 +55,7 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
       if (token == null || token.isEmpty) return 'NO_TOKEN';
       final previousStatus = state.status;
       final api = TripsApi(token: token);
-      // Timeout: el GET puede tardar por firma de foto; no bloquear el flujo.
+
       final res = await api
           .getPassengerTripStatus(tripId: tripId)
           .timeout(const Duration(seconds: 8));
@@ -176,7 +172,6 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     );
   }
 
-  /// Hint local de fase (p. ej. tras cold start) sin inventar "searching".
   void hydrateStatusHintFromLocalCache({
     required String tripId,
     required String status,
@@ -184,7 +179,7 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     final s = status.trim().toLowerCase();
     if (s.isEmpty) return;
     if (state.activeTripId != null && state.activeTripId != tripId) return;
-    // No pisar un status realtime más fresco.
+
     if (state.status != null &&
         state.status!.toLowerCase() != s &&
         !passengerTripIsAwaitingDriverMatch(state.status)) {
@@ -197,8 +192,7 @@ mixin _PassengerRealtimeTrackingMixin on StateNotifier<PassengerRealtimeState> {
     try {
       final tripIdData = data['tripId']?.toString();
       if (tripIdData == null || tripIdData != tripId) return;
-      // Ubicación del conductor implica viaje aceptado+: salir del overlay matching
-      // aunque trip:accepted se haya perdido (sin replay WS).
+
       if (passengerTripIsAwaitingDriverMatch(state.status) ||
           state.status == null) {
         state = state.copyWith(status: 'accepted', activeTripId: tripIdData);

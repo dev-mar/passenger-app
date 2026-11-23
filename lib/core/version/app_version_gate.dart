@@ -44,7 +44,6 @@ class _AppVersionPolicy {
   final String storeUrl;
 }
 
-/// Comprueba versión mínima contra backend (fail-open si red falla).
 class AppVersionGate {
   AppVersionGate._();
 

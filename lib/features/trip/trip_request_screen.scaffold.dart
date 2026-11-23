@@ -101,7 +101,6 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       }
     });
 
-    // Sincroniza flags de calificaci├│n cuando cambia el trip (p. ej. creado en esta sesi├│n sin pasar por splash).
     ref.listen<TripRequestState>(tripRequestProvider, (previous, next) {
       final id = next.tripId;
       final prevId = previous?.tripId;
@@ -194,8 +193,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       final resolvedTripId = effectiveTripId;
       final trackingDriver = passengerTripIsTrackingDriver(rtState.status);
       final awaitingMatch = passengerTripIsAwaitingDriverMatch(rtState.status);
-      // Matching: poll corto (WS sin replay de accept). Tracking: holgado
-      // (GPS/status van por socket; el GET firma foto y no debe ir cada 3 s).
+
       final Duration syncInterval = awaitingMatch
           ? const Duration(seconds: 4)
           : trackingDriver
@@ -241,15 +239,13 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
             needsAnyMapConfirm ||
             editingSettledDraft);
 
-    /// Borrador de ruta (sin viaje creado): cabecera + barra inferior fija.
-    /// El sheet deslizable del viaje activo solo aplica con [isTripActive].
     final showDraftPlanningChrome =
         effectiveTripId == null &&
         !isSearchingDriver &&
         !isRecoveringActiveTrip &&
         !isTripActive &&
         !hasConnectionError;
-    // El origen sigue al pin sin botón. El destino se arma al pulsar su sección.
+
     final confirmingOrigin =
         _d._draftEditTarget == PassengerDraftEditTarget.destination
         ? false
@@ -278,8 +274,6 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
         _d._mapConfirmInstructionHiddenWhileDragging &&
         !draftSearchPriorityMode;
 
-    // Al completarse el viaje, mostrar una sola vez el sheet de calificaci├│n
-    // ├║nicamente si el pasajero todav├¡a no lo resolvi├│ (localmente).
     if (effectiveTripId != null &&
         rtState.status == 'completed' &&
         effectiveTripId != _d._ratingSheetShownForTripId &&
@@ -291,8 +285,6 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       });
     }
 
-    // Completado pero el rating ya figuraba hecho (p. ej. storage desincronizado): no se abre el sheet
-    // y el panel de estado bloqueaba el flujo; volvemos al inicio como con "Omitir".
     if (effectiveTripId != null &&
         rtState.status == 'completed' &&
         _d._ratingDone) {
@@ -316,7 +308,6 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       _d._completedStaleAutoResetTripId = null;
     }
 
-    // Cancelled/expired: al inicio, salvo timeout de matching (Continuar reusa la ruta).
     if (effectiveTripId != null &&
         (rtState.status == 'cancelled' || rtState.status == 'expired')) {
       final keepDraft = passengerShouldKeepDraftAfterMatchingCancel(
@@ -339,12 +330,10 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
       }
     }
 
-    // Marcadores: al confirmar, deben quedar visibles en el mapa (como antes).
-    // Durante confirmaci├│n de ORIGEN, el marcador de origen sigue el centro.
     final originMarkerPos = confirmingOrigin
         ? (_d._mapCenter ?? origin)
         : origin;
-    // Marcador de destino: solo cuando ya est├í confirmado (no mientras se est├í eligiendo).
+
     final LatLng? destMarkerPos =
         (_d._destination != null &&
             (!_d._pickingDestination ||
@@ -419,18 +408,16 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 buildingsEnabled: false,
                 indoorViewEnabled: false,
                 trafficEnabled: false,
-                // Deja el pin/radar visibles sobre el card de matching.
+
                 padding: EdgeInsets.only(bottom: isSearchingDriver ? 168 : 0),
                 style: isTripActive ? _activeTripMapStyleFor(brightness) : null,
                 myLocationEnabled: passengerShouldDrawNativeLocationDot(
                   gpsDotEnabled: _d._mapMyLocationDotEnabled,
                   aboardCarVisible: showPassengerAboardCar,
                 ),
-                // Recentrado unificado en barra superior (mismo c├¡rculo que idioma/perfil); evita duplicar el FAB nativo.
+
                 myLocationButtonEnabled: false,
-                // Zoom/pan siempre. No reubicar pines por tap: con origen+destino
-                // confirmados un toque accidental movía el destino. Confirmar/editar
-                // origen o destino sigue por aguja (_picking* / draftEditTarget).
+
                 scrollGesturesEnabled: true,
                 zoomGesturesEnabled: true,
                 rotateGesturesEnabled: true,
@@ -439,7 +426,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                 onCameraMove: _onCameraMove,
                 onCameraIdle: _onCameraIdleForMapConfirm,
                 markers: {
-                  // Con aguja centrada no mostramos el pin amarillo duplicado (evita desalineaci├│n visual).
+
                   if (!(confirmingOrigin && isMapConfirmMode))
                     Marker(
                       markerId: const MarkerId('origin'),
@@ -484,7 +471,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           ? const Offset(0.5, 0.5)
                           : const Offset(0.5, 1.0),
                     ),
-                  // Matching: solo autos reales a ≤2 km (API nearby). Sin inventar pines.
+
                   if (isSearchingDriver)
                     ..._d._searchingNearbyDrivers.map(
                       (d) => Marker(
@@ -543,14 +530,14 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   anchorListenable: _d._searchingRadarAnchor,
                 ),
               ),
-            // Aguja debajo del chrome de borrador/sugerencias para no tapar la lista.
+
             if (isMapConfirmMode)
               Positioned.fill(
                 child: IgnorePointer(
                   child: Align(
                     alignment: Alignment.center,
                     child: Transform.translate(
-                      // La punta del alfiler = centro del mapa (mismo lat/lng que se confirma).
+
                       offset: Offset(
                         0,
                         -PassengerMapPickingNeedle.tipOffsetFromCenter,
@@ -567,8 +554,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   ),
                 ),
               ),
-            // Barra superior: draft header, o chat/seguridad en viaje activo.
-            // Menú y GPS del mapa se retiraron; viven en draft chrome / otras pantallas.
+
             if (!isSearchingDriver)
               Positioned(
                 top: 0,
@@ -601,9 +587,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                           child: showDraftPlanningChrome
                               ? PassengerTripDraftHeader(
                                   originConfirmed: _d._originConfirmed,
-                                  // Mientras el pin se est├í moviendo (modo aguja), inyectamos la
-                                  // previsualizaci├│n en vivo en la fila correspondiente para que el
-                                  // usuario vea la direcci├│n que apunta sin texto sobre el pin.
+
                                   originDisplayLine:
                                       _resolveDraftOriginDisplayLine(l10n),
                                   destinationDisplayLine:
@@ -819,7 +803,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   ),
                 ),
               ),
-            // Overlay "Buscando conductor" en el mismo mapa (sin cambiar de pantalla)
+
             if (isSearchingDriver)
               Positioned(
                 left: 0,
@@ -880,7 +864,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   }());
                 },
               ),
-            // Panel retr├íctil de estado del viaje + datos del conductor y del viaje
+
             if (isTripActive && !isSearchingDriver && rtState.status != null)
               Positioned(
                 left: 0,
@@ -1116,7 +1100,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   ),
                 ),
               ),
-            // Error de conexi├│n Socket: tripId existe pero fall├│ connect (NO_TOKEN, SOCKET, etc.)
+
             if (hasConnectionError)
               Positioned(
                 left: 0,
@@ -1140,7 +1124,7 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
                   cancelLabel: isSearchingDriver ? l10n.commonCancel : null,
                 ),
               ),
-            // Borrador: barra inferior (confirmar en mapa / cotizaci├│n / solicitar). GPS y guardados van en la cabecera.
+
             if (showDraftPlanningChrome &&
                 ((!originPinIsLive && !destinationSearchOnly) ||
                     editingSettledOrigin ||
@@ -1238,7 +1222,6 @@ mixin _TripRequestScreenScaffoldMixin on _TripRequestScreenBootstrapMixin {
   }
 }
 
-/// Chat en mapa: icono moderno tipo “mensaje” con badge de no leídos.
 class _MapChatActionButton extends StatelessWidget {
   const _MapChatActionButton({
     required this.unread,

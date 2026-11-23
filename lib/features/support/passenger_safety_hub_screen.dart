@@ -18,7 +18,6 @@ import '../trip/trip_request_trip_phase_helpers.dart';
 import '../trip/widgets/passenger_trip_toast.dart';
 import 'widgets/passenger_verified_drivers_panel.dart';
 
-/// Hub Seguridad: logo escudo + grid 2×2 (mockup `vista-seguridad.png`).
 class PassengerSafetyHubScreen extends ConsumerWidget {
   const PassengerSafetyHubScreen({super.key});
 
@@ -315,7 +314,6 @@ class _SafetyTile extends StatelessWidget {
   }
 }
 
-/// Lista moderna “cómo TEXI verifica conductores”.
 class PassengerVerifiedDriversScreen extends StatelessWidget {
   const PassengerVerifiedDriversScreen({super.key});
 

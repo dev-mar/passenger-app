@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_ui_tokens.dart';
 
-/// Look exclusivo del embudo de autenticación (puede apartarse de la paleta base).
 class PassengerAuthLook {
   PassengerAuthLook._();
 

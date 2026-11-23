@@ -1,8 +1,3 @@
-// Comprueba paridad de claves entre app_en.arb y app_es.arb, ejecuta `flutter gen-l10n`
-// y avisa si hay mensajes sin traducir (untranslated_report.json).
-//
-// Uso (desde la raíz del paquete): dart run tool/verify_l10n.dart
-
 // ignore_for_file: avoid_print
 
 import 'dart:convert';
@@ -23,7 +18,6 @@ Set<String> _messageKeys(Map<String, dynamic> arb) {
   return keys;
 }
 
-/// Patrones de voseo / rioplatense prohibidos en `app_es.arb`.
 final List<({String label, RegExp pattern})> _voseoPatterns = [
   (label: 'querés', pattern: RegExp(r'\bquerés\b', caseSensitive: false)),
   (label: 'podés', pattern: RegExp(r'\bpodés\b', caseSensitive: false)),

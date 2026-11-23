@@ -35,8 +35,6 @@ import 'widgets/passenger_home_quick_trips_carousel.dart';
 import 'widgets/passenger_home_recent_list.dart';
 import 'widgets/passenger_home_where_to_cta.dart';
 
-/// Hub post-login: atajos, anuncios y GPS en segundo plano.
-/// No bloquea la UI si faltan permisos; el mapa de viaje sigue intacto.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -327,8 +325,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Casa, trabajo y favoritos: el pasajero ve el nombre y la calle.
-  /// Al conductor solo se le manda la calle, o las coordenadas si no hay calle.
   Future<void> _openSavedDestination(PassengerSavedPlace place) async {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -966,7 +962,6 @@ class _BannerSkeleton extends StatelessWidget {
   }
 }
 
-/// Primer nombre del registro. Ignora el resto y un correo suelto.
 String? passengerGreetingFirstName(String? raw) {
   final text = raw?.trim() ?? '';
   if (text.isEmpty || text.contains('@')) return null;

@@ -11,8 +11,6 @@ import '../trip_service_addon_policy.dart';
 import 'passenger_fan_menu.dart';
 import 'passenger_quote_service_option_card.dart';
 
-/// Barra fija inferior del borrador: cotización, CTA y confirmación en mapa.
-/// GPS / mapa / guardados viven en la cabecera junto al buscador (sin fila de acciones aquí).
 class PassengerTripDraftBottomBar extends StatelessWidget {
   const PassengerTripDraftBottomBar({
     super.key,

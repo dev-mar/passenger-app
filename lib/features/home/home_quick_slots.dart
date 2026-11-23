@@ -13,11 +13,9 @@ class HomeQuickPlaceResult {
   final double lat;
   final double lng;
 
-  /// Calle o dirección leída al guardar. Casa y trabajo pueden omitirla.
   final String? address;
 }
 
-/// Empareja slots de viajes rápidos con `operations.passenger_saved_places`.
 abstract final class HomeQuickSlots {
   static const canonicalWork = '__texi_slot_work';
   static const canonicalHome = '__texi_slot_home';
@@ -56,7 +54,6 @@ abstract final class HomeQuickSlots {
   static bool isConfigurable(HomeQuickSlotKind kind) =>
       kind != HomeQuickSlotKind.airport;
 
-  /// Casa, trabajo y aeropuerto tienen su propia tarjeta. No van en Mis favoritos.
   static bool isPrincipalSavedLabel(String label, {AppLocalizations? l10n}) {
     final key = label.trim().toLowerCase();
     if (key.isEmpty) return false;
@@ -163,7 +160,6 @@ abstract final class HomeQuickSlots {
     return storageLabel(kind, l10n);
   }
 
-  /// La dirección guardada no es una calle: es un par lat, lng o «nombre · lat, lng».
   static bool savedPlaceAddressIsCoordinates(String raw) {
     final text = raw.trim();
     if (text.isEmpty) return true;
@@ -176,7 +172,6 @@ abstract final class HomeQuickSlots {
     return parts.length >= 2 && _savedPlaceCoordPair.hasMatch(parts.last);
   }
 
-  /// Calle usable. Descarta coordenadas y un texto que es solo el nombre de referencia.
   static String? savedPlaceStreet(String? address, {String? reference}) {
     final text = address?.trim() ?? '';
     if (text.length < 3 || savedPlaceAddressIsCoordinates(text)) return null;
@@ -200,7 +195,6 @@ abstract final class HomeQuickSlots {
     return raw;
   }
 
-  /// Lo que ve el pasajero: nombre de referencia y calle, o coordenadas si no hay calle.
   static String savedPlacePassengerLabel({
     required String reference,
     required String streetOrCoords,
@@ -217,7 +211,6 @@ abstract final class HomeQuickSlots {
     return '$name \u00B7 $street';
   }
 
-  /// Lo que recibe el conductor: la calle, o las coordenadas si no hubo calle.
   static String savedPlaceDriverAddress({
     required String? street,
     required double lat,

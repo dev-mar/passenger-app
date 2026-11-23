@@ -6,7 +6,6 @@ import '../auth/auth_service.dart';
 import '../router/app_router.dart';
 import 'passenger_notification_service.dart';
 
-/// Payload local: `auth:wa_inbound:profile|driver|link?cc=...&phone=...`
 class PassengerWaInboundVerifiedPayload {
   const PassengerWaInboundVerifiedPayload({
     required this.action,

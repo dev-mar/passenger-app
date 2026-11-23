@@ -41,11 +41,11 @@ class LoginPhoneUnifiedPanel extends StatelessWidget {
   final ValueChanged<String> onCaptchaToken;
   final PhoneVerificationMethodSelected onMethodSelected;
   final bool isLoading;
-  /// Prod: un solo continuar. La prueba del número queda para el primer viaje.
+
   final VoidCallback? onContinue;
   final bool deferPhoneVerification;
   final bool outboundEnabled;
-  /// Flavor/dev: un CTA a OTP `code`. Default false = UI prod (WA inbound/outbound).
+
   final bool classicPhoneOtp;
   final String? linkedGoogleEmail;
   final VoidCallback? onCountryTap;

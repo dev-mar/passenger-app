@@ -11,7 +11,6 @@ import '../../gen_l10n/app_localizations.dart';
 import '../notifications/passenger_notification_service.dart';
 import '../notifications/passenger_push_token_service.dart';
 
-/// Divulgaciones Play antes de permisos sensibles (viaje / mapa).
 Future<bool> passengerEnsurePlayDisclosuresBeforeTripFlow(
   BuildContext context,
   AppLocalizations l10n,
@@ -35,7 +34,6 @@ Future<bool> passengerEnsurePlayDisclosuresBeforeTripFlow(
   return true;
 }
 
-/// Ubicación para pintar el mapa. No espera FCM.
 Future<bool> passengerEnsureLocationDisclosureForMap(
   BuildContext context,
   AppLocalizations l10n,
@@ -47,7 +45,6 @@ Future<bool> passengerEnsureLocationDisclosureForMap(
   return _ensureForegroundLocationDisclosure(context, l10n);
 }
 
-/// Solo notificaciones (viaje activo, chat, llegada del conductor).
 Future<bool> passengerEnsureNotificationDisclosureForTripUpdates(
   BuildContext context,
   AppLocalizations l10n,

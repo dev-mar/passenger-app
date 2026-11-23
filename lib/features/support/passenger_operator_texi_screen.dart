@@ -10,10 +10,6 @@ import '../../gen_l10n/app_localizations.dart';
 import 'passenger_account_views_flags.dart';
 import 'widgets/passenger_verified_drivers_panel.dart';
 
-/// Contacto Operador Texi.
-///
-/// Con [kPassengerAccountViewsV2]: solo Seguridad / WhatsApp / Llamar.
-/// Con flag en `false`: layout previo (incluye Conductores verificados).
 class PassengerOperatorTexiScreen extends StatelessWidget {
   const PassengerOperatorTexiScreen({super.key});
 
@@ -136,7 +132,7 @@ class PassengerOperatorTexiScreen extends StatelessWidget {
                       },
                     ),
                   ] else ...[
-                    // --- Layout legacy (revert: kPassengerAccountViewsV2 = false) ---
+
                     _LegacyContactRow(
                       icon: Icons.shield_rounded,
                       title: l10n.operatorSecurityCtaTitle,

@@ -21,13 +21,12 @@ final loginControllerProvider =
   return LoginController(ref.watch(passengerApiClientProvider));
 });
 
-/// Próximo paso del flujo de login.
 enum LoginNextStep {
   tripRequest,
   verifyCode,
   verifyEmailCode,
   profileRequired,
-  /// Step-up backend deshabilitado en UX: usar [authLockout] o [attemptsLimitReached].
+
   stepUp,
   attemptsLimitReached,
   authLockout,
@@ -52,7 +51,7 @@ class LoginState {
   });
 
   final String? errorMessage;
-  /// Código de negocio del backend (`PASS_AUTH_*`, etc.) cuando aplica.
+
   final String? errorCode;
   final Map<String, dynamic>? accountDeletion;
   final String? verificationChannel;
@@ -62,7 +61,7 @@ class LoginState {
   final String? googleEmail;
   final String? googleDisplayName;
   final String? loginEmail;
-  /// Token Turnstile de la puerta de entrada (UX; backend lo validará en fase posterior).
+
   final String? entryCaptchaToken;
   final PassengerAuthLockout? authLockout;
 }
@@ -73,7 +72,6 @@ class LoginController extends StateNotifier<LoginState> {
   final PassengerApiClient _api;
   final PassengerGoogleSignInService _googleSignIn = PassengerGoogleSignInService();
 
-  /// Mapea Dio → código de negocio / transporte (sin texto crudo de validateStatus).
   Future<LoginNextStep> _failFromDio(
     DioException e, {
     String? countryCode,
@@ -150,9 +148,6 @@ class LoginController extends StateNotifier<LoginState> {
     return LoginNextStep.error;
   }
 
-  /// Login según contrato:
-  /// - Si el usuario ya existe y está activo, devuelve token.
-  /// - Si el usuario es nuevo o no verificado, devuelve status=pending y se solicita código de verificación.
   Future<LoginNextStep> login({
     required String countryCode,
     required String phoneNumber,
@@ -185,8 +180,6 @@ class LoginController extends StateNotifier<LoginState> {
         }
       } catch (_) {}
 
-      // Flavor/dev: siempre `code` (alta de pasajero nuevo incluida).
-      // Prod: el número entra con captcha; el celular se prueba al pedir el viaje.
       final resolvedChannel = PassengerAppEnvironment.usesClassicPhoneOtp
           ? 'code'
           : deferPhoneVerification
@@ -205,7 +198,7 @@ class LoginController extends StateNotifier<LoginState> {
           if (deferPhoneVerification) 'defer_phone_verification': true,
           'push_token': ?pushToken,
           if (cancelPendingDeletion) 'cancel_pending_deletion': true,
-          // Reservado contrato Fase 6 — backend ignorará hasta implementación.
+
           if (entryCaptchaToken != null &&
               entryCaptchaToken.trim().isNotEmpty &&
               entryCaptchaToken != 'dev-bypass-captcha')
@@ -669,7 +662,6 @@ class LoginController extends StateNotifier<LoginState> {
     return step == LoginNextStep.tripRequest;
   }
 
-  /// Fase 7 — emitir OTP para vincular teléfono a sesión autenticada.
   Future<LoginNextStep> linkPhoneChallenge({
     required String countryCode,
     required String phoneNumber,
@@ -719,7 +711,6 @@ class LoginController extends StateNotifier<LoginState> {
     }
   }
 
-  /// Fase 7 — verificar OTP o posesión WA inbound y elevar sesión a full.
   Future<bool> linkPhoneVerify({
     required String countryCode,
     required String phoneNumber,

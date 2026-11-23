@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/auth_service.dart';
 import '../config/passenger_app_environment.dart';
 
-/// Pantallas internas (labs / QA) visibles solo con `--dart-define` o allowlist por prefijo nacional.
-///
-/// Misma regla que conductor: [qaNationalPrefix] en el número local (p. ej. Bolivia +591 → `591` + `10011…`).
 class PassengerInternalToolsGate {
   PassengerInternalToolsGate._();
 
@@ -22,7 +19,6 @@ class PassengerInternalToolsGate {
   }
 }
 
-/// `true` si el build fuerza labs o el teléfono guardado al login está en allowlist QA.
 final passengerInternalToolsVisibleProvider = FutureProvider.autoDispose<bool>((ref) async {
   if (PassengerAppEnvironment.showsInternalToolsByDefault) return true;
   final phone = await AuthService.readLoginPhoneE164Digits();

@@ -5,10 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../storage/passenger_secure_storage.dart';
 
-/// Locale elegido por la persona. Null = idioma del teléfono.
 final localeProvider = StateProvider<Locale?>((ref) => null);
 
-/// Locales soportados (español latino e inglés).
 List<Locale> get supportedLocales => const [
       Locale('es'),
       Locale('en'),
@@ -16,7 +14,6 @@ List<Locale> get supportedLocales => const [
 
 const passengerLocaleStorageKey = 'passenger_app_locale';
 
-/// Lee la elección guardada. Null si todavía no eligió, para no pisar el teléfono.
 Future<Locale?> readSavedPassengerLocale() async {
   try {
     final raw = await PassengerSecureStorage.read(

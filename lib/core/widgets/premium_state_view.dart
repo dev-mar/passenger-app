@@ -4,7 +4,6 @@ import '../theme/app_colors.dart';
 import '../theme/app_ui_tokens.dart';
 import '../ui/texi_scale_press.dart';
 
-/// Tarjeta reusable para estados de carga/empty/error/offline con estética consistente.
 class PremiumStateView extends StatelessWidget {
   const PremiumStateView({
     super.key,

@@ -6,13 +6,6 @@ import 'package:flutter/foundation.dart';
 
 import 'passenger_marketing_events.dart';
 
-/// Avisos de marketing. Firebase alimenta Tag Manager (`GTM-NCWG7KDR`).
-/// Meta / Facebook App Events esta desactivado temporalmente (evitar bloqueo
-/// Play por declaracion Advertising ID vs manifiesto). Los eventos siguen
-/// saliendo por Firebase.
-///
-/// Sin telefono, ubicacion ni identificador del viaje. `sign_up` en Firebase
-/// lleva solo la etiqueta fija `passenger`. Un fallo de medicion no se propaga.
 class PassengerMarketingAnalytics {
   PassengerMarketingAnalytics._();
 

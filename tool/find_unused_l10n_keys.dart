@@ -3,7 +3,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// Lista claves de app_en.arb que no aparecen en ningún .dart de lib/ (excepto gen_l10n).
 void main() {
   final arb = jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync())
       as Map<String, dynamic>;

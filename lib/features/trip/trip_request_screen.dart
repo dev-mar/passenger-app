@@ -89,8 +89,6 @@ part 'trip_request_screen.sync.dart';
 part 'trip_request_screen.bootstrap.dart';
 part 'trip_request_screen.scaffold.dart';
 
-/// Pantalla unificada: Origen, destino y precios en la misma ventana.
-/// Si originLat/originLng son null, se obtiene la ubicaciÃ³n actual al abrir.
 class TripRequestScreen extends ConsumerStatefulWidget {
   const TripRequestScreen({
     super.key,
@@ -108,8 +106,6 @@ class TripRequestScreen extends ConsumerStatefulWidget {
   final double? destLng;
   final String? destLabel;
 
-  /// Calle que ve el conductor cuando el destino es un lugar guardado.
-  /// El pasajero sigue viendo [destLabel], que incluye el nombre de referencia.
   final String? destStreet;
 
   @override
@@ -118,8 +114,6 @@ class TripRequestScreen extends ConsumerStatefulWidget {
 
 enum ActiveStop { none, origin, destination }
 
-/// El pin de origen ya elegido (búsqueda, GPS o POI) no se pisa con la calle
-/// cercana si el mapa no se movió de verdad.
 const double _kLiveOriginHoldMeters = 18;
 
 class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
@@ -142,39 +136,33 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
   final BitmapDescriptor _driverFallbackIcon =
       BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-  LatLng? _origin; // Origen resuelto (widget o ubicaciÃ³n actual)
+  LatLng? _origin;
   String?
-  _originDisplayLabel; // null = "Tu ubicaciÃ³n actual", si no texto elegido por el usuario
+  _originDisplayLabel;
   bool _loadingOrigin = false;
   String? _originError;
 
-  /// true solo tras leer coordenadas reales del dispositivo (no bastan origen en mapa/bÃºsqueda).
   bool _deviceGpsFixOk = false;
 
-  /// Reinicio suave de la capa nativa del puntito azul (Ãºtil tras cold start con viaje restaurado).
   bool _mapMyLocationDotEnabled = true;
   bool _originConfirmed = false;
   bool _pickingOrigin = false;
 
-  /// Punto al pulsar Editar en un origen ya fijado. Si el pin se aleja, al soltar se guarda solo.
   LatLng? _originEditAnchor;
 
-  /// El pasajero movió el pin de origen: el ajuste fino de GPS ya no debe pisarlo.
   bool _originPinAdjusted = false;
   bool _pickingDestination = false;
 
-  /// El pin de destino solo se mueve después de «Buscar en el mapa».
   bool _destinationMapPickArmed = false;
   LatLng? _destination;
-  String? _destinationDisplayLabel; // null = coordenadas o placeholder
-  /// Calle sin nombre de referencia. Solo lugares guardados. El aeropuerto no la usa.
+  String? _destinationDisplayLabel;
+
   String? _destinationDriverAddress;
   String? _originDriverAddress;
-  /// Nombre de POI (aeropuerto, Places, guardados). No lo pisa el reverse-geocode de calle al snap de ruta.
+
   bool _destinationPoiLabelLocked = false;
   LatLng? _mapCenter;
 
-  /// Invalida refinados GPS diferidos si [_resolveOrigin] se vuelve a ejecutar.
   int _originResolveGeneration = 0;
   bool _loading = false;
   String? _error;
@@ -188,11 +176,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   String _originPlacesSessionToken = '';
   String _destinationPlacesSessionToken = '';
 
-  /// Cache para filtrar el listener del FocusNode y rebuildear solo cuando el focus cambia.
   bool _lastDraftSearchFocusState = false;
   Timer? _draftSearchDebounce;
 
-  /// En borrador con origen y destino ya fijados, fuerza bÃºsqueda/GPS/guardados hacia un punto al editar.
   PassengerDraftEditTarget _draftEditTarget = PassengerDraftEditTarget.none;
 
   List<PlaceSuggestion> _draftSuggestions = const <PlaceSuggestion>[];
@@ -201,10 +187,9 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   Timer? _mapConfirmIdleTimer;
   bool _mapConfirmInstructionHiddenWhileDragging = false;
   String? _mapNeedleAddressPreview;
-  /// Incrementar para forzar colapso de la lupa expandida (mapa, editar, etc.).
+
   int _draftSearchCollapseToken = 0;
 
-  /// Incrementar para expandir/enfocar la lupa (tap en fila origen/destino).
   int _draftSearchExpandToken = 0;
   int _autoQuoteRouteGeneration = 0;
   bool _submittingTrip = false;
@@ -213,14 +198,11 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
       const <TripRecentPlaceItem>[];
   List<LatLng>? _routePoints;
 
-  /// Misma polyline codificada que Directions (se envÃ­a al crear viaje para el mapa del conductor).
   String? _routeOverviewEncoded;
   bool _loadingRoute = false;
 
-  /// Se incrementa al cancelar ruta / fin de viaje y al iniciar cada [_fetchRoute]; evita aplicar polilÃ­nea y pines viejos.
   int _routeRequestToken = 0;
 
-  /// Ruta dinÃ¡mica conductor â†’ destino cuando el viaje ya iniciÃ³ (`started` / `in_trip`).
   List<LatLng>? _passengerEnRouteToDestPoints;
   Timer? _passengerEnRouteRouteDebounce;
   int _passengerEnRouteRouteRequestToken = 0;
@@ -232,25 +214,19 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _ratingDone = false;
   String? _cancelHelpShownForTripId;
 
-  /// Evita encolar varios auto-resets cuando el viaje ya estÃ¡ completado y el rating constaba hecho.
   String? _completedStaleAutoResetTripId;
 
-  /// Evita que el listener de `tripId == null` borre flags durante [_resetHomeAfterTripEnded].
   bool _tripEndResetInProgress = false;
 
-  /// Ãšltimo [passengerTripMapUiResetTickProvider] ya aplicado al estado local del mapa.
   int _lastConsumedPassengerTripMapUiTick = 0;
   ActiveStop _activeStop = ActiveStop.none;
 
-  /// `true` mientras el bottom sheet del chat estÃ¡ visible (para cerrarlo al cambiar fase del viaje).
   bool _tripChatSheetDisplayed = false;
   int _lastHandledTripChatOpenBump = 0;
   int _tripChatUnreadCount = 0;
   int _tripChatReadCursor = 0;
   late final AnimationController _chatAttentionController;
 
-  // Resiliencia: si falta el Ãºltimo evento por WebSocket (p. ej. driver finaliza offline),
-  // refrescamos el status vÃ­a REST cada cierto tiempo.
   Timer? _tripStatusSyncTimer;
   String? _tripStatusSyncTimerTripId;
   Duration _tripStatusSyncInterval = const Duration(seconds: 60);
@@ -260,18 +236,18 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   BitmapDescriptor? _originOnTripIcon;
   BitmapDescriptor? _destinationOnTripIcon;
   late final AnimationController _driverPulseController;
-  /// Pulso de radar en mapa solo durante matching.
+
   late final AnimationController _searchingMapRadarController;
   Timer? _driverMotionTimer;
   Timer? _searchingNearbyTimer;
   List<NearbyDriver> _searchingNearbyDrivers = const [];
-  /// Overlay de matching visible tras cancelar por stage-3 / antes de Continuar.
+
   bool _searchingHoldUi = false;
-  /// Overlay de matching desde el tap de Solicitar / Continuar (antes de tripId).
+
   bool _matchingSubmitUi = false;
-  /// El timeout de matching no debe borrar origen/destino/cotización.
+
   bool _keepDraftAfterMatchingCancel = false;
-  /// Copia de la ruta para Continuar, por si un reset de `cancelled` llega tarde.
+
   QuoteResponse? _matchingRetryQuote;
   QuoteOption? _matchingRetryOption;
   LatLng? _matchingRetryOrigin;
@@ -279,12 +255,12 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   String? _matchingRetryOriginLabel;
   String? _matchingRetryDestinationLabel;
   String? _matchingRetryRouteEncoded;
-  /// Si el usuario cancela mientras createTrip sigue en vuelo.
+
   int _tripSubmitGeneration = 0;
-  /// Regenera el overlay (etapas 0) al reintentar búsqueda.
+
   int _searchingOverlayGeneration = 0;
   bool _searchingStage3CancelInFlight = false;
-  /// Evita recentrar el mapa en origen en cada rebuild durante matching.
+
   bool _searchingOriginCameraDone = false;
   bool? _nearbyPollingWanted;
   final ValueNotifier<Offset?> _searchingRadarAnchor = ValueNotifier<Offset?>(
@@ -294,7 +270,7 @@ class _TripRequestScreenState extends ConsumerState<TripRequestScreen>
   bool _radarAnchorInFlight = false;
   bool _tripSheetFullyExpanded = false;
   LatLng? _animatedDriverLatLng;
-  /// GPS del pasajero solo mientras el viaje ya va en camino (`started`/`in_trip`).
+
   LatLng? _passengerAboardLatLng;
   double _passengerAboardBearing = 0;
   StreamSubscription<Position>? _passengerAboardGpsSub;

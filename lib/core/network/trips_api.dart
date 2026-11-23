@@ -10,8 +10,6 @@ import '../../data/models/passenger_trip_sync_response.dart';
 import '../../features/trip/passenger_trip_vehicle_info.dart';
 import '../../features/trip/trip_cancel_reason.dart';
 
-/// Cliente para el backend de viajes (quote, trips, nearby-drivers) en `app_texi_WebSocket`.
-/// Ante 401 cierra sesión y dispara [AuthService.onSessionExpired] vía interceptor compartido.
 class TripsApi {
   TripsApi({required String token})
       : _dio = passenger_http.buildPassengerTripsAuthedDio(token: token);
@@ -105,7 +103,6 @@ class TripsApi {
     }
   }
 
-  /// GET /passengers/nearby-drivers
   Future<NearbyDriversResponse> getNearbyDrivers({
     required double lat,
     required double lng,
@@ -130,7 +127,6 @@ class TripsApi {
     return NearbyDriversResponse.fromJson(data);
   }
 
-  /// GET /passengers/trips/:tripId — sincroniza estado actual del viaje.
   Future<PassengerTripSyncResponse?> syncPassengerTrip(String tripId) async {
     final response = await _requestWithRetry<Map<String, dynamic>>(
       flow: 'trip_sync',
@@ -143,7 +139,6 @@ class TripsApi {
     return PassengerTripSyncResponse.fromJson(data);
   }
 
-  /// POST /passengers/trips/quote
   Future<QuoteResponse> quoteTrip({
     required double originLat,
     required double originLng,
@@ -167,7 +162,6 @@ class TripsApi {
     return QuoteResponse.fromJson(data);
   }
 
-  /// POST /passengers/trips
   Future<CreateTripResponse> createTrip({
     required double originLat,
     required double originLng,
@@ -248,7 +242,6 @@ class TripsApi {
     await _dio.post('/passengers/trips/$tripId/offer', data: {'amount': amount});
   }
 
-  /// GET /passengers/trips/:tripId — rehidratar estado aunque falten eventos WS.
   Future<TripStatusResponse> getPassengerTripStatus({
     required String tripId,
   }) async {
@@ -262,8 +255,6 @@ class TripsApi {
     return TripStatusResponse.fromJson(data);
   }
 
-  /// POST /passengers/trips/:tripId/cancel
-  /// [cancelScope] `matching` = solo requested|searching|offered (timeout overlay).
   Future<void> cancelPassengerTrip({
     required String tripId,
     String? cancelScope,
@@ -285,7 +276,6 @@ class TripsApi {
     PassengerMarketingAnalytics.logRideCancelled(tripId);
   }
 
-  /// GET /passengers/trips/:tripId/cancel-reasons — labels del servidor (fase 2).
   Future<List<TripCancelReasonItem>> getPassengerTripCancelReasons({
     required String tripId,
     String? locale,
@@ -308,7 +298,6 @@ class TripsApi {
         .toList(growable: false);
   }
 
-  /// POST /passengers/trips/:tripId/share-link — reutiliza token activo.
   Future<PassengerTripShareLink> createOrReuseTripShareLink({
     required String tripId,
   }) async {
@@ -385,7 +374,6 @@ class TripsApi {
     );
   }
 
-  /// POST /passengers/trips/:tripId/passenger-en-route (fallback del WS).
   Future<({int cooldownSec, String sentAt})> postPassengerEnRoute({
     required String tripId,
   }) async {
@@ -429,7 +417,6 @@ class TripsApi {
         .toList(growable: false);
   }
 
-  /// GET /passengers/trips/recent-places
   Future<List<PassengerRecentPlace>> getPassengerRecentPlaces({
     int limit = 5,
   }) async {
@@ -450,7 +437,6 @@ class TripsApi {
         .toList();
   }
 
-  /// GET /passengers/home — banners + aeropuerto más cercano. Fail-open.
   Future<PassengerHomeHub> getPassengerHomeHub({
     double? lat,
     double? lng,
@@ -668,7 +654,7 @@ class PassengerRecentPlace {
     required this.lng,
   });
 
-  final String placeType; // origin | destination
+  final String placeType;
   final String label;
   final String? subtitle;
   final double lat;
@@ -837,7 +823,6 @@ class PassengerTripHistoryItem {
   }
 }
 
-/// Respuesta de POST /passengers/trips
 class CreateTripResponse {
   const CreateTripResponse({
     required this.tripId,
@@ -878,7 +863,6 @@ class CreateTripResponse {
   }
 }
 
-/// Enlace público de seguimiento (compartir viaje).
 class PassengerTripShareLink {
   const PassengerTripShareLink({
     required this.token,
@@ -891,7 +875,6 @@ class PassengerTripShareLink {
   final String? expiresAt;
 }
 
-/// Montos de beneficio TEXIAPP en create/GET viaje (`promoSnapshot`).
 class TripPromoAmounts {
   const TripPromoAmounts({
     required this.cashDuePassenger,
@@ -932,7 +915,6 @@ TripPromoAmounts? parseTripPromoAmounts(Map<String, dynamic> json) {
   );
 }
 
-/// Respuesta mínima de `GET /passengers/trips/:tripId`.
 class TripStatusResponse {
   const TripStatusResponse({
     required this.tripId,
@@ -963,12 +945,10 @@ class TripStatusResponse {
   final String tripId;
   final String status;
 
-  /// Última posición conocida del conductor (GET enriquecido si el socket va atrasado).
   final double? driverLat;
   final double? driverLng;
   final double? driverBearing;
 
-  /// Foto de perfil del conductor (GET enriquecido; misma fuente que `trip:accepted`).
   final String? driverPhotoUrl;
   final DateTime? driverPhotoExpiresAt;
   final String? driverName;

@@ -6,14 +6,12 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../gen_l10n/app_localizations.dart';
 
-/// Viaje en estado terminal (no requiere sync periódico).
 bool passengerTripIsFinalStatus(String? status) {
   if (status == null) return false;
   final s = status.toLowerCase();
   return s == 'completed' || s == 'cancelled' || s == 'expired';
 }
 
-/// Fases con tracking del conductor en mapa.
 bool passengerTripIsTrackingDriver(String? status) {
   final s = status?.toLowerCase();
   return s == 'accepted' ||
@@ -22,14 +20,11 @@ bool passengerTripIsTrackingDriver(String? status) {
       s == 'in_trip';
 }
 
-/// Fases previas a aceptación (requested/searching/offered).
 bool passengerTripIsAwaitingDriverMatch(String? status) {
   final s = status?.toLowerCase();
   return s == 'requested' || s == 'searching' || s == 'offered';
 }
 
-/// El timeout de matching no debe borrar origen/destino/cotización.
-/// Si cancela el conductor, sí volvemos al inicio (help + draft limpio).
 bool passengerShouldKeepDraftAfterMatchingCancel({
   required bool searchingHoldUi,
   required bool keepDraftAfterMatchingCancel,
@@ -40,7 +35,6 @@ bool passengerShouldKeepDraftAfterMatchingCancel({
   return searchingHoldUi || keepDraftAfterMatchingCancel || matchingSubmitUi;
 }
 
-/// Overlay de matching: hold (timeout), submit en vuelo, o viaje en requested/searching/offered.
 bool passengerMatchingOverlayVisible({
   required bool tripAssigned,
   required bool searchingHoldUi,
@@ -55,14 +49,11 @@ bool passengerMatchingOverlayVisible({
       passengerTripIsAwaitingDriverMatch(status);
 }
 
-/// Pasajero a bordo hacia el destino.
 bool passengerTripIsEnRouteToDestination(String? status) {
   final s = status?.toLowerCase();
   return s == 'started' || s == 'in_trip';
 }
 
-/// En accepted/arrived se ve el auto del conductor. En camino ya no:
-/// el GPS del teléfono del conductor puede quedar fijo.
 bool passengerShouldDrawDriverVehiclePin({
   required bool hasTrip,
   required bool hasDriverPosition,
@@ -73,7 +64,6 @@ bool passengerShouldDrawDriverVehiclePin({
       !passengerTripIsEnRouteToDestination(status);
 }
 
-/// El auto del mapa, una vez iniciado el viaje, va en el GPS del pasajero.
 bool passengerShouldDrawAboardCarPin({
   required String? status,
   required bool hasPassengerPosition,
@@ -81,7 +71,6 @@ bool passengerShouldDrawAboardCarPin({
   return passengerTripIsEnRouteToDestination(status) && hasPassengerPosition;
 }
 
-/// El punto azul nativo cede el lugar al auto cuando ya hay posición del pasajero.
 bool passengerShouldDrawNativeLocationDot({
   required bool gpsDotEnabled,
   required bool aboardCarVisible,
@@ -89,12 +78,10 @@ bool passengerShouldDrawNativeLocationDot({
   return gpsDotEnabled && !aboardCarVisible;
 }
 
-/// Compartir seguimiento: solo con el viaje ya iniciado (no en accepted/arrived).
 bool passengerTripCanShareLive(String? status) {
   return passengerTripIsEnRouteToDestination(status);
 }
 
-/// Color de polyline activa según fase del viaje.
 Color passengerTripActiveRouteColor(String? status) {
   switch (status) {
     case 'accepted':
@@ -108,7 +95,6 @@ Color passengerTripActiveRouteColor(String? status) {
   }
 }
 
-/// Etiqueta localizada del estado del viaje para panel y chip superior.
 String passengerTripStatusLabel(AppLocalizations l10n, String status) {
   switch (status) {
     case 'accepted':
@@ -124,7 +110,6 @@ String passengerTripStatusLabel(AppLocalizations l10n, String status) {
   }
 }
 
-/// Haversine en km (origen/destino, snap a vía, zoom de cámara).
 double tripRequestDistanceKm(LatLng a, LatLng b) {
   const earthRadiusKm = 6371.0;
   final dLat = (b.latitude - a.latitude) * (math.pi / 180.0);
@@ -145,8 +130,6 @@ double tripRequestEstimateZoomForDistanceKm(double distanceKm) {
   return 12.8;
 }
 
-/// Con origen y destino ya puestos, editar en el mapa o abrir el buscador
-/// mantiene «Confirmar origen/destino». Las opciones del viaje esperan a confirmar.
 bool passengerDraftEditHidesTripOptions({
   required bool originConfirmed,
   required bool hasDestination,

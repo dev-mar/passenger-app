@@ -23,7 +23,7 @@ class LoginMethodChoicePanel extends StatelessWidget {
 
   final LoginMethodSelected onMethodSelected;
   final bool googleAuthEnabled;
-  /// False en login clásico (dev). Default true: no oculta Google en prod.
+
   final bool showGoogleMethod;
 
   @override

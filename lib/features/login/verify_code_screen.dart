@@ -32,7 +32,6 @@ import 'widgets/passenger_auth_look.dart';
 import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
-/// Pantalla para ingresar el código de 6 dígitos y activar al pasajero.
 class VerifyCodeScreen extends ConsumerStatefulWidget {
   const VerifyCodeScreen({
     super.key,
@@ -55,7 +54,7 @@ class VerifyCodeScreen extends ConsumerStatefulWidget {
   final String? waDeepLink;
   final bool linkPhoneMode;
   final String? returnTo;
-  /// Tras toque en notificación local (`driver` | `link` | `profile`).
+
   final String? waResumeMode;
 
   @override
@@ -661,7 +660,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     );
   }
 
-  /// Persiste el teléfono en la identidad (sesión limitada email/Google → full).
   Future<bool> _completePhoneLinkAfterPossession({String? verificationCode}) async {
     final l10n = AppLocalizations.of(context)!;
     final phoneDigits = widget.phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
@@ -695,7 +693,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     return true;
   }
 
-  /// Si verify-code ya emitió tokens (cuenta con perfil), entrar al mapa.
   Future<bool> _enterHomeIfSessionIssued(
     Map<String, dynamic> data, {
     required String fullPhone,
@@ -727,7 +724,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
     return true;
   }
 
-  /// Mismo número ya registrado como conductor: completar pasajero con datos existentes (solo OTP).
   Future<void> _completePassengerFromDriver() async {
     final l10n = AppLocalizations.of(context)!;
     final phoneDigits =
@@ -993,7 +989,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen>
       }
 
       if (!mounted) return;
-      // Código válido en cuenta nueva: completar nombre + foto opcional.
+
       context.goNamed(
         'profile_setup',
         queryParameters: {

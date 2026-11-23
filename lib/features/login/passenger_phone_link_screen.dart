@@ -19,7 +19,6 @@ import 'widgets/passenger_auth_look.dart';
 import 'widgets/passenger_auth_notice.dart';
 import 'widgets/passenger_auth_shell.dart';
 
-/// Vincular teléfono verificado a sesión limitada (email/Google) — Fase 7.
 class PassengerPhoneLinkScreen extends ConsumerStatefulWidget {
   const PassengerPhoneLinkScreen({super.key, this.returnTo});
 

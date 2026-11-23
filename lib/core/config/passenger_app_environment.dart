@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-/// Entorno compile-time pasajero (espejo conductor).
-///
-/// Matriz credenciales: `.cursor/functional-modules/passenger-trip-request/passenger-app-credentials-matrix.md`
 enum PassengerAppEnvironmentKind {
   dev,
   prod,
@@ -26,13 +23,11 @@ class PassengerAppEnvironment {
     defaultValue: false,
   );
 
-  /// Humo QA: activa WA inbound en build dev contra `api.dev` (no usar en release prod).
   static const bool multichannelAuthDartDefine = bool.fromEnvironment(
     'TEXI_PASSENGER_MULTICHANNEL_AUTH',
     defaultValue: false,
   );
 
-  /// Cloudflare Turnstile site key (pública) — Fase 2 step-up.
   static const String turnstileSiteKey = String.fromEnvironment(
     'TURNSTILE_SITE_KEY',
     defaultValue: '',
@@ -40,7 +35,6 @@ class PassengerAppEnvironment {
 
   static const String devBackendDefault = 'https://api.dev.taxitexi.com';
 
-  /// API prod canónica (REST + Socket.IO). No confundir con `api-prod` (panel admin).
   static const String prodBackendCanonical =
       'https://api-prodtx.taxitexi.com';
 
@@ -71,27 +65,16 @@ class PassengerAppEnvironment {
     if (isDev) {
       return devBackendDefault;
     }
-    // Fallback canónico: evita crash/splash colgado si el define no llegó al APK.
-    // El script de build debe inyectar TEXI_BACKEND_BASE_URL; esto es red de seguridad.
+
     return prodBackendCanonical;
   }
 
   static bool get showsInternalToolsByDefault =>
       internalToolsDartDefine || isDev;
 
-  /// Auth multicanal (WA / email / Google): **solo prod** o `--dart-define=TEXI_PASSENGER_MULTICHANNEL_AUTH=true` (humo QA).
-  /// No gobierna el login de flavor/dev: ahí manda [usesClassicPhoneOtp].
   static bool get multichannelAuthEnabled =>
       isProd || multichannelAuthDartDefine;
 
-  /// Login clásico: teléfono + `otp_channel=code` (OTP de `PASSENGER_DEV_OTP_CODE`).
-  ///
-  /// **Todo** build `TEXI_APP_ENV=dev` (debug o `app-dev-release.apk`) usa este camino,
-  /// incluido el alta de un pasajero **nuevo**. No depende del dart-define de humo:
-  /// si `.env.local` trae `TEXI_PASSENGER_MULTICHANNEL_AUTH=true`, el APK de desarrollo
-  /// igual no llama WhatsApp/Google.
-  ///
-  /// `TEXI_APP_ENV=prod` → false. El login de producción no entra aquí.
   static bool get usesClassicPhoneOtp => isDev;
 
   static String get firebaseAndroidApplicationId => isDev
@@ -121,7 +104,6 @@ class PassengerAppEnvironment {
     }
   }
 
-  /// En prod, corrige hosts legacy compilados por error al canónico `api-prodtx`.
   static String _resolveProdBackendOverride(String url) {
     final trimmed = url.trim();
     final parsed = Uri.tryParse(trimmed);
@@ -132,7 +114,6 @@ class PassengerAppEnvironment {
     return trimmed;
   }
 
-  /// Rechaza panel admin y hosts prod con punto (convención descartada).
   static bool _isInvalidProdBackendHost(String host) {
     final h = host.toLowerCase();
     if (h == 'api-prod.taxitexi.com') return true;
